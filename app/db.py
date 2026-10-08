@@ -1,1 +1,439 @@
-IiIiU1FMaXRlIHN0b3JhZ2UuIEFsbCB0aW1lc3RhbXBzIHN0b3JlZCBhcyBVVEMgSVNPIHN0cmluZ3MuCldyaXRlIG9wZXJhdGlvbnMgdGhhdCBtdXN0IGJlIGF0b21pYyB1c2UgQkVHSU4gSU1NRURJQVRFIHRvIHNlcmlhbGl6ZS4KIiIiCmltcG9ydCBzZWNyZXRzCmltcG9ydCBzcWxpdGUzCmltcG9ydCB0aHJlYWRpbmcKZnJvbSBkYXRldGltZSBpbXBvcnQgZGF0ZXRpbWUsIHRpbWVkZWx0YSwgdGltZXpvbmUKZnJvbSBwYXRobGliIGltcG9ydCBQYXRoCgpmcm9tIC4gaW1wb3J0IGNvbmZpZwoKX2xvY2sgPSB0aHJlYWRpbmcuUkxvY2soKSAgIyByZWVudHJhbnQ6IGhlbHBlcnMgY2FsbCBnZXRfY29ubigpIGluc2lkZSBsb2NrZWQgc2VjdGlvbnMKX2Nvbm46IHNxbGl0ZTMuQ29ubmVjdGlvbiB8IE5vbmUgPSBOb25lCgpTQ0hFTUEgPSAiIiIKQ1JFQVRFIFRBQkxFIElGIE5PVCBFWElTVFMgdHV0b3JzICgKICAgIGlkICAgICAgICAgICAgSU5URUdFUiBQUklNQVJZIEtFWSwKICAgIHRnX3VzZXJfaWQgICAgSU5URUdFUiBVTklRVUUgTk9UIE5VTEwsCiAgICBuYW1lICAgICAgICAgIFRFWFQgTk9UIE5VTEwsCiAgICB0aW1lem9uZSAgICAgIFRFWFQgTk9UIE5VTEwgREVGQVVMVCAnQXNpYS9Lb2xrYXRhJywKICAgIHByaWNlX3N0YXJzICAgSU5URUdFUiBOT1QgTlVMTCBERUZBVUxUIDIwMCwKICAgIGxpbmtfY29kZSAgICAgVEVYVCBVTklRVUUgTk9UIE5VTEwsCiAgICBjcmVhdGVkX2F0ICAgIFRFWFQgTk9UIE5VTEwKKTsKCkNSRUFURSBUQUJMRSBJRiBOT1QgRVhJU1RTIGF2YWlsYWJpbGl0eV9ydWxlcyAoCiAgICBpZCAgICAgICAgIElOVEVHRVIgUFJJTUFSWSBLRVksCiAgICB0dXRvcl9pZCAgIElOVEVHRVIgTk9UIE5VTEwgUkVGRVJFTkNFUyB0dXRvcnMoaWQpIE9OIERFTEVURSBDQVNDQURFLAogICAgd2Vla2RheSAgICBJTlRFR0VSIE5PVCBOVUxMLCAgICAgICAgICAgICAgLS0gMD1Nb25kYXkgLi4gNj1TdW5kYXkKICAgIHN0YXJ0X21pbiAgSU5URUdFUiBOT1QgTlVMTCwgICAgICAgICAgICAgIC0tIG1pbnV0ZXMgc2luY2UgbWlkbmlnaHQsIHR1dG9yLWxvY2FsCiAgICBlbmRfbWluICAgIElOVEVHRVIgTk9UIE5VTEwsCiAgICBzbG90X21pbiAgIElOVEVHRVIgTk9UIE5VTEwKKTsKCkNSRUFURSBUQUJMRSBJRiBOT1QgRVhJU1RTIHNsb3RzICgKICAgIGlkICAgICAgICAgICAgIElOVEVHRVIgUFJJTUFSWSBLRVksCiAgICB0dXRvcl9pZCAgICAgICBJTlRFR0VSIE5PVCBOVUxMIFJFRkVSRU5DRVMgdHV0b3JzKGlkKSBPTiBERUxFVEUgQ0FTQ0FERSwKICAgIHN0YXJ0c19hdF91dGMgIFRFWFQgTk9UIE5VTEwsCiAgICBlbmRzX2F0X3V0YyAgICBURVhUIE5PVCBOVUxMLAogICAgc3RhdHVzICAgICAgICAgVEVYVCBOT1QgTlVMTCBERUZBVUxUICdvcGVuJywgIC0tIG9wZW58aGVsZHxib29rZWR8YmxvY2tlZAogICAgVU5JUVVFKHR1dG9yX2lkLCBzdGFydHNfYXRfdXRjKQopOwoKQ1JFQVRFIFRBQkxFIElGIE5PVCBFWElTVFMgYm9va2luZ3MgKAogICAgaWQgICAgICAgICAgICAgICBJTlRFR0VSIFBSSU1BUlkgS0VZLAogICAgdHV0b3JfaWQgICAgICAgICBJTlRFR0VSIE5PVCBOVUxMIFJFRkVSRU5DRVMgdHV0b3JzKGlkKSBPTiBERUxFVEUgQ0FTQ0FERSwKICAgIHNsb3RfaWQgICAgICAgICAgSU5URUdFUiBOT1QgTlVMTCBVTklRVUUgUkVGRVJFTkNFUyBzbG90cyhpZCkgT04gREVMRVRFIENBU0NBREUsCiAgICBzdHVkZW50X3RnX2lkICAgIElOVEVHRVIgTk9UIE5VTEwsCiAgICBzdHVkZW50X25hbWUgICAgIFRFWFQsCiAgICBzdGF0dXMgICAgICAgICAgIFRFWFQgTk9UIE5VTEwgREVGQVVMVCAnaGVsZCcsICAtLSBoZWxkfHBhaWR8Y2FuY2VsbGVkfGNvbXBsZXRlZHxleHBpcmVkCiAgICBob2xkX2V4cGlyZXNfYXQgIFRFWFQsCiAgICBpZGVtcG90ZW5jeV9rZXkgIFRFWFQgVU5JUVVFIE5PVCBOVUxMLAogICAgY3JlYXRlZF9hdCAgICAgICBURVhUIE5PVCBOVUxMCik7CgpDUkVBVEUgVEFCTEUgSUYgTk9UIEVYSVNUUyBwYXltZW50cyAoCiAgICBpZCAgICAgICAgICAgICAgICAgIElOVEVHRVIgUFJJTUFSWSBLRVksCiAgICBib29raW5nX2lkICAgICAgICAgIElOVEVHRVIgTk9UIE5VTEwgVU5JUVVFIFJFRkVSRU5DRVMgYm9va2luZ3MoaWQpIE9OIERFTEVURSBDQVNDQURFLAogICAgdGVsZWdyYW1fY2hhcmdlX2lkICBURVhUIFVOSVFVRSBOT1QgTlVMTCwKICAgIGFtb3VudF9zdGFycyAgICAgICAgSU5URUdFUiBOT1QgTlVMTCwKICAgIHN0YXR1cyAgICAgICAgICAgICAgVEVYVCBOT1QgTlVMTCBERUZBVUxUICdjb21wbGV0ZWQnLCAgLS0gY29tcGxldGVkfHJlZnVuZGVkCiAgICBjcmVhdGVkX2F0ICAgICAgICAgIFRFWFQgTk9UIE5VTEwKKTsKCkNSRUFURSBUQUJMRSBJRiBOT1QgRVhJU1RTIHJlbWluZGVycyAoCiAgICBpZCAgICAgICAgICAgICBJTlRFR0VSIFBSSU1BUlkgS0VZLAogICAgYm9va2luZ19pZCAgICAgSU5URUdFUiBOT1QgTlVMTCBSRUZFUkVOQ0VTIGJvb2tpbmdzKGlkKSBPTiBERUxFVEUgQ0FTQ0FERSwKICAgIGtpbmQgICAgICAgICAgIFRFWFQgTk9UIE5VTEwsICAgLS0gMjRofDFoCiAgICByZW1pbmRfYXRfdXRjICBURVhUIE5PVCBOVUxMLAogICAgc2VudF9hdCAgICAgICAgVEVYVCwKICAgIFVOSVFVRShib29raW5nX2lkLCBraW5kKQopOwoKQ1JFQVRFIFRBQkxFIElGIE5PVCBFWElTVFMgb25ib2FyZGluZ19zZXNzaW9ucyAoCiAgICB0Z191c2VyX2lkICBJTlRFR0VSIFBSSU1BUlkgS0VZLAogICAgZGF0YSAgICAgICAgVEVYVCBOT1QgTlVMTCwgICAtLSBKU09OOiBzdXJ2aXZlcyBib3QgcmVzdGFydHMgKHVubGlrZSBSQU0pCiAgICB1cGRhdGVkX2F0ICBURVhUIE5PVCBOVUxMCik7CiIiIgoKCmRlZiB1dGNub3dfaXNvKCkgLT4gc3RyOgogICAgcmV0dXJuIGRhdGV0aW1lLm5vdyh0aW1lem9uZS51dGMpLmlzb2Zvcm1hdCgpCgoKZGVmIGdldF9jb25uKCkgLT4gc3FsaXRlMy5Db25uZWN0aW9uOgogICAgZ2xvYmFsIF9jb25uCiAgICB3aXRoIF9sb2NrOgogICAgICAgIGlmIF9jb25uIGlzIE5vbmU6CiAgICAgICAgICAgIFBhdGgoY29uZmlnLkRCX1BBVEgpLnBhcmVudC5ta2RpcihwYXJlbnRzPVRydWUsIGV4aXN0X29rPVRydWUpCiAgICAgICAgICAgIF9jb25uID0gc3FsaXRlMy5jb25uZWN0KGNvbmZpZy5EQl9QQVRILCBjaGVja19zYW1lX3RocmVhZD1GYWxzZSkKICAgICAgICAgICAgX2Nvbm4ucm93X2ZhY3RvcnkgPSBzcWxpdGUzLlJvdwogICAgICAgICAgICBfY29ubi5leGVjdXRlKCJQUkFHTUEgam91cm5hbF9tb2RlPVdBTDsiKQogICAgICAgICAgICBfY29ubi5leGVjdXRlKCJQUkFHTUEgZm9yZWlnbl9rZXlzPU9OOyIpCiAgICAgICAgICAgIF9jb25uLmV4ZWN1dGVzY3JpcHQoU0NIRU1BKQogICAgICAgICAgICBfY29ubi5jb21taXQoKQogICAgICAgIHJldHVybiBfY29ubgoKCmRlZiBuZXdfbGlua19jb2RlKCkgLT4gc3RyOgogICAgcmV0dXJuIHNlY3JldHMudG9rZW5fdXJsc2FmZSg2KQoKCiMgLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLSB0dXRvcnMgLS0tCmRlZiBjcmVhdGVfdHV0b3IodGdfdXNlcl9pZDogaW50LCBuYW1lOiBzdHIsIHRpbWV6b25lOiBzdHIpIC0+IGRpY3Q6CiAgICBjID0gZ2V0X2Nvbm4oKQogICAgd2l0aCBfbG9jazoKICAgICAgICBjdXIgPSBjLmV4ZWN1dGUoCiAgICAgICAgICAgICJJTlNFUlQgSU5UTyB0dXRvcnMgKHRnX3VzZXJfaWQsIG5hbWUsIHRpbWV6b25lLCBsaW5rX2NvZGUsIGNyZWF0ZWRfYXQpIgogICAgICAgICAgICAiIFZBTFVFUyAoPywgPywgPywgPywgPykiLAogICAgICAgICAgICAodGdfdXNlcl9pZCwgbmFtZSwgdGltZXpvbmUsIG5ld19saW5rX2NvZGUoKSwgdXRjbm93X2lzbygpKSwKICAgICAgICApCiAgICAgICAgYy5jb21taXQoKQogICAgICAgIHJldHVybiBnZXRfdHV0b3JfYnlfaWQoY3VyLmxhc3Ryb3dpZCkKCgpkZWYgZ2V0X3R1dG9yX2J5X2lkKHR1dG9yX2lkOiBpbnQpIC0+IGRpY3QgfCBOb25lOgogICAgcm93ID0gZ2V0X2Nvbm4oKS5leGVjdXRlKCJTRUxFQ1QgKiBGUk9NIHR1dG9ycyBXSEVSRSBpZD0/IiwgKHR1dG9yX2lkLCkpLmZldGNob25lKCkKICAgIHJldHVybiBkaWN0KHJvdykgaWYgcm93IGVsc2UgTm9uZQoKCmRlZiBnZXRfdHV0b3JfYnlfdGcodGdfdXNlcl9pZDogaW50KSAtPiBkaWN0IHwgTm9uZToKICAgIHJvdyA9IGdldF9jb25uKCkuZXhlY3V0ZSgKICAgICAgICAiU0VMRUNUICogRlJPTSB0dXRvcnMgV0hFUkUgdGdfdXNlcl9pZD0/IiwgKHRnX3VzZXJfaWQsKQogICAgKS5mZXRjaG9uZSgpCiAgICByZXR1cm4gZGljdChyb3cpIGlmIHJvdyBlbHNlIE5vbmUKCgpkZWYgZ2V0X3R1dG9yX2J5X2xpbmsobGlua19jb2RlOiBzdHIpIC0+IGRpY3QgfCBOb25lOgogICAgcm93ID0gZ2V0X2Nvbm4oKS5leGVjdXRlKAogICAgICAgICJTRUxFQ1QgKiBGUk9NIHR1dG9ycyBXSEVSRSBsaW5rX2NvZGU9PyIsIChsaW5rX2NvZGUsKQogICAgKS5mZXRjaG9uZSgpCiAgICByZXR1cm4gZGljdChyb3cpIGlmIHJvdyBlbHNlIE5vbmUKCgpkZWYgdXBkYXRlX3R1dG9yKHR1dG9yX2lkOiBpbnQsICoqZmllbGRzKSAtPiBOb25lOgogICAgYWxsb3dlZCA9IHsibmFtZSIsICJ0aW1lem9uZSIsICJwcmljZV9zdGFycyJ9CiAgICBzZXRzID0gIiwgIi5qb2luKGYie2t9PT8iIGZvciBrIGluIGZpZWxkcyBpZiBrIGluIGFsbG93ZWQpCiAgICB2YWxzID0gW3YgZm9yIGssIHYgaW4gZmllbGRzLml0ZW1zKCkgaWYgayBpbiBhbGxvd2VkXQogICAgaWYgbm90IHNldHM6CiAgICAgICAgcmV0dXJuCiAgICB3aXRoIF9sb2NrOgogICAgICAgIGMgPSBnZXRfY29ubigpCiAgICAgICAgYy5leGVjdXRlKGYiVVBEQVRFIHR1dG9ycyBTRVQge3NldHN9IFdIRVJFIGlkPT8iLCAoKnZhbHMsIHR1dG9yX2lkKSkKICAgICAgICBjLmNvbW1pdCgpCgoKIyAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tIGF2YWlsYWJpbGl0eSAtLS0tLS0KZGVmIHNldF9hdmFpbGFiaWxpdHlfcnVsZXModHV0b3JfaWQ6IGludCwgcnVsZXM6IGxpc3RbZGljdF0pIC0+IE5vbmU6CiAgICAiIiJSZXBsYWNlIGFsbCBydWxlcy4gRWFjaCBydWxlOiB3ZWVrZGF5LCBzdGFydF9taW4sIGVuZF9taW4sIHNsb3RfbWluLiIiIgogICAgd2l0aCBfbG9jazoKICAgICAgICBjID0gZ2V0X2Nvbm4oKQogICAgICAgIGMuZXhlY3V0ZSgiREVMRVRFIEZST00gYXZhaWxhYmlsaXR5X3J1bGVzIFdIRVJFIHR1dG9yX2lkPT8iLCAodHV0b3JfaWQsKSkKICAgICAgICBmb3IgciBpbiBydWxlczoKICAgICAgICAgICAgYy5leGVjdXRlKAogICAgICAgICAgICAgICAgIklOU0VSVCBJTlRPIGF2YWlsYWJpbGl0eV9ydWxlcyAodHV0b3JfaWQsIHdlZWtkYXksIHN0YXJ0X21pbiwgZW5kX21pbiwgc2xvdF9taW4pIgogICAgICAgICAgICAgICAgIiBWQUxVRVMgKD8sID8sID8sID8sID8pIiwKICAgICAgICAgICAgICAgICh0dXRvcl9pZCwgclsid2Vla2RheSJdLCByWyJzdGFydF9taW4iXSwgclsiZW5kX21pbiJdLCByWyJzbG90X21pbiJdKSwKICAgICAgICAgICAgKQogICAgICAgIGMuY29tbWl0KCkKCgpkZWYgZ2V0X2F2YWlsYWJpbGl0eV9ydWxlcyh0dXRvcl9pZDogaW50KSAtPiBsaXN0W2RpY3RdOgogICAgcm93cyA9IGdldF9jb25uKCkuZXhlY3V0ZSgKICAgICAgICAiU0VMRUNUICogRlJPTSBhdmFpbGFiaWxpdHlfcnVsZXMgV0hFUkUgdHV0b3JfaWQ9PyBPUkRFUiBCWSB3ZWVrZGF5LCBzdGFydF9taW4iLAogICAgICAgICh0dXRvcl9pZCwpLAogICAgKS5mZXRjaGFsbCgpCiAgICByZXR1cm4gW2RpY3QocikgZm9yIHIgaW4gcm93c10KCgojIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLSBzbG90cyAtLS0tLQpkZWYgdXBzZXJ0X3Nsb3RzKHR1dG9yX2lkOiBpbnQsIHNsb3RzOiBsaXN0W3R1cGxlW3N0ciwgc3RyXV0pIC0+IGludDoKICAgICIiIkluc2VydCAoc3RhcnRzX2F0X3V0YywgZW5kc19hdF91dGMpIHBhaXJzLCBpZ25vcmluZyBleGlzdGluZy4gUmV0dXJucyBuZXcgY291bnQuIiIiCiAgICB3aXRoIF9sb2NrOgogICAgICAgIGMgPSBnZXRfY29ubigpCiAgICAgICAgbiA9IDAKICAgICAgICBmb3IgcywgZSBpbiBzbG90czoKICAgICAgICAgICAgY3VyID0gYy5leGVjdXRlKAogICAgICAgICAgICAgICAgIklOU0VSVCBPUiBJR05PUkUgSU5UTyBzbG90cyAodHV0b3JfaWQsIHN0YXJ0c19hdF91dGMsIGVuZHNfYXRfdXRjKSIKICAgICAgICAgICAgICAgICIgVkFMVUVTICg/LCA/LCA/KSIsCiAgICAgICAgICAgICAgICAodHV0b3JfaWQsIHMsIGUpLAogICAgICAgICAgICApCiAgICAgICAgICAgIG4gKz0gY3VyLnJvd2NvdW50CiAgICAgICAgYy5jb21taXQoKQogICAgICAgIHJldHVybiBuCgoKZGVmIG9wZW5fc2xvdHModHV0b3JfaWQ6IGludCwgbGltaXQ6IGludCA9IDQwKSAtPiBsaXN0W2RpY3RdOgogICAgcm93cyA9IGdldF9jb25uKCkuZXhlY3V0ZSgKICAgICAgICAiU0VMRUNUICogRlJPTSBzbG90cyBXSEVSRSB0dXRvcl9pZD0/IEFORCBzdGF0dXM9J29wZW4nIgogICAgICAgICIgQU5EIHN0YXJ0c19hdF91dGMgPiA/IE9SREVSIEJZIHN0YXJ0c19hdF91dGMgTElNSVQgPyIsCiAgICAgICAgKHR1dG9yX2lkLCB1dGNub3dfaXNvKCksIGxpbWl0KSwKICAgICkuZmV0Y2hhbGwoKQogICAgcmV0dXJuIFtkaWN0KHIpIGZvciByIGluIHJvd3NdCgoKZGVmIGdldF9zbG90KHNsb3RfaWQ6IGludCkgLT4gZGljdCB8IE5vbmU6CiAgICByb3cgPSBnZXRfY29ubigpLmV4ZWN1dGUoIlNFTEVDVCAqIEZST00gc2xvdHMgV0hFUkUgaWQ9PyIsIChzbG90X2lkLCkpLmZldGNob25lKCkKICAgIHJldHVybiBkaWN0KHJvdykgaWYgcm93IGVsc2UgTm9uZQoKCiMgLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tIGJvb2tpbmdzIC0tLS0tCmRlZiBob2xkX3Nsb3QodHV0b3JfaWQ6IGludCwgc2xvdF9pZDogaW50LCBzdHVkZW50X3RnX2lkOiBpbnQsCiAgICAgICAgICAgICAgc3R1ZGVudF9uYW1lOiBzdHIgfCBOb25lLCBob2xkX21pbnV0ZXM6IGludCkgLT4gZGljdCB8IE5vbmU6CiAgICAiIiJBdG9taWNhbGx5IGhvbGQgYW4gb3BlbiBzbG90LiBSZXR1cm5zIGJvb2tpbmcgb3IgTm9uZSBpZiB1bmF2YWlsYWJsZS4iIiIKICAgIGZyb20gZGF0ZXRpbWUgaW1wb3J0IHRpbWVkZWx0YQogICAgd2l0aCBfbG9jazoKICAgICAgICBjID0gZ2V0X2Nvbm4oKQogICAgICAgIGMuZXhlY3V0ZSgiQkVHSU4gSU1NRURJQVRFIikKICAgICAgICB0cnk6CiAgICAgICAgICAgIHNsb3QgPSBjLmV4ZWN1dGUoCiAgICAgICAgICAgICAgICAiU0VMRUNUICogRlJPTSBzbG90cyBXSEVSRSBpZD0/IEFORCB0dXRvcl9pZD0/IiwgKHNsb3RfaWQsIHR1dG9yX2lkKQogICAgICAgICAgICApLmZldGNob25lKCkKICAgICAgICAgICAgaWYgbm90IHNsb3Qgb3Igc2xvdFsic3RhdHVzIl0gIT0gIm9wZW4iOgogICAgICAgICAgICAgICAgYy5leGVjdXRlKCJST0xMQkFDSyIpCiAgICAgICAgICAgICAgICByZXR1cm4gTm9uZQogICAgICAgICAgICBpZiBzbG90WyJzdGFydHNfYXRfdXRjIl0gPD0gdXRjbm93X2lzbygpOgogICAgICAgICAgICAgICAgYy5leGVjdXRlKCJST0xMQkFDSyIpCiAgICAgICAgICAgICAgICByZXR1cm4gTm9uZQogICAgICAgICAgICBjLmV4ZWN1dGUoIlVQREFURSBzbG90cyBTRVQgc3RhdHVzPSdoZWxkJyBXSEVSRSBpZD0/IiwgKHNsb3RfaWQsKSkKICAgICAgICAgICAgZXhwaXJlcyA9IChkYXRldGltZS5ub3codGltZXpvbmUudXRjKQogICAgICAgICAgICAgICAgICAgICAgICsgdGltZWRlbHRhKG1pbnV0ZXM9aG9sZF9taW51dGVzKSkuaXNvZm9ybWF0KCkKICAgICAgICAgICAgY3VyID0gYy5leGVjdXRlKAogICAgICAgICAgICAgICAgIklOU0VSVCBJTlRPIGJvb2tpbmdzICh0dXRvcl9pZCwgc2xvdF9pZCwgc3R1ZGVudF90Z19pZCwgc3R1ZGVudF9uYW1lLCIKICAgICAgICAgICAgICAgICIgc3RhdHVzLCBob2xkX2V4cGlyZXNfYXQsIGlkZW1wb3RlbmN5X2tleSwgY3JlYXRlZF9hdCkiCiAgICAgICAgICAgICAgICAiIFZBTFVFUyAoPywgPywgPywgPywgJ2hlbGQnLCA/LCA/LCA/KSIsCiAgICAgICAgICAgICAgICAodHV0b3JfaWQsIHNsb3RfaWQsIHN0dWRlbnRfdGdfaWQsIHN0dWRlbnRfbmFtZSwgZXhwaXJlcywKICAgICAgICAgICAgICAgICBzZWNyZXRzLnRva2VuX2hleCgxNiksIHV0Y25vd19pc28oKSksCiAgICAgICAgICAgICkKICAgICAgICAgICAgYy5leGVjdXRlKCJDT01NSVQiKQogICAgICAgICAgICByZXR1cm4gZ2V0X2Jvb2tpbmcoY3VyLmxhc3Ryb3dpZCkKICAgICAgICBleGNlcHQgRXhjZXB0aW9uOgogICAgICAgICAgICBjLmV4ZWN1dGUoIlJPTExCQUNLIikKICAgICAgICAgICAgcmFpc2UKCgpkZWYgZ2V0X2Jvb2tpbmcoYm9va2luZ19pZDogaW50KSAtPiBkaWN0IHwgTm9uZToKICAgIHJvdyA9IGdldF9jb25uKCkuZXhlY3V0ZSgKICAgICAgICAiU0VMRUNUICogRlJPTSBib29raW5ncyBXSEVSRSBpZD0/IiwgKGJvb2tpbmdfaWQsKQogICAgKS5mZXRjaG9uZSgpCiAgICByZXR1cm4gZGljdChyb3cpIGlmIHJvdyBlbHNlIE5vbmUKCgpkZWYgZ2V0X2Jvb2tpbmdfYnlfaWRlbShpZGVtcG90ZW5jeV9rZXk6IHN0cikgLT4gZGljdCB8IE5vbmU6CiAgICByb3cgPSBnZXRfY29ubigpLmV4ZWN1dGUoCiAgICAgICAgIlNFTEVDVCAqIEZST00gYm9va2luZ3MgV0hFUkUgaWRlbXBvdGVuY3lfa2V5PT8iLCAoaWRlbXBvdGVuY3lfa2V5LCkKICAgICkuZmV0Y2hvbmUoKQogICAgcmV0dXJuIGRpY3Qocm93KSBpZiByb3cgZWxzZSBOb25lCgoKZGVmIHJlbGVhc2VfZXhwaXJlZF9ob2xkcygpIC0+IGludDoKICAgICIiIlJldHVybiBleHBpcmVkICdoZWxkJyBib29raW5ncyB0byBvcGVuIHNsb3RzLiBSZXR1cm5zIGNvdW50IHJlbGVhc2VkLiIiIgogICAgd2l0aCBfbG9jazoKICAgICAgICBjID0gZ2V0X2Nvbm4oKQogICAgICAgIGMuZXhlY3V0ZSgiQkVHSU4gSU1NRURJQVRFIikKICAgICAgICB0cnk6CiAgICAgICAgICAgIHJvd3MgPSBjLmV4ZWN1dGUoCiAgICAgICAgICAgICAgICAiU0VMRUNUIGlkLCBzbG90X2lkIEZST00gYm9va2luZ3MiCiAgICAgICAgICAgICAgICAiIFdIRVJFIHN0YXR1cz0naGVsZCcgQU5EIGhvbGRfZXhwaXJlc19hdCA8PSA/IiwKICAgICAgICAgICAgICAgICh1dGNub3dfaXNvKCksKSwKICAgICAgICAgICAgKS5mZXRjaGFsbCgpCiAgICAgICAgICAgIGZvciByIGluIHJvd3M6CiAgICAgICAgICAgICAgICBjLmV4ZWN1dGUoIlVQREFURSBib29raW5ncyBTRVQgc3RhdHVzPSdleHBpcmVkJyBXSEVSRSBpZD0/IiwgKHJbImlkIl0sKSkKICAgICAgICAgICAgICAgIGMuZXhlY3V0ZSgKICAgICAgICAgICAgICAgICAgICAiVVBEQVRFIHNsb3RzIFNFVCBzdGF0dXM9J29wZW4nIFdIRVJFIGlkPT8gQU5EIHN0YXR1cz0naGVsZCciLAogICAgICAgICAgICAgICAgICAgIChyWyJzbG90X2lkIl0sKSwKICAgICAgICAgICAgICAgICkKICAgICAgICAgICAgYy5leGVjdXRlKCJDT01NSVQiKQogICAgICAgICAgICByZXR1cm4gbGVuKHJvd3MpCiAgICAgICAgZXhjZXB0IEV4Y2VwdGlvbjoKICAgICAgICAgICAgYy5leGVjdXRlKCJST0xMQkFDSyIpCiAgICAgICAgICAgIHJhaXNlCgoKZGVmIG1hcmtfYm9va2luZ19wYWlkKGJvb2tpbmdfaWQ6IGludCwgdGVsZWdyYW1fY2hhcmdlX2lkOiBzdHIsCiAgICAgICAgICAgICAgICAgICAgICBhbW91bnRfc3RhcnM6IGludCkgLT4gYm9vbDoKICAgICIiIklkZW1wb3RlbnQ6IHJldHVybnMgVHJ1ZSBpZiB0aGlzIGNhbGwgY29tcGxldGVkIHRoZSBwYXltZW50LiIiIgogICAgd2l0aCBfbG9jazoKICAgICAgICBjID0gZ2V0X2Nvbm4oKQogICAgICAgIGMuZXhlY3V0ZSgiQkVHSU4gSU1NRURJQVRFIikKICAgICAgICB0cnk6CiAgICAgICAgICAgICMgRG91YmxlLXBheW1lbnQgZ3VhcmQ6IGNoYXJnZSBpZCBhbHJlYWR5IHNlZW4/CiAgICAgICAgICAgIGlmIGMuZXhlY3V0ZSgKICAgICAgICAgICAgICAgICJTRUxFQ1QgMSBGUk9NIHBheW1lbnRzIFdIRVJFIHRlbGVncmFtX2NoYXJnZV9pZD0/IiwKICAgICAgICAgICAgICAgICh0ZWxlZ3JhbV9jaGFyZ2VfaWQsKSwKICAgICAgICAgICAgKS5mZXRjaG9uZSgpOgogICAgICAgICAgICAgICAgYy5leGVjdXRlKCJST0xMQkFDSyIpCiAgICAgICAgICAgICAgICByZXR1cm4gRmFsc2UKICAgICAgICAgICAgYiA9IGMuZXhlY3V0ZSgKICAgICAgICAgICAgICAgICJTRUxFQ1QgKiBGUk9NIGJvb2tpbmdzIFdIRVJFIGlkPT8iLCAoYm9va2luZ19pZCwpCiAgICAgICAgICAgICkuZmV0Y2hvbmUoKQogICAgICAgICAgICBpZiBub3QgYiBvciBiWyJzdGF0dXMiXSAhPSAiaGVsZCI6CiAgICAgICAgICAgICAgICBjLmV4ZWN1dGUoIlJPTExCQUNLIikKICAgICAgICAgICAgICAgIHJldHVybiBGYWxzZQogICAgICAgICAgICBjLmV4ZWN1dGUoCiAgICAgICAgICAgICAgICAiSU5TRVJUIElOVE8gcGF5bWVudHMgKGJvb2tpbmdfaWQsIHRlbGVncmFtX2NoYXJnZV9pZCwgYW1vdW50X3N0YXJzLCBjcmVhdGVkX2F0KSIKICAgICAgICAgICAgICAgICIgVkFMVUVTICg/LCA/LCA/LCA/KSIsCiAgICAgICAgICAgICAgICAoYm9va2luZ19pZCwgdGVsZWdyYW1fY2hhcmdlX2lkLCBhbW91bnRfc3RhcnMsIHV0Y25vd19pc28oKSksCiAgICAgICAgICAgICkKICAgICAgICAgICAgYy5leGVjdXRlKCJVUERBVEUgYm9va2luZ3MgU0VUIHN0YXR1cz0ncGFpZCcgV0hFUkUgaWQ9PyIsIChib29raW5nX2lkLCkpCiAgICAgICAgICAgIGMuZXhlY3V0ZSgKICAgICAgICAgICAgICAgICJVUERBVEUgc2xvdHMgU0VUIHN0YXR1cz0nYm9va2VkJyBXSEVSRSBpZD0/IiwgKGJbInNsb3RfaWQiXSwpCiAgICAgICAgICAgICkKICAgICAgICAgICAgYy5leGVjdXRlKCJDT01NSVQiKQogICAgICAgICAgICByZXR1cm4gVHJ1ZQogICAgICAgIGV4Y2VwdCBFeGNlcHRpb246CiAgICAgICAgICAgIGMuZXhlY3V0ZSgiUk9MTEJBQ0siKQogICAgICAgICAgICByYWlzZQoKCmRlZiBjYW5jZWxfYm9va2luZyhib29raW5nX2lkOiBpbnQpIC0+IGRpY3QgfCBOb25lOgogICAgIiIiQ2FuY2VsIGEgcGFpZC9oZWxkIGJvb2tpbmcsIGZyZWUgdGhlIHNsb3QuIFJldHVybnMgYm9va2luZyBvciBOb25lLiIiIgogICAgd2l0aCBfbG9jazoKICAgICAgICBjID0gZ2V0X2Nvbm4oKQogICAgICAgIGMuZXhlY3V0ZSgiQkVHSU4gSU1NRURJQVRFIikKICAgICAgICB0cnk6CiAgICAgICAgICAgIGIgPSBjLmV4ZWN1dGUoCiAgICAgICAgICAgICAgICAiU0VMRUNUICogRlJPTSBib29raW5ncyBXSEVSRSBpZD0/IiwgKGJvb2tpbmdfaWQsKQogICAgICAgICAgICApLmZldGNob25lKCkKICAgICAgICAgICAgaWYgbm90IGIgb3IgYlsic3RhdHVzIl0gbm90IGluICgiaGVsZCIsICJwYWlkIik6CiAgICAgICAgICAgICAgICBjLmV4ZWN1dGUoIlJPTExCQUNLIikKICAgICAgICAgICAgICAgIHJldHVybiBOb25lCiAgICAgICAgICAgIGMuZXhlY3V0ZSgKICAgICAgICAgICAgICAgICJVUERBVEUgYm9va2luZ3MgU0VUIHN0YXR1cz0nY2FuY2VsbGVkJyBXSEVSRSBpZD0/IiwgKGJvb2tpbmdfaWQsKQogICAgICAgICAgICApCiAgICAgICAgICAgIGMuZXhlY3V0ZSgKICAgICAgICAgICAgICAgICJVUERBVEUgc2xvdHMgU0VUIHN0YXR1cz0nb3BlbicgV0hFUkUgaWQ9PyIsIChiWyJzbG90X2lkIl0sKQogICAgICAgICAgICApCiAgICAgICAgICAgIGMuZXhlY3V0ZSgiQ09NTUlUIikKICAgICAgICAgICAgcmV0dXJuIGdldF9ib29raW5nKGJvb2tpbmdfaWQpCiAgICAgICAgZXhjZXB0IEV4Y2VwdGlvbjoKICAgICAgICAgICAgYy5leGVjdXRlKCJST0xMQkFDSyIpCiAgICAgICAgICAgIHJhaXNlCgoKZGVmIG1hcmtfcGF5bWVudF9yZWZ1bmRlZChib29raW5nX2lkOiBpbnQpIC0+IE5vbmU6CiAgICB3aXRoIF9sb2NrOgogICAgICAgIGMgPSBnZXRfY29ubigpCiAgICAgICAgYy5leGVjdXRlKAogICAgICAgICAgICAiVVBEQVRFIHBheW1lbnRzIFNFVCBzdGF0dXM9J3JlZnVuZGVkJyBXSEVSRSBib29raW5nX2lkPT8iLCAoYm9va2luZ19pZCwpCiAgICAgICAgKQogICAgICAgIGMuY29tbWl0KCkKCgpkZWYgZ2V0X3BheW1lbnRfYnlfYm9va2luZyhib29raW5nX2lkOiBpbnQpIC0+IGRpY3QgfCBOb25lOgogICAgcm93ID0gZ2V0X2Nvbm4oKS5leGVjdXRlKAogICAgICAgICJTRUxFQ1QgKiBGUk9NIHBheW1lbnRzIFdIRVJFIGJvb2tpbmdfaWQ9PyIsIChib29raW5nX2lkLCkKICAgICkuZmV0Y2hvbmUoKQogICAgcmV0dXJuIGRpY3Qocm93KSBpZiByb3cgZWxzZSBOb25lCgoKZGVmIHVwY29taW5nX2Jvb2tpbmdzKHR1dG9yX2lkOiBpbnQpIC0+IGxpc3RbZGljdF06CiAgICByb3dzID0gZ2V0X2Nvbm4oKS5leGVjdXRlKAogICAgICAgICIiIlNFTEVDVCBiLiosIHMuc3RhcnRzX2F0X3V0Yywgcy5lbmRzX2F0X3V0YwogICAgICAgICAgIEZST00gYm9va2luZ3MgYiBKT0lOIHNsb3RzIHMgT04gcy5pZCA9IGIuc2xvdF9pZAogICAgICAgICAgIFdIRVJFIGIudHV0b3JfaWQ9PyBBTkQgYi5zdGF0dXM9J3BhaWQnIEFORCBzLnN0YXJ0c19hdF91dGMgPiA/CiAgICAgICAgICAgT1JERVIgQlkgcy5zdGFydHNfYXRfdXRjIiIiLAogICAgICAgICh0dXRvcl9pZCwgdXRjbm93X2lzbygpKSwKICAgICkuZmV0Y2hhbGwoKQogICAgcmV0dXJuIFtkaWN0KHIpIGZvciByIGluIHJvd3NdCgoKZGVmIGVhcm5pbmdzX3N0YXJzKHR1dG9yX2lkOiBpbnQpIC0+IGludDoKICAgIHJvdyA9IGdldF9jb25uKCkuZXhlY3V0ZSgKICAgICAgICAiIiJTRUxFQ1QgQ09BTEVTQ0UoU1VNKHAuYW1vdW50X3N0YXJzKSwwKSBBUyB0b3RhbAogICAgICAgICAgIEZST00gcGF5bWVudHMgcCBKT0lOIGJvb2tpbmdzIGIgT04gYi5pZD1wLmJvb2tpbmdfaWQKICAgICAgICAgICBXSEVSRSBiLnR1dG9yX2lkPT8gQU5EIHAuc3RhdHVzPSdjb21wbGV0ZWQnIiIiLAogICAgICAgICh0dXRvcl9pZCwpLAogICAgKS5mZXRjaG9uZSgpCiAgICByZXR1cm4gaW50KHJvd1sidG90YWwiXSkKCgojIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLSByZW1pbmRlcnMgLS0tLS0KZGVmIHNjaGVkdWxlX3JlbWluZGVycyhib29raW5nX2lkOiBpbnQsIHN0YXJ0c19hdF91dGM6IHN0cikgLT4gTm9uZToKICAgIHN0YXJ0ID0gZGF0ZXRpbWUuZnJvbWlzb2Zvcm1hdChzdGFydHNfYXRfdXRjKQogICAgd2l0aCBfbG9jazoKICAgICAgICBjID0gZ2V0X2Nvbm4oKQogICAgICAgIGZvciBraW5kLCBtaW5zIGluICgoIjI0aCIsIDI0ICogNjApLCAoIjFoIiwgNjApKToKICAgICAgICAgICAgcmVtaW5kX2F0ID0gKHN0YXJ0IC0gdGltZWRlbHRhKG1pbnV0ZXM9bWlucykpLmlzb2Zvcm1hdCgpCiAgICAgICAgICAgICMgRG9uJ3Qgc2NoZWR1bGUgcmVtaW5kZXJzIGluIHRoZSBwYXN0CiAgICAgICAgICAgIGlmIHJlbWluZF9hdCA+IHV0Y25vd19pc28oKToKICAgICAgICAgICAgICAgIGMuZXhlY3V0ZSgKICAgICAgICAgICAgICAgICAgICAiSU5TRVJUIE9SIElHTk9SRSBJTlRPIHJlbWluZGVycyAoYm9va2luZ19pZCwga2luZCwgcmVtaW5kX2F0X3V0YykiCiAgICAgICAgICAgICAgICAgICAgIiBWQUxVRVMgKD8sID8sID8pIiwKICAgICAgICAgICAgICAgICAgICAoYm9va2luZ19pZCwga2luZCwgcmVtaW5kX2F0KSwKICAgICAgICAgICAgICAgICkKICAgICAgICBjLmNvbW1pdCgpCgoKZGVmIGR1ZV9yZW1pbmRlcnMoKSAtPiBsaXN0W2RpY3RdOgogICAgcm93cyA9IGdldF9jb25uKCkuZXhlY3V0ZSgKICAgICAgICAiIiJTRUxFQ1Qgci4qLCBiLnN0dWRlbnRfdGdfaWQsIGIudHV0b3JfaWQsIHMuc3RhcnRzX2F0X3V0YwogICAgICAgICAgIEZST00gcmVtaW5kZXJzIHIKICAgICAgICAgICBKT0lOIGJvb2tpbmdzIGIgT04gYi5pZCA9IHIuYm9va2luZ19pZAogICAgICAgICAgIEpPSU4gc2xvdHMgcyBPTiBzLmlkID0gYi5zbG90X2lkCiAgICAgICAgICAgV0hFUkUgci5zZW50X2F0IElTIE5VTEwgQU5EIHIucmVtaW5kX2F0X3V0YyA8PSA/IEFORCBiLnN0YXR1cz0ncGFpZCciIiIsCiAgICAgICAgKHV0Y25vd19pc28oKSwpLAogICAgKS5mZXRjaGFsbCgpCiAgICByZXR1cm4gW2RpY3QocikgZm9yIHIgaW4gcm93c10KCgpkZWYgbWFya19yZW1pbmRlcl9zZW50KHJlbWluZGVyX2lkOiBpbnQpIC0+IE5vbmU6CiAgICB3aXRoIF9sb2NrOgogICAgICAgIGMgPSBnZXRfY29ubigpCiAgICAgICAgYy5leGVjdXRlKAogICAgICAgICAgICAiVVBEQVRFIHJlbWluZGVycyBTRVQgc2VudF9hdD0/IFdIRVJFIGlkPT8iLCAodXRjbm93X2lzbygpLCByZW1pbmRlcl9pZCkKICAgICAgICApCiAgICAgICAgYy5jb21taXQoKQoKCiMgLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tIG9uYm9hcmRpbmcgc2Vzc2lvbnMgLS0tCmRlZiBzYXZlX29uYm9hcmRpbmdfc2Vzc2lvbih0Z191c2VyX2lkOiBpbnQsIGRhdGE6IGRpY3QpIC0+IE5vbmU6CiAgICBpbXBvcnQganNvbgogICAgd2l0aCBfbG9jazoKICAgICAgICBjID0gZ2V0X2Nvbm4oKQogICAgICAgIGMuZXhlY3V0ZSgKICAgICAgICAgICAgIklOU0VSVCBJTlRPIG9uYm9hcmRpbmdfc2Vzc2lvbnMgKHRnX3VzZXJfaWQsIGRhdGEsIHVwZGF0ZWRfYXQpIgogICAgICAgICAgICAiIFZBTFVFUyAoPywgPywgPykiCiAgICAgICAgICAgICIgT04gQ09ORkxJQ1QodGdfdXNlcl9pZCkgRE8gVVBEQVRFIFNFVCIKICAgICAgICAgICAgIiBkYXRhPWV4Y2x1ZGVkLmRhdGEsIHVwZGF0ZWRfYXQ9ZXhjbHVkZWQudXBkYXRlZF9hdCIsCiAgICAgICAgICAgICh0Z191c2VyX2lkLCBqc29uLmR1bXBzKGRhdGEpLCB1dGNub3dfaXNvKCkpLAogICAgICAgICkKICAgICAgICBjLmNvbW1pdCgpCgoKZGVmIGxvYWRfb25ib2FyZGluZ19zZXNzaW9uKHRnX3VzZXJfaWQ6IGludCkgLT4gZGljdCB8IE5vbmU6CiAgICBpbXBvcnQganNvbgogICAgcm93ID0gZ2V0X2Nvbm4oKS5leGVjdXRlKAogICAgICAgICJTRUxFQ1QgZGF0YSBGUk9NIG9uYm9hcmRpbmdfc2Vzc2lvbnMgV0hFUkUgdGdfdXNlcl9pZD0/IiwgKHRnX3VzZXJfaWQsKQogICAgKS5mZXRjaG9uZSgpCiAgICByZXR1cm4ganNvbi5sb2Fkcyhyb3dbImRhdGEiXSkgaWYgcm93IGVsc2UgTm9uZQoKCmRlZiBjbGVhcl9vbmJvYXJkaW5nX3Nlc3Npb24odGdfdXNlcl9pZDogaW50KSAtPiBOb25lOgogICAgd2l0aCBfbG9jazoKICAgICAgICBjID0gZ2V0X2Nvbm4oKQogICAgICAgIGMuZXhlY3V0ZSgiREVMRVRFIEZST00gb25ib2FyZGluZ19zZXNzaW9ucyBXSEVSRSB0Z191c2VyX2lkPT8iLAogICAgICAgICAgICAgICAgICAodGdfdXNlcl9pZCwpKQogICAgICAgIGMuY29tbWl0KCkK
+"""SQLite storage. All timestamps stored as UTC ISO strings.
+Write operations that must be atomic use BEGIN IMMEDIATE to serialize.
+"""
+import secrets
+import sqlite3
+import threading
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+from . import config
+
+_lock = threading.RLock()  # reentrant: helpers call get_conn() inside locked sections
+_conn: sqlite3.Connection | None = None
+
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS tutors (
+    id            INTEGER PRIMARY KEY,
+    tg_user_id    INTEGER UNIQUE NOT NULL,
+    name          TEXT NOT NULL,
+    timezone      TEXT NOT NULL DEFAULT 'Asia/Kolkata',
+    price_stars   INTEGER NOT NULL DEFAULT 200,
+    link_code     TEXT UNIQUE NOT NULL,
+    created_at    TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS availability_rules (
+    id         INTEGER PRIMARY KEY,
+    tutor_id   INTEGER NOT NULL REFERENCES tutors(id) ON DELETE CASCADE,
+    weekday    INTEGER NOT NULL,              -- 0=Monday .. 6=Sunday
+    start_min  INTEGER NOT NULL,              -- minutes since midnight, tutor-local
+    end_min    INTEGER NOT NULL,
+    slot_min   INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS slots (
+    id             INTEGER PRIMARY KEY,
+    tutor_id       INTEGER NOT NULL REFERENCES tutors(id) ON DELETE CASCADE,
+    starts_at_utc  TEXT NOT NULL,
+    ends_at_utc    TEXT NOT NULL,
+    status         TEXT NOT NULL DEFAULT 'open',  -- open|held|booked|blocked
+    UNIQUE(tutor_id, starts_at_utc)
+);
+
+CREATE TABLE IF NOT EXISTS bookings (
+    id               INTEGER PRIMARY KEY,
+    tutor_id         INTEGER NOT NULL REFERENCES tutors(id) ON DELETE CASCADE,
+    slot_id          INTEGER NOT NULL UNIQUE REFERENCES slots(id) ON DELETE CASCADE,
+    student_tg_id    INTEGER NOT NULL,
+    student_name     TEXT,
+    status           TEXT NOT NULL DEFAULT 'held',  -- held|paid|cancelled|completed|expired
+    hold_expires_at  TEXT,
+    idempotency_key  TEXT UNIQUE NOT NULL,
+    created_at       TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS payments (
+    id                  INTEGER PRIMARY KEY,
+    booking_id          INTEGER NOT NULL UNIQUE REFERENCES bookings(id) ON DELETE CASCADE,
+    telegram_charge_id  TEXT UNIQUE NOT NULL,
+    amount_stars        INTEGER NOT NULL,
+    status              TEXT NOT NULL DEFAULT 'completed',  -- completed|refunded
+    created_at          TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS reminders (
+    id             INTEGER PRIMARY KEY,
+    booking_id     INTEGER NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
+    kind           TEXT NOT NULL,   -- 24h|1h
+    remind_at_utc  TEXT NOT NULL,
+    sent_at        TEXT,
+    UNIQUE(booking_id, kind)
+);
+
+CREATE TABLE IF NOT EXISTS onboarding_sessions (
+    tg_user_id  INTEGER PRIMARY KEY,
+    data        TEXT NOT NULL,   -- JSON: survives bot restarts (unlike RAM)
+    updated_at  TEXT NOT NULL
+);
+"""
+
+
+def utcnow_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def get_conn() -> sqlite3.Connection:
+    global _conn
+    with _lock:
+        if _conn is None:
+            Path(config.DB_PATH).parent.mkdir(parents=True, exist_ok=True)
+            _conn = sqlite3.connect(config.DB_PATH, check_same_thread=False)
+            _conn.row_factory = sqlite3.Row
+            _conn.execute("PRAGMA journal_mode=WAL;")
+            _conn.execute("PRAGMA foreign_keys=ON;")
+            _conn.executescript(SCHEMA)
+            _conn.commit()
+        return _conn
+
+
+def new_link_code() -> str:
+    return secrets.token_urlsafe(6)
+
+
+# ---------------------------------------------------------------- tutors ---
+def create_tutor(tg_user_id: int, name: str, timezone: str) -> dict:
+    c = get_conn()
+    with _lock:
+        cur = c.execute(
+            "INSERT INTO tutors (tg_user_id, name, timezone, link_code, created_at)"
+            " VALUES (?, ?, ?, ?, ?)",
+            (tg_user_id, name, timezone, new_link_code(), utcnow_iso()),
+        )
+        c.commit()
+        return get_tutor_by_id(cur.lastrowid)
+
+
+def get_tutor_by_id(tutor_id: int) -> dict | None:
+    row = get_conn().execute("SELECT * FROM tutors WHERE id=?", (tutor_id,)).fetchone()
+    return dict(row) if row else None
+
+
+def get_tutor_by_tg(tg_user_id: int) -> dict | None:
+    row = get_conn().execute(
+        "SELECT * FROM tutors WHERE tg_user_id=?", (tg_user_id,)
+    ).fetchone()
+    return dict(row) if row else None
+
+
+def get_tutor_by_link(link_code: str) -> dict | None:
+    row = get_conn().execute(
+        "SELECT * FROM tutors WHERE link_code=?", (link_code,)
+    ).fetchone()
+    return dict(row) if row else None
+
+
+def update_tutor(tutor_id: int, **fields) -> None:
+    allowed = {"name", "timezone", "price_stars"}
+    sets = ", ".join(f"{k}=?" for k in fields if k in allowed)
+    vals = [v for k, v in fields.items() if k in allowed]
+    if not sets:
+        return
+    with _lock:
+        c = get_conn()
+        c.execute(f"UPDATE tutors SET {sets} WHERE id=?", (*vals, tutor_id))
+        c.commit()
+
+
+# ------------------------------------------------------- availability ------
+def set_availability_rules(tutor_id: int, rules: list[dict]) -> None:
+    """Replace all rules. Each rule: weekday, start_min, end_min, slot_min."""
+    with _lock:
+        c = get_conn()
+        c.execute("DELETE FROM availability_rules WHERE tutor_id=?", (tutor_id,))
+        for r in rules:
+            c.execute(
+                "INSERT INTO availability_rules (tutor_id, weekday, start_min, end_min, slot_min)"
+                " VALUES (?, ?, ?, ?, ?)",
+                (tutor_id, r["weekday"], r["start_min"], r["end_min"], r["slot_min"]),
+            )
+        c.commit()
+
+
+def get_availability_rules(tutor_id: int) -> list[dict]:
+    rows = get_conn().execute(
+        "SELECT * FROM availability_rules WHERE tutor_id=? ORDER BY weekday, start_min",
+        (tutor_id,),
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+# --------------------------------------------------------------- slots -----
+def upsert_slots(tutor_id: int, slots: list[tuple[str, str]]) -> int:
+    """Insert (starts_at_utc, ends_at_utc) pairs, ignoring existing. Returns new count."""
+    with _lock:
+        c = get_conn()
+        n = 0
+        for s, e in slots:
+            cur = c.execute(
+                "INSERT OR IGNORE INTO slots (tutor_id, starts_at_utc, ends_at_utc)"
+                " VALUES (?, ?, ?)",
+                (tutor_id, s, e),
+            )
+            n += cur.rowcount
+        c.commit()
+        return n
+
+
+def open_slots(tutor_id: int, limit: int = 40) -> list[dict]:
+    rows = get_conn().execute(
+        "SELECT * FROM slots WHERE tutor_id=? AND status='open'"
+        " AND starts_at_utc > ? ORDER BY starts_at_utc LIMIT ?",
+        (tutor_id, utcnow_iso(), limit),
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_slot(slot_id: int) -> dict | None:
+    row = get_conn().execute("SELECT * FROM slots WHERE id=?", (slot_id,)).fetchone()
+    return dict(row) if row else None
+
+
+# ------------------------------------------------------------ bookings -----
+def hold_slot(tutor_id: int, slot_id: int, student_tg_id: int,
+              student_name: str | None, hold_minutes: int) -> dict | None:
+    """Atomically hold an open slot. Returns booking or None if unavailable."""
+    from datetime import timedelta
+    with _lock:
+        c = get_conn()
+        c.execute("BEGIN IMMEDIATE")
+        try:
+            slot = c.execute(
+                "SELECT * FROM slots WHERE id=? AND tutor_id=?", (slot_id, tutor_id)
+            ).fetchone()
+            if not slot or slot["status"] != "open":
+                c.execute("ROLLBACK")
+                return None
+            if slot["starts_at_utc"] <= utcnow_iso():
+                c.execute("ROLLBACK")
+                return None
+            c.execute("UPDATE slots SET status='held' WHERE id=?", (slot_id,))
+            expires = (datetime.now(timezone.utc)
+                       + timedelta(minutes=hold_minutes)).isoformat()
+            cur = c.execute(
+                "INSERT INTO bookings (tutor_id, slot_id, student_tg_id, student_name,"
+                " status, hold_expires_at, idempotency_key, created_at)"
+                " VALUES (?, ?, ?, ?, 'held', ?, ?, ?)",
+                (tutor_id, slot_id, student_tg_id, student_name, expires,
+                 secrets.token_hex(16), utcnow_iso()),
+            )
+            c.execute("COMMIT")
+            return get_booking(cur.lastrowid)
+        except Exception:
+            c.execute("ROLLBACK")
+            raise
+
+
+def get_booking(booking_id: int) -> dict | None:
+    row = get_conn().execute(
+        "SELECT * FROM bookings WHERE id=?", (booking_id,)
+    ).fetchone()
+    return dict(row) if row else None
+
+
+def get_booking_by_idem(idempotency_key: str) -> dict | None:
+    row = get_conn().execute(
+        "SELECT * FROM bookings WHERE idempotency_key=?", (idempotency_key,)
+    ).fetchone()
+    return dict(row) if row else None
+
+
+def release_expired_holds() -> int:
+    """Return expired 'held' bookings to open slots. Returns count released."""
+    with _lock:
+        c = get_conn()
+        c.execute("BEGIN IMMEDIATE")
+        try:
+            rows = c.execute(
+                "SELECT id, slot_id FROM bookings"
+                " WHERE status='held' AND hold_expires_at <= ?",
+                (utcnow_iso(),),
+            ).fetchall()
+            for r in rows:
+                c.execute("UPDATE bookings SET status='expired' WHERE id=?", (r["id"],))
+                c.execute(
+                    "UPDATE slots SET status='open' WHERE id=? AND status='held'",
+                    (r["slot_id"],),
+                )
+            c.execute("COMMIT")
+            return len(rows)
+        except Exception:
+            c.execute("ROLLBACK")
+            raise
+
+
+def mark_booking_paid(booking_id: int, telegram_charge_id: str,
+                      amount_stars: int) -> bool:
+    """Idempotent: returns True if this call completed the payment."""
+    with _lock:
+        c = get_conn()
+        c.execute("BEGIN IMMEDIATE")
+        try:
+            # Double-payment guard: charge id already seen?
+            if c.execute(
+                "SELECT 1 FROM payments WHERE telegram_charge_id=?",
+                (telegram_charge_id,),
+            ).fetchone():
+                c.execute("ROLLBACK")
+                return False
+            b = c.execute(
+                "SELECT * FROM bookings WHERE id=?", (booking_id,)
+            ).fetchone()
+            if not b or b["status"] != "held":
+                c.execute("ROLLBACK")
+                return False
+            c.execute(
+                "INSERT INTO payments (booking_id, telegram_charge_id, amount_stars, created_at)"
+                " VALUES (?, ?, ?, ?)",
+                (booking_id, telegram_charge_id, amount_stars, utcnow_iso()),
+            )
+            c.execute("UPDATE bookings SET status='paid' WHERE id=?", (booking_id,))
+            c.execute(
+                "UPDATE slots SET status='booked' WHERE id=?", (b["slot_id"],)
+            )
+            c.execute("COMMIT")
+            return True
+        except Exception:
+            c.execute("ROLLBACK")
+            raise
+
+
+def cancel_booking(booking_id: int) -> dict | None:
+    """Cancel a paid/held booking, free the slot. Returns booking or None."""
+    with _lock:
+        c = get_conn()
+        c.execute("BEGIN IMMEDIATE")
+        try:
+            b = c.execute(
+                "SELECT * FROM bookings WHERE id=?", (booking_id,)
+            ).fetchone()
+            if not b or b["status"] not in ("held", "paid"):
+                c.execute("ROLLBACK")
+                return None
+            c.execute(
+                "UPDATE bookings SET status='cancelled' WHERE id=?", (booking_id,)
+            )
+            c.execute(
+                "UPDATE slots SET status='open' WHERE id=?", (b["slot_id"],)
+            )
+            c.execute("COMMIT")
+            return get_booking(booking_id)
+        except Exception:
+            c.execute("ROLLBACK")
+            raise
+
+
+def mark_payment_refunded(booking_id: int) -> None:
+    with _lock:
+        c = get_conn()
+        c.execute(
+            "UPDATE payments SET status='refunded' WHERE booking_id=?", (booking_id,)
+        )
+        c.commit()
+
+
+def get_payment_by_booking(booking_id: int) -> dict | None:
+    row = get_conn().execute(
+        "SELECT * FROM payments WHERE booking_id=?", (booking_id,)
+    ).fetchone()
+    return dict(row) if row else None
+
+
+def upcoming_bookings(tutor_id: int) -> list[dict]:
+    rows = get_conn().execute(
+        """SELECT b.*, s.starts_at_utc, s.ends_at_utc
+           FROM bookings b JOIN slots s ON s.id = b.slot_id
+           WHERE b.tutor_id=? AND b.status='paid' AND s.starts_at_utc > ?
+           ORDER BY s.starts_at_utc""",
+        (tutor_id, utcnow_iso()),
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def earnings_stars(tutor_id: int) -> int:
+    row = get_conn().execute(
+        """SELECT COALESCE(SUM(p.amount_stars),0) AS total
+           FROM payments p JOIN bookings b ON b.id=p.booking_id
+           WHERE b.tutor_id=? AND p.status='completed'""",
+        (tutor_id,),
+    ).fetchone()
+    return int(row["total"])
+
+
+# ------------------------------------------------------------ reminders -----
+def schedule_reminders(booking_id: int, starts_at_utc: str) -> None:
+    start = datetime.fromisoformat(starts_at_utc)
+    with _lock:
+        c = get_conn()
+        for kind, mins in (("24h", 24 * 60), ("1h", 60)):
+            remind_at = (start - timedelta(minutes=mins)).isoformat()
+            # Don't schedule reminders in the past
+            if remind_at > utcnow_iso():
+                c.execute(
+                    "INSERT OR IGNORE INTO reminders (booking_id, kind, remind_at_utc)"
+                    " VALUES (?, ?, ?)",
+                    (booking_id, kind, remind_at),
+                )
+        c.commit()
+
+
+def due_reminders() -> list[dict]:
+    rows = get_conn().execute(
+        """SELECT r.*, b.student_tg_id, b.tutor_id, s.starts_at_utc
+           FROM reminders r
+           JOIN bookings b ON b.id = r.booking_id
+           JOIN slots s ON s.id = b.slot_id
+           WHERE r.sent_at IS NULL AND r.remind_at_utc <= ? AND b.status='paid'""",
+        (utcnow_iso(),),
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def mark_reminder_sent(reminder_id: int) -> None:
+    with _lock:
+        c = get_conn()
+        c.execute(
+            "UPDATE reminders SET sent_at=? WHERE id=?", (utcnow_iso(), reminder_id)
+        )
+        c.commit()
+
+
+# --------------------------------------------------- onboarding sessions ---
+def save_onboarding_session(tg_user_id: int, data: dict) -> None:
+    import json
+    with _lock:
+        c = get_conn()
+        c.execute(
+            "INSERT INTO onboarding_sessions (tg_user_id, data, updated_at)"
+            " VALUES (?, ?, ?)"
+            " ON CONFLICT(tg_user_id) DO UPDATE SET"
+            " data=excluded.data, updated_at=excluded.updated_at",
+            (tg_user_id, json.dumps(data), utcnow_iso()),
+        )
+        c.commit()
+
+
+def load_onboarding_session(tg_user_id: int) -> dict | None:
+    import json
+    row = get_conn().execute(
+        "SELECT data FROM onboarding_sessions WHERE tg_user_id=?", (tg_user_id,)
+    ).fetchone()
+    return json.loads(row["data"]) if row else None
+
+
+def clear_onboarding_session(tg_user_id: int) -> None:
+    with _lock:
+        c = get_conn()
+        c.execute("DELETE FROM onboarding_sessions WHERE tg_user_id=?",
+                  (tg_user_id,))
+        c.commit()

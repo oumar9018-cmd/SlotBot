@@ -1,1 +1,61 @@
-IiIiTWluaSBBcHAgUkVTVCBBUEkuIEV2ZXJ5IHJlcXVlc3QgY2FycmllcyBUZWxlZ3JhbSBpbml0RGF0YTsgdXNlciBtdXN0IGJlIGEgdHV0b3IuIiIiCmZyb20gZmFzdGFwaSBpbXBvcnQgQVBJUm91dGVyLCBIZWFkZXIsIEhUVFBFeGNlcHRpb24KCmZyb20gLiBpbXBvcnQgYXZhaWxhYmlsaXR5IGFzIGF2CmZyb20gLiBpbXBvcnQgY29uZmlnLCBkYiwgc2VjdXJpdHkKCnJvdXRlciA9IEFQSVJvdXRlcihwcmVmaXg9Ii9hcGkiKQoKCmRlZiBfdHV0b3JfZnJvbV9pbml0ZGF0YShpbml0X2RhdGE6IHN0ciB8IE5vbmUpIC0+IGRpY3Q6CiAgICBpZiBub3QgaW5pdF9kYXRhOgogICAgICAgIHJhaXNlIEhUVFBFeGNlcHRpb24oNDAxLCAibWlzc2luZyBpbml0RGF0YSIpCiAgICB1c2VyID0gc2VjdXJpdHkudmFsaWRhdGVfaW5pdF9kYXRhKGluaXRfZGF0YSkKICAgIGlmIG5vdCB1c2VyOgogICAgICAgIHJhaXNlIEhUVFBFeGNlcHRpb24oNDAxLCAiaW52YWxpZCBpbml0RGF0YSIpCiAgICB0dXRvciA9IGRiLmdldF90dXRvcl9ieV90Zyh1c2VyWyJpZCJdKQogICAgaWYgbm90IHR1dG9yOgogICAgICAgIHJhaXNlIEhUVFBFeGNlcHRpb24oNDAzLCAibm90IGEgdHV0b3IiKQogICAgcmV0dXJuIHR1dG9yCgoKQHJvdXRlci5nZXQoIi9tZSIpCmRlZiBtZSh4X2luaXRfZGF0YTogc3RyIHwgTm9uZSA9IEhlYWRlcihkZWZhdWx0PU5vbmUsIGFsaWFzPSJYLUluaXQtRGF0YSIpKToKICAgIHQgPSBfdHV0b3JfZnJvbV9pbml0ZGF0YSh4X2luaXRfZGF0YSkKICAgIHJldHVybiB7CiAgICAgICAgIm5hbWUiOiB0WyJuYW1lIl0sCiAgICAgICAgInRpbWV6b25lIjogdFsidGltZXpvbmUiXSwKICAgICAgICAicHJpY2Vfc3RhcnMiOiB0WyJwcmljZV9zdGFycyJdLAogICAgICAgICJib29raW5nX2xpbmsiOiBjb25maWcuYm9va2luZ19kZWVwbGluayh0WyJsaW5rX2NvZGUiXSksCiAgICB9CgoKQHJvdXRlci5nZXQoIi9ib29raW5ncyIpCmRlZiBib29raW5ncyh4X2luaXRfZGF0YTogc3RyIHwgTm9uZSA9IEhlYWRlcihkZWZhdWx0PU5vbmUsIGFsaWFzPSJYLUluaXQtRGF0YSIpKToKICAgIHQgPSBfdHV0b3JfZnJvbV9pbml0ZGF0YSh4X2luaXRfZGF0YSkKICAgIG91dCA9IFtdCiAgICBmb3IgYiBpbiBkYi51cGNvbWluZ19ib29raW5ncyh0WyJpZCJdKToKICAgICAgICBvdXQuYXBwZW5kKHsKICAgICAgICAgICAgImlkIjogYlsiaWQiXSwKICAgICAgICAgICAgInN0dWRlbnQiOiBiWyJzdHVkZW50X25hbWUiXSwKICAgICAgICAgICAgInN0YXJ0c19hdCI6IGJbInN0YXJ0c19hdF91dGMiXSwKICAgICAgICAgICAgImxhYmVsIjogYXYuZm10X3Nsb3QoYiwgdFsidGltZXpvbmUiXSksCiAgICAgICAgfSkKICAgIHJldHVybiB7ImJvb2tpbmdzIjogb3V0fQoKCkByb3V0ZXIuZ2V0KCIvZWFybmluZ3MiKQpkZWYgZWFybmluZ3MoeF9pbml0X2RhdGE6IHN0ciB8IE5vbmUgPSBIZWFkZXIoZGVmYXVsdD1Ob25lLCBhbGlhcz0iWC1Jbml0LURhdGEiKSk6CiAgICB0ID0gX3R1dG9yX2Zyb21faW5pdGRhdGEoeF9pbml0X2RhdGEpCiAgICB0b3RhbCA9IGRiLmVhcm5pbmdzX3N0YXJzKHRbImlkIl0pCiAgICByZXR1cm4geyJ0b3RhbF9zdGFycyI6IHRvdGFsLCAiYXBwcm94X3VzZCI6IHJvdW5kKHRvdGFsICogMC4wMTUsIDIpfQoKCkByb3V0ZXIuZ2V0KCIvc2xvdHMiKQpkZWYgc2xvdHMoeF9pbml0X2RhdGE6IHN0ciB8IE5vbmUgPSBIZWFkZXIoZGVmYXVsdD1Ob25lLCBhbGlhcz0iWC1Jbml0LURhdGEiKSk6CiAgICB0ID0gX3R1dG9yX2Zyb21faW5pdGRhdGEoeF9pbml0X2RhdGEpCiAgICBvdXQgPSBbXQogICAgZm9yIHMgaW4gZGIub3Blbl9zbG90cyh0WyJpZCJdLCBsaW1pdD02MCk6CiAgICAgICAgb3V0LmFwcGVuZCh7ImlkIjogc1siaWQiXSwgImxhYmVsIjogYXYuZm10X3Nsb3QocywgdFsidGltZXpvbmUiXSksCiAgICAgICAgICAgICAgICAgICAgInN0YXJ0c19hdCI6IHNbInN0YXJ0c19hdF91dGMiXX0pCiAgICByZXR1cm4geyJzbG90cyI6IG91dCwgImNvdW50IjogbGVuKG91dCl9Cg==
+"""Mini App REST API. Every request carries Telegram initData; user must be a tutor."""
+from fastapi import APIRouter, Header, HTTPException
+
+from . import availability as av
+from . import config, db, security
+
+router = APIRouter(prefix="/api")
+
+
+def _tutor_from_initdata(init_data: str | None) -> dict:
+    if not init_data:
+        raise HTTPException(401, "missing initData")
+    user = security.validate_init_data(init_data)
+    if not user:
+        raise HTTPException(401, "invalid initData")
+    tutor = db.get_tutor_by_tg(user["id"])
+    if not tutor:
+        raise HTTPException(403, "not a tutor")
+    return tutor
+
+
+@router.get("/me")
+def me(x_init_data: str | None = Header(default=None, alias="X-Init-Data")):
+    t = _tutor_from_initdata(x_init_data)
+    return {
+        "name": t["name"],
+        "timezone": t["timezone"],
+        "price_stars": t["price_stars"],
+        "booking_link": config.booking_deeplink(t["link_code"]),
+    }
+
+
+@router.get("/bookings")
+def bookings(x_init_data: str | None = Header(default=None, alias="X-Init-Data")):
+    t = _tutor_from_initdata(x_init_data)
+    out = []
+    for b in db.upcoming_bookings(t["id"]):
+        out.append({
+            "id": b["id"],
+            "student": b["student_name"],
+            "starts_at": b["starts_at_utc"],
+            "label": av.fmt_slot(b, t["timezone"]),
+        })
+    return {"bookings": out}
+
+
+@router.get("/earnings")
+def earnings(x_init_data: str | None = Header(default=None, alias="X-Init-Data")):
+    t = _tutor_from_initdata(x_init_data)
+    total = db.earnings_stars(t["id"])
+    return {"total_stars": total, "approx_usd": round(total * 0.015, 2)}
+
+
+@router.get("/slots")
+def slots(x_init_data: str | None = Header(default=None, alias="X-Init-Data")):
+    t = _tutor_from_initdata(x_init_data)
+    out = []
+    for s in db.open_slots(t["id"], limit=60):
+        out.append({"id": s["id"], "label": av.fmt_slot(s, t["timezone"]),
+                    "starts_at": s["starts_at_utc"]})
+    return {"slots": out, "count": len(out)}

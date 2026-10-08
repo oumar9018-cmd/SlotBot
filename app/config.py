@@ -1,1 +1,39 @@
-IiIiQ29uZmlndXJhdGlvbiBmcm9tIGVudmlyb25tZW50LiBObyBzZWNyZXRzIGluIGNvZGUuIiIiCmltcG9ydCBvcwoKQk9UX1RPS0VOID0gb3MuZW52aXJvbi5nZXQoIkJPVF9UT0tFTiIsICIiKQpCT1RfVVNFUk5BTUUgPSBvcy5lbnZpcm9uLmdldCgiQk9UX1VTRVJOQU1FIiwgInNsb3Rib3QiKQpXRUJIT09LX1NFQ1JFVCA9IG9zLmVudmlyb24uZ2V0KCJXRUJIT09LX1NFQ1JFVCIsICIiKQpCQVNFX1VSTCA9IG9zLmVudmlyb24uZ2V0KCJCQVNFX1VSTCIsICIiKS5yc3RyaXAoIi8iKQpEQl9QQVRIID0gb3MuZW52aXJvbi5nZXQoIkRCX1BBVEgiLCAiLi9kYXRhL3Nsb3Rib3QuZGIiKQpQT0xMSU5HID0gb3MuZW52aXJvbi5nZXQoIlBPTExJTkciLCAiZmFsc2UiKS5sb3dlcigpID09ICJ0cnVlIgpMT0dfTEVWRUwgPSBvcy5lbnZpcm9uLmdldCgiTE9HX0xFVkVMIiwgIklORk8iKQoKIyBCb29raW5nIGhvbGQ6IHN0dWRlbnQgaGFzIHRoaXMgbG9uZyB0byBjb21wbGV0ZSBTdGFycyBwYXltZW50CkhPTERfTUlOVVRFUyA9IDEwCiMgSG93IGZhciBhaGVhZCBzbG90cyBhcmUgZ2VuZXJhdGVkIGZvciBhIHR1dG9yClNMT1RfSE9SSVpPTl9EQVlTID0gMTQKIyBSZW1pbmRlcnMgYmVmb3JlIHNlc3Npb24gc3RhcnQKUkVNSU5ERVJfT0ZGU0VUU19NSU4gPSAoMjQgKiA2MCwgNjApCgpURUxFR1JBTV9BUEkgPSAiaHR0cHM6Ly9hcGkudGVsZWdyYW0ub3JnIgoKCmRlZiB2YWxpZGF0ZV9zdGFydHVwKCkgLT4gbGlzdFtzdHJdOgogICAgIiIiUmV0dXJuIGxpc3Qgb2YgY29uZmlnIHByb2JsZW1zIChlbXB0eSA9IG9rKS4iIiIKICAgIHByb2JsZW1zID0gW10KICAgIGlmIG5vdCBCT1RfVE9LRU4gb3IgIjoiIG5vdCBpbiBCT1RfVE9LRU46CiAgICAgICAgcHJvYmxlbXMuYXBwZW5kKCJCT1RfVE9LRU4gbWlzc2luZyBvciBpbnZhbGlkLiBDcmVhdGUgYSBib3QgdmlhIEBCb3RGYXRoZXIuIikKICAgIGlmIG5vdCBXRUJIT09LX1NFQ1JFVCBhbmQgbm90IFBPTExJTkc6CiAgICAgICAgcHJvYmxlbXMuYXBwZW5kKCJXRUJIT09LX1NFQ1JFVCBtaXNzaW5nIChyZXF1aXJlZCBmb3Igd2ViaG9vayBtb2RlKS4iKQogICAgaWYgbm90IEJBU0VfVVJMIGFuZCBub3QgUE9MTElORzoKICAgICAgICBwcm9ibGVtcy5hcHBlbmQoIkJBU0VfVVJMIG1pc3NpbmcgKHJlcXVpcmVkIGZvciB3ZWJob29rIG1vZGUpLiIpCiAgICByZXR1cm4gcHJvYmxlbXMKCgpkZWYgbWluaWFwcF91cmwoKSAtPiBzdHI6CiAgICByZXR1cm4gZiJ7QkFTRV9VUkx9L21pbmlhcHAvIgoKCmRlZiBib29raW5nX2RlZXBsaW5rKHR1dG9yX2xpbmtfY29kZTogc3RyKSAtPiBzdHI6CiAgICByZXR1cm4gZiJodHRwczovL3QubWUve0JPVF9VU0VSTkFNRX0/c3RhcnQ9Ym9va197dHV0b3JfbGlua19jb2RlfSIK
+"""Configuration from environment. No secrets in code."""
+import os
+
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
+BOT_USERNAME = os.environ.get("BOT_USERNAME", "slotbot")
+WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET", "")
+BASE_URL = os.environ.get("BASE_URL", "").rstrip("/")
+DB_PATH = os.environ.get("DB_PATH", "./data/slotbot.db")
+POLLING = os.environ.get("POLLING", "false").lower() == "true"
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
+
+# Booking hold: student has this long to complete Stars payment
+HOLD_MINUTES = 10
+# How far ahead slots are generated for a tutor
+SLOT_HORIZON_DAYS = 14
+# Reminders before session start
+REMINDER_OFFSETS_MIN = (24 * 60, 60)
+
+TELEGRAM_API = "https://api.telegram.org"
+
+
+def validate_startup() -> list[str]:
+    """Return list of config problems (empty = ok)."""
+    problems = []
+    if not BOT_TOKEN or ":" not in BOT_TOKEN:
+        problems.append("BOT_TOKEN missing or invalid. Create a bot via @BotFather.")
+    if not WEBHOOK_SECRET and not POLLING:
+        problems.append("WEBHOOK_SECRET missing (required for webhook mode).")
+    if not BASE_URL and not POLLING:
+        problems.append("BASE_URL missing (required for webhook mode).")
+    return problems
+
+
+def miniapp_url() -> str:
+    return f"{BASE_URL}/miniapp/"
+
+
+def booking_deeplink(tutor_link_code: str) -> str:
+    return f"https://t.me/{BOT_USERNAME}?start=book_{tutor_link_code}"
