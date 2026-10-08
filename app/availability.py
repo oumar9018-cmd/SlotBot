@@ -1,1 +1,75 @@
-IiIiU2xvdCBnZW5lcmF0aW9uIGZyb20gYXZhaWxhYmlsaXR5IHJ1bGVzLiBUdXRvci1sb2NhbCB0aW1lcyAtPiBVVEMgc3RvcmFnZS4iIiIKZnJvbSBkYXRldGltZSBpbXBvcnQgZGF0ZXRpbWUsIHRpbWVkZWx0YSwgdGltZXpvbmUKZnJvbSB6b25laW5mbyBpbXBvcnQgWm9uZUluZm8KCmZyb20gLiBpbXBvcnQgY29uZmlnLCBkYgoKREFZX05BTUVTID0gWyJNb24iLCAiVHVlIiwgIldlZCIsICJUaHUiLCAiRnJpIiwgIlNhdCIsICJTdW4iXQoKCmRlZiBnZW5lcmF0ZV9zbG90c19mb3JfdHV0b3IodHV0b3JfaWQ6IGludCwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICBob3Jpem9uX2RheXM6IGludCB8IE5vbmUgPSBOb25lKSAtPiBpbnQ6CiAgICAiIiJHZW5lcmF0ZSBjb25jcmV0ZSBzbG90cyBmb3IgdGhlIG5leHQgTiBkYXlzIGZyb20gcnVsZXMuIFJldHVybnMgbmV3IGNvdW50LiIiIgogICAgdHV0b3IgPSBkYi5nZXRfdHV0b3JfYnlfaWQodHV0b3JfaWQpCiAgICBpZiBub3QgdHV0b3I6CiAgICAgICAgcmV0dXJuIDAKICAgIHJ1bGVzID0gZGIuZ2V0X2F2YWlsYWJpbGl0eV9ydWxlcyh0dXRvcl9pZCkKICAgIGlmIG5vdCBydWxlczoKICAgICAgICByZXR1cm4gMAogICAgdHogPSBab25lSW5mbyh0dXRvclsidGltZXpvbmUiXSkKICAgIGhvcml6b24gPSBob3Jpem9uX2RheXMgb3IgY29uZmlnLlNMT1RfSE9SSVpPTl9EQVlTCiAgICBub3dfbG9jYWwgPSBkYXRldGltZS5ub3codHopLmRhdGUoKQogICAgcGFpcnM6IGxpc3RbdHVwbGVbc3RyLCBzdHJdXSA9IFtdCiAgICBmb3IgZCBpbiByYW5nZShob3Jpem9uKToKICAgICAgICBkYXkgPSBub3dfbG9jYWwgKyB0aW1lZGVsdGEoZGF5cz1kKQogICAgICAgIHdlZWtkYXkgPSBkYXkud2Vla2RheSgpCiAgICAgICAgZm9yIHIgaW4gcnVsZXM6CiAgICAgICAgICAgIGlmIHJbIndlZWtkYXkiXSAhPSB3ZWVrZGF5OgogICAgICAgICAgICAgICAgY29udGludWUKICAgICAgICAgICAgc3RhcnRfbG9jYWwgPSBkYXRldGltZShkYXkueWVhciwgZGF5Lm1vbnRoLCBkYXkuZGF5LCB0emluZm89dHopLnJlcGxhY2UoCiAgICAgICAgICAgICAgICBob3VyPXJbInN0YXJ0X21pbiJdIC8vIDYwLCBtaW51dGU9clsic3RhcnRfbWluIl0gJSA2MCkKICAgICAgICAgICAgZW5kX2xvY2FsID0gZGF0ZXRpbWUoZGF5LnllYXIsIGRheS5tb250aCwgZGF5LmRheSwgdHppbmZvPXR6KS5yZXBsYWNlKAogICAgICAgICAgICAgICAgaG91cj1yWyJlbmRfbWluIl0gLy8gNjAsIG1pbnV0ZT1yWyJlbmRfbWluIl0gJSA2MCkKICAgICAgICAgICAgIyBTa2lwIHNsb3RzIHRoYXQgYWxyZWFkeSBzdGFydGVkCiAgICAgICAgICAgIG5vd191dGMgPSBkYXRldGltZS5ub3codGltZXpvbmUudXRjKQogICAgICAgICAgICBjdXIgPSBzdGFydF9sb2NhbAogICAgICAgICAgICB3aGlsZSBjdXIgKyB0aW1lZGVsdGEobWludXRlcz1yWyJzbG90X21pbiJdKSA8PSBlbmRfbG9jYWw6CiAgICAgICAgICAgICAgICBzX3V0YyA9IGN1ci5hc3RpbWV6b25lKHRpbWV6b25lLnV0YykKICAgICAgICAgICAgICAgIGVfdXRjID0gKGN1ciArIHRpbWVkZWx0YShtaW51dGVzPXJbInNsb3RfbWluIl0pKS5hc3RpbWV6b25lKHRpbWV6b25lLnV0YykKICAgICAgICAgICAgICAgIGlmIHNfdXRjID4gbm93X3V0YzoKICAgICAgICAgICAgICAgICAgICBwYWlycy5hcHBlbmQoKHNfdXRjLmlzb2Zvcm1hdCgpLCBlX3V0Yy5pc29mb3JtYXQoKSkpCiAgICAgICAgICAgICAgICBjdXIgKz0gdGltZWRlbHRhKG1pbnV0ZXM9clsic2xvdF9taW4iXSkKICAgIHJldHVybiBkYi51cHNlcnRfc2xvdHModHV0b3JfaWQsIHBhaXJzKQoKCmRlZiBmbXRfc2xvdChzbG90OiBkaWN0LCB0el9uYW1lOiBzdHIpIC0+IHN0cjoKICAgICIiIkh1bWFuIGxhYmVsLCBlLmcuICdNb24gMTIgT2N0LCA2OjMwIFBNJy4gVGltZXpvbmUtYXdhcmUuIiIiCiAgICB0eiA9IFpvbmVJbmZvKHR6X25hbWUpCiAgICBzID0gZGF0ZXRpbWUuZnJvbWlzb2Zvcm1hdChzbG90WyJzdGFydHNfYXRfdXRjIl0pLmFzdGltZXpvbmUodHopCiAgICByZXR1cm4gcy5zdHJmdGltZSgiJWEgJWQgJWIsICUtSTolTSAlcCIpCgoKZGVmIHBhcnNlX3RpbWVfcmFuZ2UodGV4dDogc3RyKSAtPiB0dXBsZVtpbnQsIGludF0gfCBOb25lOgogICAgIiIiUGFyc2UgJzE4OjAwLTIxOjAwJyAtPiAoMTA4MCwgMTI2MCkgbWludXRlcy4gUmV0dXJucyBOb25lIGlmIGludmFsaWQuIiIiCiAgICB0cnk6CiAgICAgICAgcGFydHMgPSB0ZXh0LnN0cmlwKCkucmVwbGFjZSgiICIsICIiKS5zcGxpdCgiLSIpCiAgICAgICAgaWYgbGVuKHBhcnRzKSAhPSAyOgogICAgICAgICAgICByZXR1cm4gTm9uZQogICAgICAgIGRlZiB0b19taW4odDogc3RyKSAtPiBpbnQ6CiAgICAgICAgICAgIGgsIG0gPSB0LnNwbGl0KCI6IikKICAgICAgICAgICAgaCwgbSA9IGludChoKSwgaW50KG0pCiAgICAgICAgICAgIGlmIG5vdCAoMCA8PSBoIDw9IDIzIGFuZCAwIDw9IG0gPD0gNTkpOgogICAgICAgICAgICAgICAgcmFpc2UgVmFsdWVFcnJvcgogICAgICAgICAgICByZXR1cm4gaCAqIDYwICsgbQogICAgICAgIHN0YXJ0LCBlbmQgPSB0b19taW4ocGFydHNbMF0pLCB0b19taW4ocGFydHNbMV0pCiAgICAgICAgaWYgZW5kIDw9IHN0YXJ0OgogICAgICAgICAgICByZXR1cm4gTm9uZQogICAgICAgIHJldHVybiBzdGFydCwgZW5kCiAgICBleGNlcHQgRXhjZXB0aW9uOgogICAgICAgIHJldHVybiBOb25lCgoKQ09NTU9OX1RJTUVaT05FUyA9IFsKICAgICJBc2lhL0tvbGthdGEiLCAiQXNpYS9EdWJhaSIsICJBc2lhL1NpbmdhcG9yZSIsICJBc2lhL0pha2FydGEiLAogICAgIkV1cm9wZS9Mb25kb24iLCAiRXVyb3BlL0JlcmxpbiIsICJBbWVyaWNhL05ld19Zb3JrIiwgIkFtZXJpY2EvQ2hpY2FnbyIsCl0K
+"""Slot generation from availability rules. Tutor-local times -> UTC storage."""
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
+
+from . import config, db
+
+DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+
+def generate_slots_for_tutor(tutor_id: int,
+                             horizon_days: int | None = None) -> int:
+    """Generate concrete slots for the next N days from rules. Returns new count."""
+    tutor = db.get_tutor_by_id(tutor_id)
+    if not tutor:
+        return 0
+    rules = db.get_availability_rules(tutor_id)
+    if not rules:
+        return 0
+    tz = ZoneInfo(tutor["timezone"])
+    horizon = horizon_days or config.SLOT_HORIZON_DAYS
+    now_local = datetime.now(tz).date()
+    pairs: list[tuple[str, str]] = []
+    for d in range(horizon):
+        day = now_local + timedelta(days=d)
+        weekday = day.weekday()
+        for r in rules:
+            if r["weekday"] != weekday:
+                continue
+            start_local = datetime(day.year, day.month, day.day, tzinfo=tz).replace(
+                hour=r["start_min"] // 60, minute=r["start_min"] % 60)
+            end_local = datetime(day.year, day.month, day.day, tzinfo=tz).replace(
+                hour=r["end_min"] // 60, minute=r["end_min"] % 60)
+            # Skip slots that already started
+            now_utc = datetime.now(timezone.utc)
+            cur = start_local
+            while cur + timedelta(minutes=r["slot_min"]) <= end_local:
+                s_utc = cur.astimezone(timezone.utc)
+                e_utc = (cur + timedelta(minutes=r["slot_min"])).astimezone(timezone.utc)
+                if s_utc > now_utc:
+                    pairs.append((s_utc.isoformat(), e_utc.isoformat()))
+                cur += timedelta(minutes=r["slot_min"])
+    return db.upsert_slots(tutor_id, pairs)
+
+
+def fmt_slot(slot: dict, tz_name: str) -> str:
+    """Human label, e.g. 'Mon 12 Oct, 6:30 PM'. Timezone-aware."""
+    tz = ZoneInfo(tz_name)
+    s = datetime.fromisoformat(slot["starts_at_utc"]).astimezone(tz)
+    return s.strftime("%a %d %b, %-I:%M %p")
+
+
+def parse_time_range(text: str) -> tuple[int, int] | None:
+    """Parse '18:00-21:00' -> (1080, 1260) minutes. Returns None if invalid."""
+    try:
+        parts = text.strip().replace(" ", "").split("-")
+        if len(parts) != 2:
+            return None
+        def to_min(t: str) -> int:
+            h, m = t.split(":")
+            h, m = int(h), int(m)
+            if not (0 <= h <= 23 and 0 <= m <= 59):
+                raise ValueError
+            return h * 60 + m
+        start, end = to_min(parts[0]), to_min(parts[1])
+        if end <= start:
+            return None
+        return start, end
+    except Exception:
+        return None
+
+
+COMMON_TIMEZONES = [
+    "Asia/Kolkata", "Asia/Dubai", "Asia/Singapore", "Asia/Jakarta",
+    "Europe/London", "Europe/Berlin", "America/New_York", "America/Chicago",
+]

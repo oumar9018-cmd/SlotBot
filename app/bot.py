@@ -1,1 +1,527 @@
-IiIiVGVsZWdyYW0gdXBkYXRlIGhhbmRsZXJzOiB0dXRvciBvbmJvYXJkaW5nLCBzdHVkZW50IGJvb2tpbmcsIFN0YXJzIHBheW1lbnRzLgoKVjEgc2NvcGUgb25seS4gTm8gQ1JNLCBubyBwYWNrYWdlcywgbm8gQUkgY2hhdGJvdC4KIiIiCmltcG9ydCBsb2dnaW5nCgpmcm9tIC4gaW1wb3J0IGF2YWlsYWJpbGl0eSBhcyBhdgpmcm9tIC4gaW1wb3J0IGNvbmZpZywgZGIsIHRlbGVncmFtIGFzIHRnCgpsb2cgPSBsb2dnaW5nLmdldExvZ2dlcigic2xvdGJvdC5ib3QiKQoKIyBPbmJvYXJkaW5nIHN0YXRlIGlzIHBlcnNpc3RlZCBpbiB0aGUgREIgKHN1cnZpdmVzIHJlc3RhcnRzKS4KIyBgZGF5c2AgaXMgYSBzZXQgaW4gbWVtb3J5LCBzdG9yZWQgYXMgYSBzb3J0ZWQgbGlzdCBpbiBKU09OLgpkZWYgX3Nlc3NfZ2V0KHRnX3VzZXJfaWQ6IGludCkgLT4gZGljdCB8IE5vbmU6CiAgICBzID0gZGIubG9hZF9vbmJvYXJkaW5nX3Nlc3Npb24odGdfdXNlcl9pZCkKICAgIGlmIHMgYW5kIGlzaW5zdGFuY2Uocy5nZXQoImRheXMiKSwgbGlzdCk6CiAgICAgICAgc1siZGF5cyJdID0gc2V0KHNbImRheXMiXSkKICAgIHJldHVybiBzCgoKZGVmIF9zZXNzX3NhdmUodGdfdXNlcl9pZDogaW50LCBzOiBkaWN0KSAtPiBOb25lOgogICAgZCA9IGRpY3QocykKICAgIGlmIGlzaW5zdGFuY2UoZC5nZXQoImRheXMiKSwgc2V0KToKICAgICAgICBkWyJkYXlzIl0gPSBzb3J0ZWQoZFsiZGF5cyJdKQogICAgZGIuc2F2ZV9vbmJvYXJkaW5nX3Nlc3Npb24odGdfdXNlcl9pZCwgZCkKCgpkZWYgX3Nlc3NfY2xlYXIodGdfdXNlcl9pZDogaW50KSAtPiBOb25lOgogICAgZGIuY2xlYXJfb25ib2FyZGluZ19zZXNzaW9uKHRnX3VzZXJfaWQpCgpURVJNU19URVhUID0gKAogICAgIlRlcm1zIG9mIFNlcnZpY2VcblxuIgogICAgIlNsb3RCb3QgbGV0cyB0dXRvcnMgb2ZmZXIgYm9va2FibGUgc2Vzc2lvbnMgYW5kIGxldHMgc3R1ZGVudHMgYm9vayBhbmQgcGF5ICIKICAgICJmb3IgdGhlbSB3aXRoIFRlbGVncmFtIFN0YXJzLlxuXG4iCiAgICAi4oCiIFBheW1lbnRzIGFyZSBwcm9jZXNzZWQgYnkgVGVsZWdyYW0gaW4gVGVsZWdyYW0gU3RhcnMuXG4iCiAgICAi4oCiIElmIGEgdHV0b3IgY2FuY2VscyBhIHBhaWQgYm9va2luZywgdGhlIHBheW1lbnQgaXMgcmVmdW5kZWQgaW4gU3RhcnMuXG4iCiAgICAi4oCiIFNsb3RCb3QgaXMgYSBzY2hlZHVsaW5nIHRvb2w7IHRoZSB0dXRvcmluZyBzZXJ2aWNlIGl0c2VsZiBpcyBwcm92aWRlZCAiCiAgICAiYnkgdGhlIHR1dG9yLCBub3QgYnkgU2xvdEJvdC5cbiIKICAgICLigKIgU3VwcG9ydDogY29udGFjdCB0aGUgYm90IG93bmVyIHZpYSAvc3VwcG9ydC4iCikKClNVUFBPUlRfVEVYVCA9ICgKICAgICJOZWVkIGhlbHAgd2l0aCBhIHBheW1lbnQgb3IgYm9va2luZz8gUmVwbHkgdG8gdGhpcyBtZXNzYWdlIGRlc2NyaWJpbmcgIgogICAgInRoZSBpc3N1ZSBhbmQgdGhlIGJvdCBvd25lciB3aWxsIHJlc3BvbmQuXG5cbiIKICAgICJUZWxlZ3JhbSBkb2VzIG5vdCBoYW5kbGUgcHVyY2hhc2VzIG1hZGUgdmlhIGJvdHMg4oCUIGNvbnRhY3QgdXMgaGVyZS4iCikKCgojIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLSBoZWxwZXJzCmRlZiBfYnRuKHRleHQ6IHN0ciwgZGF0YTogc3RyKSAtPiBkaWN0OgogICAgcmV0dXJuIHsidGV4dCI6IHRleHQsICJjYWxsYmFja19kYXRhIjogZGF0YX0KCgpkZWYgX2Rhc2hib2FyZF9idG4oKToKICAgICIiIldlYiBBcHAgYnV0dG9uIG9ubHkgd2hlbiBhIHJlYWwgYWJzb2x1dGUgSFRUUFMgVVJMIGlzIGNvbmZpZ3VyZWQuCgogICAgSW4gbG9jYWwvcG9sbGluZyB0ZXN0IG1vZGUgKEJBU0VfVVJMIGVtcHR5KSBUZWxlZ3JhbSByZWplY3RzIHJlbGF0aXZlIFVSTHMKICAgIGxpa2UgJy9taW5pYXBwLycgYW5kLCB3b3JzZSwgcmVqZWN0cyB0aGUgRU5USVJFIG1lc3NhZ2Ug4oCUIHNvIHRoZSBvbmJvYXJkaW5nCiAgICBjb21wbGV0aW9uICsgYm9va2luZyBsaW5rIG1lc3NhZ2UgbmV2ZXIgcmVhY2hlcyB0aGUgdHV0b3IuIE9taXQgdGhlIGJ1dHRvbgogICAgaW5zdGVhZCBvZiBicmVha2luZyB0aGUgbWVzc2FnZS4KICAgICIiIgogICAgYmFzZSA9IChjb25maWcuQkFTRV9VUkwgb3IgIiIpLnN0cmlwKCkKICAgIGlmIGJhc2Uuc3RhcnRzd2l0aCgiaHR0cHM6Ly8iKToKICAgICAgICByZXR1cm4gdGcud2ViYXBwX2J1dHRvbigi8J+TiiBEYXNoYm9hcmQiLCBjb25maWcubWluaWFwcF91cmwoKSkKICAgIHJldHVybiBOb25lCgoKZGVmIF90dXRvcl9ob21lX2tiKHR1dG9yOiBkaWN0KSAtPiBkaWN0OgogICAgcm93cyA9IFsKICAgICAgICBbX2J0bigi8J+ThSBNeSBib29raW5ncyIsICJ0dXRvcl9ib29raW5ncyIpLAogICAgICAgICBfYnRuKCLwn5SXIE15IGJvb2tpbmcgbGluayIsICJ0dXRvcl9saW5rIildLAogICAgXQogICAgZGFzaCA9IF9kYXNoYm9hcmRfYnRuKCkKICAgIGlmIGRhc2g6CiAgICAgICAgcm93cy5hcHBlbmQoW2Rhc2hdKQogICAgcmV0dXJuIHRnLmlubGluZV9rZXlib2FyZChyb3dzKQoKCmFzeW5jIGRlZiBfc2VuZF90dXRvcl9ob21lKHRnX3VzZXJfaWQ6IGludCk6CiAgICB0dXRvciA9IGRiLmdldF90dXRvcl9ieV90Zyh0Z191c2VyX2lkKQogICAgaWYgbm90IHR1dG9yOgogICAgICAgIHJldHVybgogICAgdXBjb21pbmcgPSBkYi51cGNvbWluZ19ib29raW5ncyh0dXRvclsiaWQiXSkKICAgIGF3YWl0IHRnLnNlbmRfbWVzc2FnZSgKICAgICAgICB0Z191c2VyX2lkLAogICAgICAgIGYiV2VsY29tZSBiYWNrLCB7dHV0b3JbJ25hbWUnXX0hIPCfkYtcbiIKICAgICAgICBmIllvdSBoYXZlIHtsZW4odXBjb21pbmcpfSB1cGNvbWluZyBib29raW5nKHMpLlxuIgogICAgICAgIGYiU2Vzc2lvbiBwcmljZToge3R1dG9yWydwcmljZV9zdGFycyddfSBTdGFycy4iLAogICAgICAgIHJlcGx5X21hcmt1cD1fdHV0b3JfaG9tZV9rYih0dXRvciksCiAgICApCgoKIyAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tIG9uYm9hcmRpbmcKYXN5bmMgZGVmIHN0YXJ0X29uYm9hcmRpbmcodGdfdXNlcl9pZDogaW50LCBmaXJzdF9uYW1lOiBzdHIpOgogICAgX3Nlc3Nfc2F2ZSh0Z191c2VyX2lkLCB7InN0ZXAiOiAibmFtZSJ9KQogICAgYXdhaXQgdGcuc2VuZF9tZXNzYWdlKAogICAgICAgIHRnX3VzZXJfaWQsCiAgICAgICAgZiJIaSB7Zmlyc3RfbmFtZX0hIPCfkYsgV2VsY29tZSB0byBTbG90Qm90LlxuXG4iCiAgICAgICAgIkknbGwgc2V0IHVwIHlvdXIgYm9va2luZyBwYWdlIGluIHVuZGVyIDIgbWludXRlcy5cblxuIgogICAgICAgICJXaGF0J3MgeW91ciBuYW1lIChhcyBzdHVkZW50cyBzaG91bGQgc2VlIGl0KT8iLAogICAgKQoKCmFzeW5jIGRlZiBoYW5kbGVfb25ib2FyZGluZ190ZXh0KHRnX3VzZXJfaWQ6IGludCwgdGV4dDogc3RyLCBmaXJzdF9uYW1lOiBzdHIpOgogICAgcyA9IF9zZXNzX2dldCh0Z191c2VyX2lkKQogICAgaWYgbm90IHM6CiAgICAgICAgcmV0dXJuIEZhbHNlCiAgICBzdGVwID0gc1sic3RlcCJdCgogICAgaWYgc3RlcCA9PSAibmFtZSI6CiAgICAgICAgc1sibmFtZSJdID0gdGV4dC5zdHJpcCgpWzo2MF0gb3IgZmlyc3RfbmFtZQogICAgICAgIHNbInN0ZXAiXSA9ICJ0aW1lem9uZSIKICAgICAgICBfc2Vzc19zYXZlKHRnX3VzZXJfaWQsIHMpCiAgICAgICAga2IgPSB0Zy5pbmxpbmVfa2V5Ym9hcmQoCiAgICAgICAgICAgIFtbX2J0bih6LCBmIm9iX3R6X3tpfSIpXSBmb3IgaSwgeiBpbiBlbnVtZXJhdGUoYXYuQ09NTU9OX1RJTUVaT05FUyldCiAgICAgICAgKQogICAgICAgIGF3YWl0IHRnLnNlbmRfbWVzc2FnZSh0Z191c2VyX2lkLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAiV2hhdCdzIHlvdXIgdGltZXpvbmU/IiwgcmVwbHlfbWFya3VwPWtiKQogICAgICAgIHJldHVybiBUcnVlCgogICAgaWYgc3RlcCA9PSAicHJpY2UiOgogICAgICAgIHRyeToKICAgICAgICAgICAgcHJpY2UgPSBpbnQodGV4dC5zdHJpcCgpKQogICAgICAgICAgICBpZiBub3QgMSA8PSBwcmljZSA8PSAxMDAwMDA6CiAgICAgICAgICAgICAgICByYWlzZSBWYWx1ZUVycm9yCiAgICAgICAgZXhjZXB0IFZhbHVlRXJyb3I6CiAgICAgICAgICAgIGF3YWl0IHRnLnNlbmRfbWVzc2FnZSh0Z191c2VyX2lkLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIlBsZWFzZSBzZW5kIGEgbnVtYmVyLCBlLmcuIDIwMCAoaW4gU3RhcnMpLiIpCiAgICAgICAgICAgIHJldHVybiBUcnVlCiAgICAgICAgc1sicHJpY2UiXSA9IHByaWNlCiAgICAgICAgc1sic3RlcCJdID0gImRheXMiCiAgICAgICAgc1siZGF5cyJdID0gc2V0KCkKICAgICAgICBfc2Vzc19zYXZlKHRnX3VzZXJfaWQsIHMpCiAgICAgICAgYXdhaXQgX3NlbmRfZGF5c19rYih0Z191c2VyX2lkLCBzKQogICAgICAgIHJldHVybiBUcnVlCgogICAgaWYgc3RlcCA9PSAidGltZXJhbmdlIjoKICAgICAgICBwYXJzZWQgPSBhdi5wYXJzZV90aW1lX3JhbmdlKHRleHQpCiAgICAgICAgaWYgbm90IHBhcnNlZDoKICAgICAgICAgICAgYXdhaXQgdGcuc2VuZF9tZXNzYWdlKHRnX3VzZXJfaWQsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAiSSBkaWRuJ3QgZ2V0IHRoYXQuIFNlbmQgbGlrZTogMTg6MDAtMjE6MDAiKQogICAgICAgICAgICByZXR1cm4gVHJ1ZQogICAgICAgIHNbInN0YXJ0X21pbiJdLCBzWyJlbmRfbWluIl0gPSBwYXJzZWQKICAgICAgICBzWyJzdGVwIl0gPSAiZHVyYXRpb24iCiAgICAgICAgX3Nlc3Nfc2F2ZSh0Z191c2VyX2lkLCBzKQogICAgICAgIGtiID0gdGcuaW5saW5lX2tleWJvYXJkKFtbCiAgICAgICAgICAgIF9idG4oIjMwIG1pbiIsICJvYl9kdXJfMzAiKSwgX2J0bigiNDUgbWluIiwgIm9iX2R1cl80NSIpLAogICAgICAgICAgICBfYnRuKCI2MCBtaW4iLCAib2JfZHVyXzYwIiksIF9idG4oIjkwIG1pbiIsICJvYl9kdXJfOTAiKSwKICAgICAgICBdXSkKICAgICAgICBhd2FpdCB0Zy5zZW5kX21lc3NhZ2UodGdfdXNlcl9pZCwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIkhvdyBsb25nIGlzIG9uZSBzZXNzaW9uPyIsIHJlcGx5X21hcmt1cD1rYikKICAgICAgICByZXR1cm4gVHJ1ZQoKICAgIHJldHVybiBGYWxzZQoKCmFzeW5jIGRlZiBfc2VuZF9kYXlzX2tiKHRnX3VzZXJfaWQ6IGludCwgczogZGljdCk6CiAgICByb3dzID0gW10KICAgIGZvciBpLCBuYW1lIGluIGVudW1lcmF0ZShhdi5EQVlfTkFNRVMpOgogICAgICAgIG1hcmsgPSAi4pyFIiBpZiBpIGluIHNbImRheXMiXSBlbHNlICLirJwiCiAgICAgICAgcm93cy5hcHBlbmQoX2J0bihmInttYXJrfSB7bmFtZX0iLCBmIm9iX2RheV97aX0iKSkKICAgIGtiX3Jvd3MgPSBbcm93c1tpOmkgKyA0XSBmb3IgaSBpbiByYW5nZSgwLCA3LCA0KV0KICAgIGtiX3Jvd3MuYXBwZW5kKFtfYnRuKCJEb25lIOKchSIsICJvYl9kYXlzX2RvbmUiKV0pCiAgICBhd2FpdCB0Zy5zZW5kX21lc3NhZ2UoCiAgICAgICAgdGdfdXNlcl9pZCwKICAgICAgICAiV2hpY2ggZGF5cyBkbyB5b3UgdGVhY2g/IFRhcCB0byBzZWxlY3QsIHRoZW4gRG9uZS4iLAogICAgICAgIHJlcGx5X21hcmt1cD10Zy5pbmxpbmVfa2V5Ym9hcmQoa2Jfcm93cyksCiAgICApCgoKYXN5bmMgZGVmIGhhbmRsZV9vbmJvYXJkaW5nX2NhbGxiYWNrKHRnX3VzZXJfaWQ6IGludCwgY3FfaWQ6IHN0ciwgZGF0YTogc3RyLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgbWVzc2FnZV9pZDogaW50IHwgTm9uZSkgLT4gYm9vbDoKICAgIHMgPSBfc2Vzc19nZXQodGdfdXNlcl9pZCkKICAgIGlmIG5vdCBzOgogICAgICAgIHJldHVybiBGYWxzZQoKICAgIGlmIGRhdGEuc3RhcnRzd2l0aCgib2JfdHpfIik6CiAgICAgICAgaWR4ID0gaW50KGRhdGEuc3BsaXQoIl8iKVstMV0pCiAgICAgICAgc1sidGltZXpvbmUiXSA9IGF2LkNPTU1PTl9USU1FWk9ORVNbaWR4XQogICAgICAgIHNbInN0ZXAiXSA9ICJwcmljZSIKICAgICAgICBfc2Vzc19zYXZlKHRnX3VzZXJfaWQsIHMpCiAgICAgICAgYXdhaXQgdGcuYW5zd2VyX2NhbGxiYWNrKGNxX2lkKQogICAgICAgIGF3YWl0IHRnLnNlbmRfbWVzc2FnZSgKICAgICAgICAgICAgdGdfdXNlcl9pZCwKICAgICAgICAgICAgZiJUaW1lem9uZToge3NbJ3RpbWV6b25lJ119IPCfjI1cblxuIgogICAgICAgICAgICAiV2hhdCBpcyB5b3VyIHByaWNlIHBlciBzZXNzaW9uIGluIFRlbGVncmFtIFN0YXJzP1xuIgogICAgICAgICAgICAiKH4yMDAgU3RhcnMg4omIICQzLiBFeGFtcGxlOiBzZW5kIDIwMCkiKQogICAgICAgIHJldHVybiBUcnVlCgogICAgaWYgZGF0YS5zdGFydHN3aXRoKCJvYl9kYXlfIik6CiAgICAgICAgaSA9IGludChkYXRhLnNwbGl0KCJfIilbLTFdKQogICAgICAgIHNbImRheXMiXS5kaXNjYXJkKGkpIGlmIGkgaW4gc1siZGF5cyJdIGVsc2Ugc1siZGF5cyJdLmFkZChpKQogICAgICAgIF9zZXNzX3NhdmUodGdfdXNlcl9pZCwgcykKICAgICAgICBhd2FpdCB0Zy5hbnN3ZXJfY2FsbGJhY2soY3FfaWQpCiAgICAgICAgIyByZWJ1aWxkIHRoZSBrZXlib2FyZCBpbiBwbGFjZQogICAgICAgIHJvd3MgPSBbXQogICAgICAgIGZvciBqLCBuYW1lIGluIGVudW1lcmF0ZShhdi5EQVlfTkFNRVMpOgogICAgICAgICAgICBtYXJrID0gIuKchSIgaWYgaiBpbiBzWyJkYXlzIl0gZWxzZSAi4qycIgogICAgICAgICAgICByb3dzLmFwcGVuZChfYnRuKGYie21hcmt9IHtuYW1lfSIsIGYib2JfZGF5X3tqfSIpKQogICAgICAgIGtiX3Jvd3MgPSBbcm93c1trOmsgKyA0XSBmb3IgayBpbiByYW5nZSgwLCA3LCA0KV0KICAgICAgICBrYl9yb3dzLmFwcGVuZChbX2J0bigiRG9uZSDinIUiLCAib2JfZGF5c19kb25lIildKQogICAgICAgIGlmIG1lc3NhZ2VfaWQ6CiAgICAgICAgICAgIGF3YWl0IHRnLmVkaXRfbWVzc2FnZSh0Z191c2VyX2lkLCBtZXNzYWdlX2lkLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIldoaWNoIGRheXMgZG8geW91IHRlYWNoPyBUYXAgdG8gc2VsZWN0LCB0aGVuIERvbmUuIiwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHJlcGx5X21hcmt1cD10Zy5pbmxpbmVfa2V5Ym9hcmQoa2Jfcm93cykpCiAgICAgICAgcmV0dXJuIFRydWUKCiAgICBpZiBkYXRhID09ICJvYl9kYXlzX2RvbmUiOgogICAgICAgIGlmIG5vdCBzWyJkYXlzIl06CiAgICAgICAgICAgIGF3YWl0IHRnLmFuc3dlcl9jYWxsYmFjayhjcV9pZCwgIlBpY2sgYXQgbGVhc3Qgb25lIGRheSEiLCBUcnVlKQogICAgICAgICAgICByZXR1cm4gVHJ1ZQogICAgICAgIHNbInN0ZXAiXSA9ICJ0aW1lcmFuZ2UiCiAgICAgICAgX3Nlc3Nfc2F2ZSh0Z191c2VyX2lkLCBzKQogICAgICAgIGF3YWl0IHRnLmFuc3dlcl9jYWxsYmFjayhjcV9pZCkKICAgICAgICBhd2FpdCB0Zy5zZW5kX21lc3NhZ2UoCiAgICAgICAgICAgIHRnX3VzZXJfaWQsCiAgICAgICAgICAgICJXaGF0IGhvdXJzPyBTZW5kIGxpa2U6IDE4OjAwLTIxOjAwIikKICAgICAgICByZXR1cm4gVHJ1ZQoKICAgIGlmIGRhdGEuc3RhcnRzd2l0aCgib2JfZHVyXyIpOgogICAgICAgIG1pbnMgPSBpbnQoZGF0YS5zcGxpdCgiXyIpWy0xXSkKICAgICAgICBhd2FpdCB0Zy5hbnN3ZXJfY2FsbGJhY2soY3FfaWQpCiAgICAgICAgYXdhaXQgX2ZpbmlzaF9vbmJvYXJkaW5nKHRnX3VzZXJfaWQsIHMsIG1pbnMpCiAgICAgICAgcmV0dXJuIFRydWUKCiAgICByZXR1cm4gRmFsc2UKCgphc3luYyBkZWYgX2ZpbmlzaF9vbmJvYXJkaW5nKHRnX3VzZXJfaWQ6IGludCwgczogZGljdCwgc2xvdF9taW46IGludCk6CiAgICBydWxlcyA9IFt7IndlZWtkYXkiOiBkLCAic3RhcnRfbWluIjogc1sic3RhcnRfbWluIl0sCiAgICAgICAgICAgICAgImVuZF9taW4iOiBzWyJlbmRfbWluIl0sICJzbG90X21pbiI6IHNsb3RfbWlufQogICAgICAgICAgICAgZm9yIGQgaW4gc29ydGVkKHNbImRheXMiXSldCiAgICB0dXRvciA9IGRiLmNyZWF0ZV90dXRvcih0Z191c2VyX2lkLCBzWyJuYW1lIl0sIHNbInRpbWV6b25lIl0pCiAgICBkYi51cGRhdGVfdHV0b3IodHV0b3JbImlkIl0sIHByaWNlX3N0YXJzPXNbInByaWNlIl0pCiAgICBkYi5zZXRfYXZhaWxhYmlsaXR5X3J1bGVzKHR1dG9yWyJpZCJdLCBydWxlcykKICAgIG4gPSBhdi5nZW5lcmF0ZV9zbG90c19mb3JfdHV0b3IodHV0b3JbImlkIl0pCiAgICBfc2Vzc19jbGVhcih0Z191c2VyX2lkKQogICAgdHV0b3IgPSBkYi5nZXRfdHV0b3JfYnlfaWQodHV0b3JbImlkIl0pCiAgICBsaW5rID0gY29uZmlnLmJvb2tpbmdfZGVlcGxpbmsodHV0b3JbImxpbmtfY29kZSJdKQogICAgYXdhaXQgdGcuc2VuZF9tZXNzYWdlKAogICAgICAgIHRnX3VzZXJfaWQsCiAgICAgICAgZiLwn46JIFlvdSdyZSBsaXZlLCB7dHV0b3JbJ25hbWUnXX0hXG5cbiIKICAgICAgICBmIkdlbmVyYXRlZCB7bn0gYm9va2FibGUgc2xvdHMgZm9yIHRoZSBuZXh0IDE0IGRheXMuXG5cbiIKICAgICAgICBmIlNoYXJlIHRoaXMgbGluayB3aXRoIHlvdXIgc3R1ZGVudHM6XG57bGlua31cblxuIgogICAgICAgICJUaGV5IHBpY2sgYSBzbG90LCBwYXkgaW4gU3RhcnMsIGFuZCB5b3UgYm90aCBnZXQgY29uZmlybWF0aW9ucyArIHJlbWluZGVycy4iLAogICAgICAgIHJlcGx5X21hcmt1cD1fdHV0b3JfaG9tZV9rYih0dXRvciksCiAgICApCiAgICBsb2cuaW5mbygidHV0b3Igb25ib2FyZGVkOiAlcyAoJWQgc2xvdHMpIiwgdHV0b3JbIm5hbWUiXSwgbikKCgojIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLSBzdHVkZW50IGZsb3cKYXN5bmMgZGVmIHN0YXJ0X2Jvb2tpbmcodGdfdXNlcl9pZDogaW50LCBsaW5rX2NvZGU6IHN0ciwgZmlyc3RfbmFtZTogc3RyKToKICAgIHR1dG9yID0gZGIuZ2V0X3R1dG9yX2J5X2xpbmsobGlua19jb2RlKQogICAgaWYgbm90IHR1dG9yOgogICAgICAgIGF3YWl0IHRnLnNlbmRfbWVzc2FnZSh0Z191c2VyX2lkLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAiVGhpcyBib29raW5nIGxpbmsgaXMgaW52YWxpZC4gQXNrIHlvdXIgdHV0b3IgZm9yIGEgZnJlc2ggb25lLiIpCiAgICAgICAgcmV0dXJuCiAgICBzbG90cyA9IGRiLm9wZW5fc2xvdHModHV0b3JbImlkIl0sIGxpbWl0PTEyKQogICAgaWYgbm90IHNsb3RzOgogICAgICAgIGF3YWl0IHRnLnNlbmRfbWVzc2FnZSgKICAgICAgICAgICAgdGdfdXNlcl9pZCwKICAgICAgICAgICAgZiJ7dHV0b3JbJ25hbWUnXX0gaGFzIG5vIG9wZW4gc2xvdHMgcmlnaHQgbm93LiBDaGVjayBiYWNrIHNvb24hIikKICAgICAgICByZXR1cm4KICAgIHJvd3MgPSBbW19idG4oYXYuZm10X3Nsb3Qoc2wsIHR1dG9yWyJ0aW1lem9uZSJdKSwgZiJzbG90X3tzbFsnaWQnXX0iKV0KICAgICAgICAgICAgZm9yIHNsIGluIHNsb3RzXQogICAgYXdhaXQgdGcuc2VuZF9tZXNzYWdlKAogICAgICAgIHRnX3VzZXJfaWQsCiAgICAgICAgZiLwn5OaIEJvb2sgYSBzZXNzaW9uIHdpdGgge3R1dG9yWyduYW1lJ119XG4iCiAgICAgICAgZiLwn5KrIFByaWNlOiB7dHV0b3JbJ3ByaWNlX3N0YXJzJ119IFN0YXJzIHBlciBzZXNzaW9uXG4iCiAgICAgICAgZiLwn5WQIFRpbWVzIHNob3duIGluIHt0dXRvclsndGltZXpvbmUnXX1cblxuIgogICAgICAgICJQaWNrIGEgc2xvdDoiLAogICAgICAgIHJlcGx5X21hcmt1cD10Zy5pbmxpbmVfa2V5Ym9hcmQocm93cyksCiAgICApCgoKYXN5bmMgZGVmIGhhbmRsZV9zbG90X3BpY2sodGdfdXNlcl9pZDogaW50LCBjcV9pZDogc3RyLCBzbG90X2lkOiBpbnQsCiAgICAgICAgICAgICAgICAgICAgICAgICAgIGZpcnN0X25hbWU6IHN0ciwgdXNlcm5hbWU6IHN0ciB8IE5vbmUpOgogICAgc2xvdCA9IGRiLmdldF9zbG90KHNsb3RfaWQpCiAgICBpZiBub3Qgc2xvdDoKICAgICAgICBhd2FpdCB0Zy5hbnN3ZXJfY2FsbGJhY2soY3FfaWQsICJTbG90IG5vdCBmb3VuZC4iLCBUcnVlKQogICAgICAgIHJldHVybgogICAgdHV0b3IgPSBkYi5nZXRfdHV0b3JfYnlfaWQoc2xvdFsidHV0b3JfaWQiXSkKICAgIGJvb2tpbmcgPSBkYi5ob2xkX3Nsb3QodHV0b3JbImlkIl0sIHNsb3RfaWQsIHRnX3VzZXJfaWQsCiAgICAgICAgICAgICAgICAgICAgICAgICAgIGZpcnN0X25hbWUgb3IgdXNlcm5hbWUgb3IgIlN0dWRlbnQiLAogICAgICAgICAgICAgICAgICAgICAgICAgICBjb25maWcuSE9MRF9NSU5VVEVTKQogICAgaWYgbm90IGJvb2tpbmc6CiAgICAgICAgYXdhaXQgdGcuYW5zd2VyX2NhbGxiYWNrKAogICAgICAgICAgICBjcV9pZCwgIlNvbWVvbmUganVzdCB0b29rIHRoaXMgc2xvdCEgUGljayBhbm90aGVyIG9uZS4iLCBUcnVlKQogICAgICAgIHJldHVybgogICAgYXdhaXQgdGcuYW5zd2VyX2NhbGxiYWNrKGNxX2lkLCAiU2xvdCByZXNlcnZlZCBmb3IgMTAgbWludXRlcyDij7MiKQogICAgbGFiZWwgPSBhdi5mbXRfc2xvdChzbG90LCB0dXRvclsidGltZXpvbmUiXSkKICAgIGF3YWl0IHRnLnNlbmRfaW52b2ljZSgKICAgICAgICB0Z191c2VyX2lkLAogICAgICAgIHRpdGxlPWYiU2Vzc2lvbiB3aXRoIHt0dXRvclsnbmFtZSddfSIsCiAgICAgICAgZGVzY3JpcHRpb249ZiJ7bGFiZWx9ICh7dHV0b3JbJ3RpbWV6b25lJ119KSIsCiAgICAgICAgcGF5bG9hZD1mImJvb2s6e2Jvb2tpbmdbJ2lkJ119IiwKICAgICAgICBhbW91bnRfc3RhcnM9dHV0b3JbInByaWNlX3N0YXJzIl0sCiAgICApCiAgICBsb2cuaW5mbygiaG9sZCBjcmVhdGVkOiBib29raW5nPSVkIHNsb3Q9JWQiLCBib29raW5nWyJpZCJdLCBzbG90X2lkKQoKCiMgLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLSBwYXltZW50cwphc3luYyBkZWYgaGFuZGxlX3ByZWNoZWNrb3V0KHF1ZXJ5OiBkaWN0KToKICAgICMgTk9URTogdGhlIHVwZGF0ZSBvYmplY3QgdXNlcyBmaWVsZCBgaWRgOyB0aGUgYW5zd2VyUHJlQ2hlY2tvdXRRdWVyeQogICAgIyAqbWV0aG9kKiB0YWtlcyBwYXJhbWV0ZXIgYHByZV9jaGVja291dF9xdWVyeV9pZGAuIERvbid0IGNvbmZ1c2UgdGhlbS4KICAgIHFpZCA9IHF1ZXJ5WyJpZCJdCiAgICBwYXlsb2FkID0gcXVlcnkuZ2V0KCJpbnZvaWNlX3BheWxvYWQiLCAiIikKICAgIGlmIG5vdCBwYXlsb2FkLnN0YXJ0c3dpdGgoImJvb2s6Iik6CiAgICAgICAgYXdhaXQgdGcuYW5zd2VyX3ByZWNoZWNrb3V0KHFpZCwgRmFsc2UsICJJbnZhbGlkIGludm9pY2UuIikKICAgICAgICByZXR1cm4KICAgIHRyeToKICAgICAgICBib29raW5nX2lkID0gaW50KHBheWxvYWQuc3BsaXQoIjoiKVsxXSkKICAgIGV4Y2VwdCBWYWx1ZUVycm9yOgogICAgICAgIGF3YWl0IHRnLmFuc3dlcl9wcmVjaGVja291dChxaWQsIEZhbHNlLCAiSW52YWxpZCBpbnZvaWNlLiIpCiAgICAgICAgcmV0dXJuCiAgICBib29raW5nID0gZGIuZ2V0X2Jvb2tpbmcoYm9va2luZ19pZCkKICAgICMgTXVzdCBiZSBhIGxpdmUgaG9sZDogbm90IGV4cGlyZWQsIHNsb3Qgc3RpbGwgaGVsZCBmb3IgdGhpcyBib29raW5nCiAgICBpZiBub3QgYm9va2luZyBvciBib29raW5nWyJzdGF0dXMiXSAhPSAiaGVsZCI6CiAgICAgICAgYXdhaXQgdGcuYW5zd2VyX3ByZWNoZWNrb3V0KHFpZCwgRmFsc2UsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICJUaGlzIHNsb3QgaXMgbm8gbG9uZ2VyIGF2YWlsYWJsZS4iKQogICAgICAgIHJldHVybgogICAgZnJvbSBkYXRldGltZSBpbXBvcnQgZGF0ZXRpbWUsIHRpbWV6b25lCiAgICBpZiBib29raW5nWyJob2xkX2V4cGlyZXNfYXQiXSA8PSBkYXRldGltZS5ub3codGltZXpvbmUudXRjKS5pc29mb3JtYXQoKToKICAgICAgICBkYi5yZWxlYXNlX2V4cGlyZWRfaG9sZHMoKQogICAgICAgIGF3YWl0IHRnLmFuc3dlcl9wcmVjaGVja291dChxaWQsIEZhbHNlLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAiUmVzZXJ2YXRpb24gZXhwaXJlZC4gUGxlYXNlIHBpY2sgYSBzbG90IGFnYWluLiIpCiAgICAgICAgcmV0dXJuCiAgICBhd2FpdCB0Zy5hbnN3ZXJfcHJlY2hlY2tvdXQocWlkLCBUcnVlKQoKCmFzeW5jIGRlZiBoYW5kbGVfc3VjY2Vzc2Z1bF9wYXltZW50KG1lc3NhZ2U6IGRpY3QpOgogICAgZnJvbSAuIGltcG9ydCByZW1pbmRlcnMgYXMgcmVtX21vZAogICAgcGF5ID0gbWVzc2FnZVsic3VjY2Vzc2Z1bF9wYXltZW50Il0KICAgIHBheWxvYWQgPSBwYXkuZ2V0KCJpbnZvaWNlX3BheWxvYWQiLCAiIikKICAgIGlmIG5vdCBwYXlsb2FkLnN0YXJ0c3dpdGgoImJvb2s6Iik6CiAgICAgICAgcmV0dXJuCiAgICBib29raW5nX2lkID0gaW50KHBheWxvYWQuc3BsaXQoIjoiKVsxXSkKICAgIGNoYXJnZV9pZCA9IHBheVsidGVsZWdyYW1fcGF5bWVudF9jaGFyZ2VfaWQiXQogICAgYW1vdW50ID0gcGF5WyJ0b3RhbF9hbW91bnQiXQogICAgZG9uZSA9IGRiLm1hcmtfYm9va2luZ19wYWlkKGJvb2tpbmdfaWQsIGNoYXJnZV9pZCwgYW1vdW50KQogICAgaWYgbm90IGRvbmU6CiAgICAgICAgbG9nLndhcm5pbmcoImR1cGxpY2F0ZS91bmtub3duIHN1Y2Nlc3NmdWxfcGF5bWVudCBpZ25vcmVkOiAlcyIsIGNoYXJnZV9pZCkKICAgICAgICByZXR1cm4KICAgIGJvb2tpbmcgPSBkYi5nZXRfYm9va2luZyhib29raW5nX2lkKQogICAgc2xvdCA9IGRiLmdldF9zbG90KGJvb2tpbmdbInNsb3RfaWQiXSkKICAgIHR1dG9yID0gZGIuZ2V0X3R1dG9yX2J5X2lkKGJvb2tpbmdbInR1dG9yX2lkIl0pCiAgICBkYi5zY2hlZHVsZV9yZW1pbmRlcnMoYm9va2luZ19pZCwgc2xvdFsic3RhcnRzX2F0X3V0YyJdKQogICAgbGFiZWwgPSBhdi5mbXRfc2xvdChzbG90LCB0dXRvclsidGltZXpvbmUiXSkKICAgICMgU3R1ZGVudCBjb25maXJtYXRpb24KICAgIGF3YWl0IHRnLnNlbmRfbWVzc2FnZSgKICAgICAgICBtZXNzYWdlWyJjaGF0Il1bImlkIl0sCiAgICAgICAgZiLinIUgQm9va2luZyBjb25maXJtZWQhXG5cbiIKICAgICAgICBmIvCfkanigI3wn4+rIFR1dG9yOiB7dHV0b3JbJ25hbWUnXX1cbiIKICAgICAgICBmIvCflZAge2xhYmVsfSAoe3R1dG9yWyd0aW1lem9uZSddfSlcbiIKICAgICAgICBmIvCfkqsgUGFpZDoge2Ftb3VudH0gU3RhcnNcblxuIgogICAgICAgICJZb3UnbGwgZ2V0IHJlbWluZGVycyAyNGggYW5kIDFoIGJlZm9yZS4gU2VlIHlvdSB0aGVyZSEiLAogICAgKQogICAgIyBUdXRvciBub3RpZmljYXRpb24KICAgIGF3YWl0IHRnLnNlbmRfbWVzc2FnZSgKICAgICAgICB0dXRvclsidGdfdXNlcl9pZCJdLAogICAgICAgIGYi8J+SsCBOZXcgYm9va2luZyFcblxuIgogICAgICAgIGYi8J+RpCBTdHVkZW50OiB7Ym9va2luZ1snc3R1ZGVudF9uYW1lJ119XG4iCiAgICAgICAgZiLwn5WQIHtsYWJlbH1cbiIKICAgICAgICBmIvCfkqsge2Ftb3VudH0gU3RhcnMgcmVjZWl2ZWQiLAogICAgICAgIHJlcGx5X21hcmt1cD1fdHV0b3JfaG9tZV9rYih0dXRvciksCiAgICApCiAgICBsb2cuaW5mbygiYm9va2luZyBwYWlkOiAlZCBjaGFyZ2U9JXMiLCBib29raW5nX2lkLCBjaGFyZ2VfaWQpCgoKIyAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLSB0dXRvciBhY3Rpb25zCmFzeW5jIGRlZiBoYW5kbGVfdHV0b3JfY2FsbGJhY2sodGdfdXNlcl9pZDogaW50LCBjcV9pZDogc3RyLCBkYXRhOiBzdHIsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgbWVzc2FnZV9pZDogaW50IHwgTm9uZSkgLT4gYm9vbDoKICAgIHR1dG9yID0gZGIuZ2V0X3R1dG9yX2J5X3RnKHRnX3VzZXJfaWQpCiAgICBpZiBub3QgdHV0b3I6CiAgICAgICAgcmV0dXJuIEZhbHNlCgogICAgaWYgZGF0YSA9PSAidHV0b3JfYm9va2luZ3MiOgogICAgICAgIGF3YWl0IHRnLmFuc3dlcl9jYWxsYmFjayhjcV9pZCkKICAgICAgICB1cGNvbWluZyA9IGRiLnVwY29taW5nX2Jvb2tpbmdzKHR1dG9yWyJpZCJdKQogICAgICAgIGlmIG5vdCB1cGNvbWluZzoKICAgICAgICAgICAgYXdhaXQgdGcuc2VuZF9tZXNzYWdlKHRnX3VzZXJfaWQsICJObyB1cGNvbWluZyBib29raW5ncyB5ZXQuIikKICAgICAgICAgICAgcmV0dXJuIFRydWUKICAgICAgICBmb3IgYiBpbiB1cGNvbWluZ1s6MTBdOgogICAgICAgICAgICBrYiA9IHRnLmlubGluZV9rZXlib2FyZCgKICAgICAgICAgICAgICAgIFtbX2J0bigi4p2MIENhbmNlbCArIHJlZnVuZCIsIGYidHV0b3JfY2FuY2VsX3tiWydpZCddfSIpXV0pCiAgICAgICAgICAgIGF3YWl0IHRnLnNlbmRfbWVzc2FnZSgKICAgICAgICAgICAgICAgIHRnX3VzZXJfaWQsCiAgICAgICAgICAgICAgICBmIvCfkaQge2JbJ3N0dWRlbnRfbmFtZSddfVxu8J+VkCB7YXYuZm10X3Nsb3QoYiwgdHV0b3JbJ3RpbWV6b25lJ10pfSIsCiAgICAgICAgICAgICAgICByZXBseV9tYXJrdXA9a2IsCiAgICAgICAgICAgICkKICAgICAgICByZXR1cm4gVHJ1ZQoKICAgIGlmIGRhdGEgPT0gInR1dG9yX2xpbmsiOgogICAgICAgIGF3YWl0IHRnLmFuc3dlcl9jYWxsYmFjayhjcV9pZCkKICAgICAgICBhd2FpdCB0Zy5zZW5kX21lc3NhZ2UodGdfdXNlcl9pZCwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgZiJZb3VyIGJvb2tpbmcgbGluazpcbntjb25maWcuYm9va2luZ19kZWVwbGluayh0dXRvclsnbGlua19jb2RlJ10pfSIpCiAgICAgICAgcmV0dXJuIFRydWUKCiAgICBpZiBkYXRhLnN0YXJ0c3dpdGgoInR1dG9yX2NhbmNlbF8iKToKICAgICAgICBib29raW5nX2lkID0gaW50KGRhdGEuc3BsaXQoIl8iKVstMV0pCiAgICAgICAgYm9va2luZyA9IGRiLmdldF9ib29raW5nKGJvb2tpbmdfaWQpCiAgICAgICAgaWYgbm90IGJvb2tpbmcgb3IgYm9va2luZ1sidHV0b3JfaWQiXSAhPSB0dXRvclsiaWQiXToKICAgICAgICAgICAgYXdhaXQgdGcuYW5zd2VyX2NhbGxiYWNrKGNxX2lkLCAiQm9va2luZyBub3QgZm91bmQuIiwgVHJ1ZSkKICAgICAgICAgICAgcmV0dXJuIFRydWUKICAgICAgICBjYW5jZWxsZWQgPSBkYi5jYW5jZWxfYm9va2luZyhib29raW5nX2lkKQogICAgICAgIGlmIG5vdCBjYW5jZWxsZWQ6CiAgICAgICAgICAgIGF3YWl0IHRnLmFuc3dlcl9jYWxsYmFjayhjcV9pZCwgIkFscmVhZHkgY2FuY2VsbGVkLiIsIFRydWUpCiAgICAgICAgICAgIHJldHVybiBUcnVlCiAgICAgICAgIyBSZWZ1bmQgdGhlIFN0YXJzIHBheW1lbnQgaWYgb25lIGV4aXN0cwogICAgICAgIHBheW1lbnQgPSBkYi5nZXRfcGF5bWVudF9ieV9ib29raW5nKGJvb2tpbmdfaWQpCiAgICAgICAgaWYgcGF5bWVudCBhbmQgcGF5bWVudFsic3RhdHVzIl0gPT0gImNvbXBsZXRlZCI6CiAgICAgICAgICAgIHIgPSBhd2FpdCB0Zy5yZWZ1bmRfc3RhcnMoYm9va2luZ1sic3R1ZGVudF90Z19pZCJdLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHBheW1lbnRbInRlbGVncmFtX2NoYXJnZV9pZCJdKQogICAgICAgICAgICBpZiByLmdldCgib2siKToKICAgICAgICAgICAgICAgIGRiLm1hcmtfcGF5bWVudF9yZWZ1bmRlZChib29raW5nX2lkKQogICAgICAgIGF3YWl0IHRnLmFuc3dlcl9jYWxsYmFjayhjcV9pZCwgIkNhbmNlbGxlZCArIHJlZnVuZGVkIOKchSIpCiAgICAgICAgYXdhaXQgdGcuc2VuZF9tZXNzYWdlKAogICAgICAgICAgICBib29raW5nWyJzdHVkZW50X3RnX2lkIl0sCiAgICAgICAgICAgICLimqDvuI8gWW91ciBzZXNzaW9uIHdhcyBjYW5jZWxsZWQgYnkgdGhlIHR1dG9yLiAiCiAgICAgICAgICAgICJZb3VyIFN0YXJzIGhhdmUgYmVlbiByZWZ1bmRlZC4iLAogICAgICAgICkKICAgICAgICBpZiBtZXNzYWdlX2lkOgogICAgICAgICAgICBhd2FpdCB0Zy5lZGl0X21lc3NhZ2UodGdfdXNlcl9pZCwgbWVzc2FnZV9pZCwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICLinYwgQ2FuY2VsbGVkICsgcmVmdW5kZWQuIikKICAgICAgICByZXR1cm4gVHJ1ZQoKICAgIHJldHVybiBGYWxzZQoKCiMgLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tIHJvdXRlcgphc3luYyBkZWYgaGFuZGxlX3VwZGF0ZSh1cGRhdGU6IGRpY3QpOgogICAgdHJ5OgogICAgICAgIGlmICJwcmVfY2hlY2tvdXRfcXVlcnkiIGluIHVwZGF0ZToKICAgICAgICAgICAgYXdhaXQgaGFuZGxlX3ByZWNoZWNrb3V0KHVwZGF0ZVsicHJlX2NoZWNrb3V0X3F1ZXJ5Il0pCiAgICAgICAgICAgIHJldHVybgoKICAgICAgICBpZiAiY2FsbGJhY2tfcXVlcnkiIGluIHVwZGF0ZToKICAgICAgICAgICAgY3EgPSB1cGRhdGVbImNhbGxiYWNrX3F1ZXJ5Il0KICAgICAgICAgICAgZGF0YSA9IGNxLmdldCgiZGF0YSIsICIiKQogICAgICAgICAgICBmcm9tX2lkID0gY3FbImZyb20iXVsiaWQiXQogICAgICAgICAgICBtc2dfaWQgPSBjcS5nZXQoIm1lc3NhZ2UiLCB7fSkuZ2V0KCJtZXNzYWdlX2lkIikKICAgICAgICAgICAgaWYgZGF0YS5zdGFydHN3aXRoKCJvYl8iKToKICAgICAgICAgICAgICAgIGlmIGF3YWl0IGhhbmRsZV9vbmJvYXJkaW5nX2NhbGxiYWNrKGZyb21faWQsIGNxWyJpZCJdLCBkYXRhLCBtc2dfaWQpOgogICAgICAgICAgICAgICAgICAgIHJldHVybgogICAgICAgICAgICAgICAgIyBTZXNzaW9uIGdvbmUgKGUuZy4sIG5ldmVyIHN0YXJ0ZWQpIOKAlCBkb24ndCBzaG93ICJVbmtub3duIGFjdGlvbiIKICAgICAgICAgICAgICAgIGF3YWl0IHRnLmFuc3dlcl9jYWxsYmFjayhjcVsiaWQiXSkKICAgICAgICAgICAgICAgIGF3YWl0IHRnLnNlbmRfbWVzc2FnZSgKICAgICAgICAgICAgICAgICAgICBmcm9tX2lkLAogICAgICAgICAgICAgICAgICAgICJZb3VyIHNldHVwIHNlc3Npb24gZXhwaXJlZC4gU2VuZCAvc3RhcnQgdG8gYmVnaW4gYWdhaW4g8J+UhCIpCiAgICAgICAgICAgICAgICByZXR1cm4KICAgICAgICAgICAgaWYgYXdhaXQgaGFuZGxlX29uYm9hcmRpbmdfY2FsbGJhY2soZnJvbV9pZCwgY3FbImlkIl0sIGRhdGEsIG1zZ19pZCk6CiAgICAgICAgICAgICAgICByZXR1cm4KICAgICAgICAgICAgaWYgZGF0YS5zdGFydHN3aXRoKCJzbG90XyIpOgogICAgICAgICAgICAgICAgYXdhaXQgaGFuZGxlX3Nsb3RfcGljayhmcm9tX2lkLCBjcVsiaWQiXSwgaW50KGRhdGFbNTpdKSwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgY3FbImZyb20iXS5nZXQoImZpcnN0X25hbWUiLCAiIiksCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGNxWyJmcm9tIl0uZ2V0KCJ1c2VybmFtZSIpKQogICAgICAgICAgICAgICAgcmV0dXJuCiAgICAgICAgICAgIGlmIGF3YWl0IGhhbmRsZV90dXRvcl9jYWxsYmFjayhmcm9tX2lkLCBjcVsiaWQiXSwgZGF0YSwgbXNnX2lkKToKICAgICAgICAgICAgICAgIHJldHVybgogICAgICAgICAgICBhd2FpdCB0Zy5hbnN3ZXJfY2FsbGJhY2soY3FbImlkIl0sICJVbmtub3duIGFjdGlvbi4iLCBUcnVlKQogICAgICAgICAgICByZXR1cm4KCiAgICAgICAgbXNnID0gdXBkYXRlLmdldCgibWVzc2FnZSIpCiAgICAgICAgaWYgbm90IG1zZzoKICAgICAgICAgICAgcmV0dXJuCiAgICAgICAgY2hhdF9pZCA9IG1zZ1siY2hhdCJdWyJpZCJdCiAgICAgICAgZnJvbV9pZCA9IG1zZ1siZnJvbSJdWyJpZCJdCiAgICAgICAgZmlyc3RfbmFtZSA9IG1zZ1siZnJvbSJdLmdldCgiZmlyc3RfbmFtZSIsICIiKQoKICAgICAgICBpZiAic3VjY2Vzc2Z1bF9wYXltZW50IiBpbiBtc2c6CiAgICAgICAgICAgIGF3YWl0IGhhbmRsZV9zdWNjZXNzZnVsX3BheW1lbnQobXNnKQogICAgICAgICAgICByZXR1cm4KCiAgICAgICAgdGV4dCA9IG1zZy5nZXQoInRleHQiLCAiIikKICAgICAgICBpZiB0ZXh0LnN0YXJ0c3dpdGgoIi9zdGFydCIpOgogICAgICAgICAgICBwYXJ0cyA9IHRleHQuc3BsaXQobWF4c3BsaXQ9MSkKICAgICAgICAgICAgYXJnID0gcGFydHNbMV0gaWYgbGVuKHBhcnRzKSA+IDEgZWxzZSAiIgogICAgICAgICAgICBpZiBhcmcuc3RhcnRzd2l0aCgiYm9va18iKToKICAgICAgICAgICAgICAgIGF3YWl0IHN0YXJ0X2Jvb2tpbmcoZnJvbV9pZCwgYXJnWzU6XSwgZmlyc3RfbmFtZSkKICAgICAgICAgICAgZWxpZiBkYi5nZXRfdHV0b3JfYnlfdGcoZnJvbV9pZCk6CiAgICAgICAgICAgICAgICBhd2FpdCBfc2VuZF90dXRvcl9ob21lKGZyb21faWQpCiAgICAgICAgICAgIGVsc2U6CiAgICAgICAgICAgICAgICBhd2FpdCBzdGFydF9vbmJvYXJkaW5nKGZyb21faWQsIGZpcnN0X25hbWUgb3IgInRoZXJlIikKICAgICAgICAgICAgcmV0dXJuCgogICAgICAgIGlmIHRleHQgPT0gIi90ZXJtcyI6CiAgICAgICAgICAgIGF3YWl0IHRnLnNlbmRfbWVzc2FnZShjaGF0X2lkLCBURVJNU19URVhUKQogICAgICAgICAgICByZXR1cm4KICAgICAgICBpZiB0ZXh0IGluICgiL3BheXN1cHBvcnQiLCAiL3N1cHBvcnQiKToKICAgICAgICAgICAgYXdhaXQgdGcuc2VuZF9tZXNzYWdlKGNoYXRfaWQsIFNVUFBPUlRfVEVYVCkKICAgICAgICAgICAgcmV0dXJuCiAgICAgICAgaWYgdGV4dCA9PSAiL2Rhc2hib2FyZCIgb3IgdGV4dCA9PSAiL2Jvb2tpbmdzIjoKICAgICAgICAgICAgdHV0b3IgPSBkYi5nZXRfdHV0b3JfYnlfdGcoZnJvbV9pZCkKICAgICAgICAgICAgaWYgdHV0b3I6CiAgICAgICAgICAgICAgICBkYXNoID0gX2Rhc2hib2FyZF9idG4oKQogICAgICAgICAgICAgICAgaWYgZGFzaDoKICAgICAgICAgICAgICAgICAgICBhd2FpdCB0Zy5zZW5kX21lc3NhZ2UoCiAgICAgICAgICAgICAgICAgICAgICAgIGNoYXRfaWQsICJPcGVuIHlvdXIgZGFzaGJvYXJkOiIsCiAgICAgICAgICAgICAgICAgICAgICAgIHJlcGx5X21hcmt1cD10Zy5pbmxpbmVfa2V5Ym9hcmQoW1tkYXNoXV0pKQogICAgICAgICAgICAgICAgZWxzZToKICAgICAgICAgICAgICAgICAgICBhd2FpdCB0Zy5zZW5kX21lc3NhZ2UoCiAgICAgICAgICAgICAgICAgICAgICAgIGNoYXRfaWQsICJEYXNoYm9hcmQgTWluaSBBcHAgbmVlZHMgYSBwdWJsaWMgQkFTRV9VUkwgKGRlcGxveSB0byBGbHkuaW8gZmlyc3QpLiAiCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIllvdXIgYm9va2luZ3Mgc3RpbGwgd29yayBmaW5lIGZyb20gdGhlIGJ1dHRvbnMgYmVsb3cuIikKICAgICAgICAgICAgZWxzZToKICAgICAgICAgICAgICAgIGF3YWl0IHRnLnNlbmRfbWVzc2FnZShjaGF0X2lkLCAiWW91J3JlIG5vdCByZWdpc3RlcmVkIGFzIGEgdHV0b3IgeWV0LiBTZW5kIC9zdGFydC4iKQogICAgICAgICAgICByZXR1cm4KICAgICAgICBpZiB0ZXh0ID09ICIvbXlsaW5rIjoKICAgICAgICAgICAgdHV0b3IgPSBkYi5nZXRfdHV0b3JfYnlfdGcoZnJvbV9pZCkKICAgICAgICAgICAgaWYgdHV0b3I6CiAgICAgICAgICAgICAgICBhd2FpdCB0Zy5zZW5kX21lc3NhZ2UoCiAgICAgICAgICAgICAgICAgICAgY2hhdF9pZCwKICAgICAgICAgICAgICAgICAgICBmIllvdXIgYm9va2luZyBsaW5rOlxue2NvbmZpZy5ib29raW5nX2RlZXBsaW5rKHR1dG9yWydsaW5rX2NvZGUnXSl9IikKICAgICAgICAgICAgcmV0dXJuCgogICAgICAgICMgRnJlZWZvcm0gdGV4dCBkdXJpbmcgb25ib2FyZGluZwogICAgICAgIGlmIGF3YWl0IGhhbmRsZV9vbmJvYXJkaW5nX3RleHQoZnJvbV9pZCwgdGV4dCwgZmlyc3RfbmFtZSBvciAidGhlcmUiKToKICAgICAgICAgICAgcmV0dXJuCgogICAgICAgICMgRmFsbGJhY2sKICAgICAgICB0dXRvciA9IGRiLmdldF90dXRvcl9ieV90Zyhmcm9tX2lkKQogICAgICAgIGlmIHR1dG9yOgogICAgICAgICAgICBhd2FpdCBfc2VuZF90dXRvcl9ob21lKGZyb21faWQpCiAgICAgICAgZWxzZToKICAgICAgICAgICAgYXdhaXQgdGcuc2VuZF9tZXNzYWdlKGNoYXRfaWQsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAiU2VuZCAvc3RhcnQgdG8gc2V0IHVwIHlvdXIgdHV0b3IgYm9va2luZyBwYWdlIPCfk5oiKQogICAgZXhjZXB0IEV4Y2VwdGlvbjoKICAgICAgICBsb2cuZXhjZXB0aW9uKCJoYW5kbGVfdXBkYXRlIGZhaWxlZCIpCg==
+"""Telegram update handlers: tutor onboarding, student booking, Stars payments.
+
+V1 scope only. No CRM, no packages, no AI chatbot.
+"""
+import logging
+
+from . import availability as av
+from . import config, db, telegram as tg
+
+log = logging.getLogger("slotbot.bot")
+
+# Onboarding state is persisted in the DB (survives restarts).
+# `days` is a set in memory, stored as a sorted list in JSON.
+def _sess_get(tg_user_id: int) -> dict | None:
+    s = db.load_onboarding_session(tg_user_id)
+    if s and isinstance(s.get("days"), list):
+        s["days"] = set(s["days"])
+    return s
+
+
+def _sess_save(tg_user_id: int, s: dict) -> None:
+    d = dict(s)
+    if isinstance(d.get("days"), set):
+        d["days"] = sorted(d["days"])
+    db.save_onboarding_session(tg_user_id, d)
+
+
+def _sess_clear(tg_user_id: int) -> None:
+    db.clear_onboarding_session(tg_user_id)
+
+TERMS_TEXT = (
+    "Terms of Service\n\n"
+    "SlotBot lets tutors offer bookable sessions and lets students book and pay "
+    "for them with Telegram Stars.\n\n"
+    "• Payments are processed by Telegram in Telegram Stars.\n"
+    "• If a tutor cancels a paid booking, the payment is refunded in Stars.\n"
+    "• SlotBot is a scheduling tool; the tutoring service itself is provided "
+    "by the tutor, not by SlotBot.\n"
+    "• Support: contact the bot owner via /support."
+)
+
+SUPPORT_TEXT = (
+    "Need help with a payment or booking? Reply to this message describing "
+    "the issue and the bot owner will respond.\n\n"
+    "Telegram does not handle purchases made via bots — contact us here."
+)
+
+
+# ------------------------------------------------------------------ helpers
+def _btn(text: str, data: str) -> dict:
+    return {"text": text, "callback_data": data}
+
+
+def _dashboard_btn():
+    """Web App button only when a real absolute HTTPS URL is configured.
+
+    In local/polling test mode (BASE_URL empty) Telegram rejects relative URLs
+    like '/miniapp/' and, worse, rejects the ENTIRE message — so the onboarding
+    completion + booking link message never reaches the tutor. Omit the button
+    instead of breaking the message.
+    """
+    base = (config.BASE_URL or "").strip()
+    if base.startswith("https://"):
+        return tg.webapp_button("📊 Dashboard", config.miniapp_url())
+    return None
+
+
+def _tutor_home_kb(tutor: dict) -> dict:
+    rows = [
+        [_btn("📅 My bookings", "tutor_bookings"),
+         _btn("🔗 My booking link", "tutor_link")],
+    ]
+    dash = _dashboard_btn()
+    if dash:
+        rows.append([dash])
+    return tg.inline_keyboard(rows)
+
+
+async def _send_tutor_home(tg_user_id: int):
+    tutor = db.get_tutor_by_tg(tg_user_id)
+    if not tutor:
+        return
+    upcoming = db.upcoming_bookings(tutor["id"])
+    await tg.send_message(
+        tg_user_id,
+        f"Welcome back, {tutor['name']}! 👋\n"
+        f"You have {len(upcoming)} upcoming booking(s).\n"
+        f"Session price: {tutor['price_stars']} Stars.",
+        reply_markup=_tutor_home_kb(tutor),
+    )
+
+
+# ------------------------------------------------------------- onboarding
+async def start_onboarding(tg_user_id: int, first_name: str):
+    _sess_save(tg_user_id, {"step": "name"})
+    await tg.send_message(
+        tg_user_id,
+        f"Hi {first_name}! 👋 Welcome to SlotBot.\n\n"
+        "I'll set up your booking page in under 2 minutes.\n\n"
+        "What's your name (as students should see it)?",
+    )
+
+
+async def handle_onboarding_text(tg_user_id: int, text: str, first_name: str):
+    s = _sess_get(tg_user_id)
+    if not s:
+        return False
+    step = s["step"]
+
+    if step == "name":
+        s["name"] = text.strip()[:60] or first_name
+        s["step"] = "timezone"
+        _sess_save(tg_user_id, s)
+        kb = tg.inline_keyboard(
+            [[_btn(z, f"ob_tz_{i}")] for i, z in enumerate(av.COMMON_TIMEZONES)]
+        )
+        await tg.send_message(tg_user_id,
+                              "What's your timezone?", reply_markup=kb)
+        return True
+
+    if step == "price":
+        try:
+            price = int(text.strip())
+            if not 1 <= price <= 100000:
+                raise ValueError
+        except ValueError:
+            await tg.send_message(tg_user_id,
+                                  "Please send a number, e.g. 200 (in Stars).")
+            return True
+        s["price"] = price
+        s["step"] = "days"
+        s["days"] = set()
+        _sess_save(tg_user_id, s)
+        await _send_days_kb(tg_user_id, s)
+        return True
+
+    if step == "timerange":
+        parsed = av.parse_time_range(text)
+        if not parsed:
+            await tg.send_message(tg_user_id,
+                                  "I didn't get that. Send like: 18:00-21:00")
+            return True
+        s["start_min"], s["end_min"] = parsed
+        s["step"] = "duration"
+        _sess_save(tg_user_id, s)
+        kb = tg.inline_keyboard([[
+            _btn("30 min", "ob_dur_30"), _btn("45 min", "ob_dur_45"),
+            _btn("60 min", "ob_dur_60"), _btn("90 min", "ob_dur_90"),
+        ]])
+        await tg.send_message(tg_user_id,
+                              "How long is one session?", reply_markup=kb)
+        return True
+
+    return False
+
+
+async def _send_days_kb(tg_user_id: int, s: dict):
+    rows = []
+    for i, name in enumerate(av.DAY_NAMES):
+        mark = "✅" if i in s["days"] else "⬜"
+        rows.append(_btn(f"{mark} {name}", f"ob_day_{i}"))
+    kb_rows = [rows[i:i + 4] for i in range(0, 7, 4)]
+    kb_rows.append([_btn("Done ✅", "ob_days_done")])
+    await tg.send_message(
+        tg_user_id,
+        "Which days do you teach? Tap to select, then Done.",
+        reply_markup=tg.inline_keyboard(kb_rows),
+    )
+
+
+async def handle_onboarding_callback(tg_user_id: int, cq_id: str, data: str,
+                                     message_id: int | None) -> bool:
+    s = _sess_get(tg_user_id)
+    if not s:
+        return False
+
+    if data.startswith("ob_tz_"):
+        idx = int(data.split("_")[-1])
+        s["timezone"] = av.COMMON_TIMEZONES[idx]
+        s["step"] = "price"
+        _sess_save(tg_user_id, s)
+        await tg.answer_callback(cq_id)
+        await tg.send_message(
+            tg_user_id,
+            f"Timezone: {s['timezone']} 🌍\n\n"
+            "What is your price per session in Telegram Stars?\n"
+            "(~200 Stars ≈ $3. Example: send 200)")
+        return True
+
+    if data.startswith("ob_day_"):
+        i = int(data.split("_")[-1])
+        s["days"].discard(i) if i in s["days"] else s["days"].add(i)
+        _sess_save(tg_user_id, s)
+        await tg.answer_callback(cq_id)
+        # rebuild the keyboard in place
+        rows = []
+        for j, name in enumerate(av.DAY_NAMES):
+            mark = "✅" if j in s["days"] else "⬜"
+            rows.append(_btn(f"{mark} {name}", f"ob_day_{j}"))
+        kb_rows = [rows[k:k + 4] for k in range(0, 7, 4)]
+        kb_rows.append([_btn("Done ✅", "ob_days_done")])
+        if message_id:
+            await tg.edit_message(tg_user_id, message_id,
+                                  "Which days do you teach? Tap to select, then Done.",
+                                  reply_markup=tg.inline_keyboard(kb_rows))
+        return True
+
+    if data == "ob_days_done":
+        if not s["days"]:
+            await tg.answer_callback(cq_id, "Pick at least one day!", True)
+            return True
+        s["step"] = "timerange"
+        _sess_save(tg_user_id, s)
+        await tg.answer_callback(cq_id)
+        await tg.send_message(
+            tg_user_id,
+            "What hours? Send like: 18:00-21:00")
+        return True
+
+    if data.startswith("ob_dur_"):
+        mins = int(data.split("_")[-1])
+        await tg.answer_callback(cq_id)
+        await _finish_onboarding(tg_user_id, s, mins)
+        return True
+
+    return False
+
+
+async def _finish_onboarding(tg_user_id: int, s: dict, slot_min: int):
+    rules = [{"weekday": d, "start_min": s["start_min"],
+              "end_min": s["end_min"], "slot_min": slot_min}
+             for d in sorted(s["days"])]
+    tutor = db.create_tutor(tg_user_id, s["name"], s["timezone"])
+    db.update_tutor(tutor["id"], price_stars=s["price"])
+    db.set_availability_rules(tutor["id"], rules)
+    n = av.generate_slots_for_tutor(tutor["id"])
+    _sess_clear(tg_user_id)
+    tutor = db.get_tutor_by_id(tutor["id"])
+    link = config.booking_deeplink(tutor["link_code"])
+    await tg.send_message(
+        tg_user_id,
+        f"🎉 You're live, {tutor['name']}!\n\n"
+        f"Generated {n} bookable slots for the next 14 days.\n\n"
+        f"Share this link with your students:\n{link}\n\n"
+        "They pick a slot, pay in Stars, and you both get confirmations + reminders.",
+        reply_markup=_tutor_home_kb(tutor),
+    )
+    log.info("tutor onboarded: %s (%d slots)", tutor["name"], n)
+
+
+# ------------------------------------------------------------ student flow
+async def start_booking(tg_user_id: int, link_code: str, first_name: str):
+    tutor = db.get_tutor_by_link(link_code)
+    if not tutor:
+        await tg.send_message(tg_user_id,
+                              "This booking link is invalid. Ask your tutor for a fresh one.")
+        return
+    slots = db.open_slots(tutor["id"], limit=12)
+    if not slots:
+        await tg.send_message(
+            tg_user_id,
+            f"{tutor['name']} has no open slots right now. Check back soon!")
+        return
+    rows = [[_btn(av.fmt_slot(sl, tutor["timezone"]), f"slot_{sl['id']}")]
+            for sl in slots]
+    await tg.send_message(
+        tg_user_id,
+        f"📚 Book a session with {tutor['name']}\n"
+        f"💫 Price: {tutor['price_stars']} Stars per session\n"
+        f"🕐 Times shown in {tutor['timezone']}\n\n"
+        "Pick a slot:",
+        reply_markup=tg.inline_keyboard(rows),
+    )
+
+
+async def handle_slot_pick(tg_user_id: int, cq_id: str, slot_id: int,
+                           first_name: str, username: str | None):
+    slot = db.get_slot(slot_id)
+    if not slot:
+        await tg.answer_callback(cq_id, "Slot not found.", True)
+        return
+    tutor = db.get_tutor_by_id(slot["tutor_id"])
+    booking = db.hold_slot(tutor["id"], slot_id, tg_user_id,
+                           first_name or username or "Student",
+                           config.HOLD_MINUTES)
+    if not booking:
+        await tg.answer_callback(
+            cq_id, "Someone just took this slot! Pick another one.", True)
+        return
+    await tg.answer_callback(cq_id, "Slot reserved for 10 minutes ⏳")
+    label = av.fmt_slot(slot, tutor["timezone"])
+    await tg.send_invoice(
+        tg_user_id,
+        title=f"Session with {tutor['name']}",
+        description=f"{label} ({tutor['timezone']})",
+        payload=f"book:{booking['id']}",
+        amount_stars=tutor["price_stars"],
+    )
+    log.info("hold created: booking=%d slot=%d", booking["id"], slot_id)
+
+
+# ---------------------------------------------------------------- payments
+async def handle_precheckout(query: dict):
+    # NOTE: the update object uses field `id`; the answerPreCheckoutQuery
+    # *method* takes parameter `pre_checkout_query_id`. Don't confuse them.
+    qid = query["id"]
+    payload = query.get("invoice_payload", "")
+    if not payload.startswith("book:"):
+        await tg.answer_precheckout(qid, False, "Invalid invoice.")
+        return
+    try:
+        booking_id = int(payload.split(":")[1])
+    except ValueError:
+        await tg.answer_precheckout(qid, False, "Invalid invoice.")
+        return
+    booking = db.get_booking(booking_id)
+    # Must be a live hold: not expired, slot still held for this booking
+    if not booking or booking["status"] != "held":
+        await tg.answer_precheckout(qid, False,
+                                    "This slot is no longer available.")
+        return
+    from datetime import datetime, timezone
+    if booking["hold_expires_at"] <= datetime.now(timezone.utc).isoformat():
+        db.release_expired_holds()
+        await tg.answer_precheckout(qid, False,
+                                    "Reservation expired. Please pick a slot again.")
+        return
+    await tg.answer_precheckout(qid, True)
+
+
+async def handle_successful_payment(message: dict):
+    from . import reminders as rem_mod
+    pay = message["successful_payment"]
+    payload = pay.get("invoice_payload", "")
+    if not payload.startswith("book:"):
+        return
+    booking_id = int(payload.split(":")[1])
+    charge_id = pay["telegram_payment_charge_id"]
+    amount = pay["total_amount"]
+    done = db.mark_booking_paid(booking_id, charge_id, amount)
+    if not done:
+        log.warning("duplicate/unknown successful_payment ignored: %s", charge_id)
+        return
+    booking = db.get_booking(booking_id)
+    slot = db.get_slot(booking["slot_id"])
+    tutor = db.get_tutor_by_id(booking["tutor_id"])
+    db.schedule_reminders(booking_id, slot["starts_at_utc"])
+    label = av.fmt_slot(slot, tutor["timezone"])
+    # Student confirmation
+    await tg.send_message(
+        message["chat"]["id"],
+        f"✅ Booking confirmed!\n\n"
+        f"👩‍🏫 Tutor: {tutor['name']}\n"
+        f"🕐 {label} ({tutor['timezone']})\n"
+        f"💫 Paid: {amount} Stars\n\n"
+        "You'll get reminders 24h and 1h before. See you there!",
+    )
+    # Tutor notification
+    await tg.send_message(
+        tutor["tg_user_id"],
+        f"💰 New booking!\n\n"
+        f"👤 Student: {booking['student_name']}\n"
+        f"🕐 {label}\n"
+        f"💫 {amount} Stars received",
+        reply_markup=_tutor_home_kb(tutor),
+    )
+    log.info("booking paid: %d charge=%s", booking_id, charge_id)
+
+
+# ----------------------------------------------------------- tutor actions
+async def handle_tutor_callback(tg_user_id: int, cq_id: str, data: str,
+                                message_id: int | None) -> bool:
+    tutor = db.get_tutor_by_tg(tg_user_id)
+    if not tutor:
+        return False
+
+    if data == "tutor_bookings":
+        await tg.answer_callback(cq_id)
+        upcoming = db.upcoming_bookings(tutor["id"])
+        if not upcoming:
+            await tg.send_message(tg_user_id, "No upcoming bookings yet.")
+            return True
+        for b in upcoming[:10]:
+            kb = tg.inline_keyboard(
+                [[_btn("❌ Cancel + refund", f"tutor_cancel_{b['id']}")]])
+            await tg.send_message(
+                tg_user_id,
+                f"👤 {b['student_name']}\n🕐 {av.fmt_slot(b, tutor['timezone'])}",
+                reply_markup=kb,
+            )
+        return True
+
+    if data == "tutor_link":
+        await tg.answer_callback(cq_id)
+        await tg.send_message(tg_user_id,
+                              f"Your booking link:\n{config.booking_deeplink(tutor['link_code'])}")
+        return True
+
+    if data.startswith("tutor_cancel_"):
+        booking_id = int(data.split("_")[-1])
+        booking = db.get_booking(booking_id)
+        if not booking or booking["tutor_id"] != tutor["id"]:
+            await tg.answer_callback(cq_id, "Booking not found.", True)
+            return True
+        cancelled = db.cancel_booking(booking_id)
+        if not cancelled:
+            await tg.answer_callback(cq_id, "Already cancelled.", True)
+            return True
+        # Refund the Stars payment if one exists
+        payment = db.get_payment_by_booking(booking_id)
+        if payment and payment["status"] == "completed":
+            r = await tg.refund_stars(booking["student_tg_id"],
+                                      payment["telegram_charge_id"])
+            if r.get("ok"):
+                db.mark_payment_refunded(booking_id)
+        await tg.answer_callback(cq_id, "Cancelled + refunded ✅")
+        await tg.send_message(
+            booking["student_tg_id"],
+            "⚠️ Your session was cancelled by the tutor. "
+            "Your Stars have been refunded.",
+        )
+        if message_id:
+            await tg.edit_message(tg_user_id, message_id,
+                                  "❌ Cancelled + refunded.")
+        return True
+
+    return False
+
+
+# ------------------------------------------------------------------ router
+async def handle_update(update: dict):
+    try:
+        if "pre_checkout_query" in update:
+            await handle_precheckout(update["pre_checkout_query"])
+            return
+
+        if "callback_query" in update:
+            cq = update["callback_query"]
+            data = cq.get("data", "")
+            from_id = cq["from"]["id"]
+            msg_id = cq.get("message", {}).get("message_id")
+            if data.startswith("ob_"):
+                if await handle_onboarding_callback(from_id, cq["id"], data, msg_id):
+                    return
+                # Session gone (e.g., never started) — don't show "Unknown action"
+                await tg.answer_callback(cq["id"])
+                await tg.send_message(
+                    from_id,
+                    "Your setup session expired. Send /start to begin again 🔄")
+                return
+            if await handle_onboarding_callback(from_id, cq["id"], data, msg_id):
+                return
+            if data.startswith("slot_"):
+                await handle_slot_pick(from_id, cq["id"], int(data[5:]),
+                                       cq["from"].get("first_name", ""),
+                                       cq["from"].get("username"))
+                return
+            if await handle_tutor_callback(from_id, cq["id"], data, msg_id):
+                return
+            await tg.answer_callback(cq["id"], "Unknown action.", True)
+            return
+
+        msg = update.get("message")
+        if not msg:
+            return
+        chat_id = msg["chat"]["id"]
+        from_id = msg["from"]["id"]
+        first_name = msg["from"].get("first_name", "")
+
+        if "successful_payment" in msg:
+            await handle_successful_payment(msg)
+            return
+
+        text = msg.get("text", "")
+        if text.startswith("/start"):
+            parts = text.split(maxsplit=1)
+            arg = parts[1] if len(parts) > 1 else ""
+            if arg.startswith("book_"):
+                await start_booking(from_id, arg[5:], first_name)
+            elif db.get_tutor_by_tg(from_id):
+                await _send_tutor_home(from_id)
+            else:
+                await start_onboarding(from_id, first_name or "there")
+            return
+
+        if text == "/terms":
+            await tg.send_message(chat_id, TERMS_TEXT)
+            return
+        if text in ("/paysupport", "/support"):
+            await tg.send_message(chat_id, SUPPORT_TEXT)
+            return
+        if text == "/dashboard" or text == "/bookings":
+            tutor = db.get_tutor_by_tg(from_id)
+            if tutor:
+                dash = _dashboard_btn()
+                if dash:
+                    await tg.send_message(
+                        chat_id, "Open your dashboard:",
+                        reply_markup=tg.inline_keyboard([[dash]]))
+                else:
+                    await tg.send_message(
+                        chat_id, "Dashboard Mini App needs a public BASE_URL (deploy to Fly.io first). "
+                                "Your bookings still work fine from the buttons below.")
+            else:
+                await tg.send_message(chat_id, "You're not registered as a tutor yet. Send /start.")
+            return
+        if text == "/mylink":
+            tutor = db.get_tutor_by_tg(from_id)
+            if tutor:
+                await tg.send_message(
+                    chat_id,
+                    f"Your booking link:\n{config.booking_deeplink(tutor['link_code'])}")
+            return
+
+        # Freeform text during onboarding
+        if await handle_onboarding_text(from_id, text, first_name or "there"):
+            return
+
+        # Fallback
+        tutor = db.get_tutor_by_tg(from_id)
+        if tutor:
+            await _send_tutor_home(from_id)
+        else:
+            await tg.send_message(chat_id,
+                                  "Send /start to set up your tutor booking page 📚")
+    except Exception:
+        log.exception("handle_update failed")

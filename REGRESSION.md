@@ -1,1 +1,126 @@
-IyBTbG90Qm90IOKAlCBGbHkuaW8gRGVwbG95ICsgRmluYWwgTGl2ZSBSZWdyZXNzaW9uIFJ1bmJvb2sKCkJhbmF5YTogMjAyNi0xMC0wNyAofjIxOjIwIElTVCkuIFVzZXIgb3JkZXIgKDE1OjEyWiBjaGF0KTogIkZseS5pbyBkZXBsb3kga2FybywKTWluaSBBcHAga28gbGl2ZSBUZWxlZ3JhbSBXZWJWaWV3IG1laW4gdGVzdCBrYXJvLCBkZXBsb3ltZW50IGtlIGJhYWQgZmluYWwgbGl2ZQpyZWdyZXNzaW9uIHJlcG9ydCBkby4iIERlcGxveSBhYmhpICoqYmxvY2tlZCBoYWkg4oCUIGZyZXNoIEZseS5pbyB0b2tlbiBrYSBpbnRlemFhcioqCihsYXN0IHVzZXIgcXVlc3Rpb24gMTU6MjZaOiB0b2tlbiB0eXBlIGt5YSByYWtoZTsgYXNzaXN0YW50IG5lIDE1OjI3WiBqYXdhYiBkaXlhKS4KWWVoIHJ1bmJvb2sgZGVwbG95IGtlIHR1cmFudCBiYWFkIGV4ZWN1dGUga2FybmEgaGFpIHRhYWtpIHJlZ3Jlc3Npb24gcmVwb3J0CnR1cmFudCBiYW4gc2FrZS4gUHJlLWRlcGxveSB2ZXJpZmljYXRpb24gcmVzZWFyY2hlciBuZSBrYXIgbGkgaGFpIChuZWVjaGUgwqcwKS4KClRlc3QgYm90OiBAQ3JpcGVyY29yZV9ib3QgKHBvbGxpbmcgbW9kZSwgbG9jYWwpLiBEZXBsb3kga2UgYmFhZCB3ZWJob29rIG1vZGUuCgotLS0KCiMjIMKnMCBQcmUtZGVwbG95IHZlcmlmaWNhdGlvbiAocmVzZWFyY2hlciBuZSBjaGVjayBraXlhIOKAlCBPSykKCi0gYGZseS50b21sYDogYXBwIGBzbG90Ym90YCwgcmVnaW9uIGBib21gIChNdW1iYWkpLCBgaW50ZXJuYWxfcG9ydD04MDAwYCA9CiAgRG9ja2VyZmlsZSBDTUQgcG9ydCwgdm9sdW1lIG1vdW50IGBzbG90Ym90X2RhdGEg4oaSIC9kYXRhYCwgYERCX1BBVEg9L2RhdGEvc2xvdGJvdC5kYmAKICBkb25vIGphZ2FoIG1hdGNoLCBgYXV0b19zdG9wX21hY2hpbmVzPWZhbHNlYCArIGBtaW5fbWFjaGluZXNfcnVubmluZz0xYAogIChyZW1pbmRlcnMga2UgbGl5ZSB6YXJvb3JpIOKAlCBBUFNjaGVkdWxlciBpbi1wcm9jZXNzIGhhaSkuCi0gYGFwcC9tYWluLnB5YDogbm9uLXBvbGxpbmcgbW9kZSBtZWluIHN0YXJ0dXAgcGFyIGBzZXRfd2ViaG9vaygpYCBob3RhIGhhaQogIChzZWNyZXRfdG9rZW4gKyBhbGxvd2VkX3VwZGF0ZXMgbWUgYHByZV9jaGVja291dF9xdWVyeWAgc2hhbWlsKS4gUG9sbGluZyBsb29wCiAgYWxhZyAoYC0tcG9sbGluZ2AgZmxhZykg4oCUIGxvY2FsIHRlc3QgYm90IHNlIGNvbmZsaWN0IG5haGkgaG9nYSBqYWIgdGFrIHdlYmhvb2sKICBzZXQgaGFpLiDimqDvuI8gRGVwbG95IHNlIHBlaGxlIGxvY2FsIHBvbGxpbmcgYm90ICoqcm9rIGRlbmEqKiAoc2FtZSB0b2tlbiBwYXIKICBwb2xsaW5nICsgd2ViaG9vayBsYWRlbmdlKS4KLSBgYXBwL2JvdC5weWAgYF9kYXNoYm9hcmRfYnRuKClgOiB3ZWJhcHAgYnV0dG9uIHNpcmYgdGFiIGp1ZHRhIGhhaSBqYWIgQkFTRV9VUkwKICByZWFsIGBodHRwczovL2AgaG8g4oCUIGxvY2FsIHRlc3QgbWVpbiBtZXNzYWdlLXJlamVjdCB3YWxhIGJ1ZyBkb2JhcmEgbmFoaSBob2dhLgotIOKaoO+4jyAqKkVrIGFzbGkgY2F0Y2g6KiogYGZseS50b21sYCBtZWluIGBbW21vdW50c11dYCBkZWNsYXJlZCBoYWkgbGVraW4gYGZseSBkZXBsb3lgCiAgdm9sdW1lICoqYXV0by1jcmVhdGUgbmFoaSBrYXJ0YSoqLiBQZWhsZSB5ZWggY2hhaGl5ZToKICBgZmx5IHZvbHVtZXMgY3JlYXRlIHNsb3Rib3RfZGF0YSAtLXJlZ2lvbiBib20gLS1zaXplIDFgCiAgKGJpbmEgaXNrZSBkZXBsb3kgInZvbHVtZSBub3QgZm91bmQiIHBhciBmYWlsIGhvZ2EpLgotIOKaoO+4jyAqKlNlY3JldCBvcmRlciAoY2hpY2tlbi1hbmQtZWdnKToqKiBgQkFTRV9VUkxgIGRlcGxveSBzZSBwZWhsZSBwYXRhIG5haGkgaG90YS4KICBPcmRlcjogYXBwIGNyZWF0ZSDihpIgdm9sdW1lIGNyZWF0ZSDihpIgc2VjcmV0cyAoQk9UX1RPS0VOLCBXRUJIT09LX1NFQ1JFVCwKICBCT1RfVVNFUk5BTUU9Q3JpcGVyY29yZV9ib3QpIOKGkiBgZmx5IGRlcGxveWAg4oaSIFVSTCBtaWxlCiAgKGh0dHBzOi8vc2xvdGJvdC5mbHkuZGV2KSDihpIgYGZseSBzZWNyZXRzIHNldCBCQVNFX1VSTD08dXJsPmAg4oaSIGRvYmFyYSBkZXBsb3kKICB5YSBtYWNoaW5lIHJlc3RhcnQgKHRhYWtpIHN0YXJ0dXAgaG9vayBgc2V0V2ViaG9va2AgY2hhbGF5ZSkuCi0g4pqg77iPIEFwcCBuYWFtIGBzbG90Ym90YCBGbHkuaW8gcGFyIHRha2VuIGhvIHNha3RhIGhhaSDihpIgYGZseSBhcHBzIGNyZWF0ZQogIHNsb3Rib3QtPHN1ZmZpeD5gIGF1ciBgZmx5LnRvbWxgIG1laW4gYXBwIG5hYW0gdXBkYXRlIGthcm5hLgotIOKaoO+4jyBGbHkuaW8gc2lnbnVwIHBhciBjcmVkaXQgY2FyZCBtYWFuZyBzYWt0YSBoYWkgKHVudmVyaWZpZWQgaGVhZHMtdXAg4oCUCiAgaXMgY2hob3RlIGFwcCBrYSBiaWxsIH4kMCByYWhlZ2EpLgoKIyMgwqcwLjUgVG9rZW4gcHJlLWNoZWNrIChhZGRlZCAyMDI2LTEwLTA4IH4xMzoyMCBJU1Qg4oCUIGthbCBrYSBwYXN0ZWQgdG9rZW4gNDAxIGRlCmdheWEgdGhhLCBjb21tYS1qb2luZWQvZG91YmxlIHBhc3RlIGtpIHdhamFoIHNlOyBkb2JhcmEgbWlkLWRlcGxveSBmYWlsIG5hIGhvKQoKVG9rZW4gdmFsaWRhdGUga2FybmUga2Egc2Fic2UgdGV6IHRhcmlrYSDigJQgR3JhcGhRTCBgdmlld2VyYCBxdWVyeSAoZmx5Y3RsIGluc3RhbGwKa2kgemFyb29yYXQgbmFoaSwgRmx5LmlvIGthIGRvY3VtZW50ZWQgYXV0aCBwYXRoKToKCmBgYGJhc2gKVD0nPHBhc3RlZCB0b2tlbiwgc2luZ2xlIGxpbmUg4oCUIGtvaSBjb21tYSwgc3BhY2UsIHlhIG5ld2xpbmUgbmFoaT4nCmN1cmwgLXMgLVggUE9TVCBodHRwczovL2FwaS5mbHkuaW8vZ3JhcGhxbCBcCiAgLUggIkF1dGhvcml6YXRpb246IEJlYXJlciAkVCIgXAogIC1IICdDb250ZW50LVR5cGU6IGFwcGxpY2F0aW9uL2pzb24nIFwKICAtZCAneyJxdWVyeSI6InF1ZXJ5IHsgdmlld2VyIHsgZW1haWwgfSB9In0nIHwgaGVhZCAtYyAzMDA7IGVjaG8KIyDinIUgVmFsaWQ6ICB7ImRhdGEiOnsidmlld2VyIjp7ImVtYWlsIjoiPHR1bWhhcmEgZW1haWw+In19fQojIOKdjCBJbnZhbGlkOiB7ImVycm9ycyI6Wy4uLl19IHlhIDQwMSDigJQgdG8gdG9rZW4gZ2FsYXQgcGFzdGUgaHVhIGhhaSwgbmF5YSBiYW5hbwpgYGAKCkZyZXNoIHRva2VuIGJhbmFuZSBrYSBzYWhpIHBhdGg6IEZseS5pbyBEYXNoYm9hcmQg4oaSIEFjY291bnQg4oaSIFNldHRpbmdzIOKGkgpBY2Nlc3MgVG9rZW5zIOKGkiBDcmVhdGUgQWNjZXNzIFRva2VuLiBUb2tlbiAqKmVrIGhpIGxpbmUqKiBtZWluIGNvcHktcGFzdGUga2FybzsKZG8gdG9rZW4gY29tbWEgc2UgY2hpcGtlIGhvbiB5YSBsaW5lLWJyZWFrIGhvIHRvIDQwMSBhYXllZ2EgKGthbCB5YWhpIGh1YSB0aGEpLgpmbHljdGwgaW5zdGFsbGVkIGhvIHRvIGVxdWl2YWxlbnQgY2hlY2s6IGBGTFlfQVBJX1RPS0VOPSc8dG9rZW4+JyBmbHkgYXV0aCB3aG9hbWlgLgoKIyMgwqcxIERlcGxveSBjb21tYW5kcyAodG9rZW4gbWlsdGUgaGkpCgpgYGBiYXNoCmV4cG9ydCBGTFlfQVBJX1RPS0VOPSc8ZnJlc2gtdG9rZW4+JyAgICMgZWsgaGkgdG9rZW4sIGJpbmEgY29tbWEga2UKY2Qgfi93b3Jrc3BhY2Uvc2xvdGJvdApmbHkgdm9sdW1lcyBjcmVhdGUgc2xvdGJvdF9kYXRhIC0tcmVnaW9uIGJvbSAtLXNpemUgMQpmbHkgc2VjcmV0cyBzZXQgQk9UX1RPS0VOPSc8Ym90LXRva2VuPicgXAogIFdFQkhPT0tfU0VDUkVUPSIkKG9wZW5zc2wgcmFuZCAtaGV4IDMyKSIgXAogIEJPVF9VU0VSTkFNRT1DcmlwZXJjb3JlX2JvdApmbHkgZGVwbG95CiMgVVJMIG5vdGUga2FybywgcGhpcjoKZmx5IHNlY3JldHMgc2V0IEJBU0VfVVJMPSdodHRwczovL3Nsb3Rib3QuZmx5LmRldicKZmx5IGRlcGxveSAgICMgeWE6IGZseSBtYWNoaW5lIHJlc3RhcnQgIChzZXRXZWJob29rIHN0YXJ0dXAgcGFyIGNoYWxlZ2EpCmBgYAoKIyMgwqcyIFBvc3QtZGVwbG95IHZlcmlmaWNhdGlvbiAoaGFyIHN0ZXAga2EgZXhwZWN0ZWQgcmVzdWx0KQoKMS4gYGN1cmwgaHR0cHM6Ly9zbG90Ym90LmZseS5kZXYvaGVhbHRoYCDihpIgYHsib2siOnRydWV9YAoyLiBgY3VybCBodHRwczovL2FwaS50ZWxlZ3JhbS5vcmcvYm90PFRPS0VOPi9nZXRXZWJob29rSW5mb2Ag4oaSCiAgIGB1cmxgID0gYGh0dHBzOi8vc2xvdGJvdC5mbHkuZGV2L3dlYmhvb2tgLCBgcGVuZGluZ191cGRhdGVfY291bnRgID0gMAozLiBgY3VybCAtc0kgaHR0cHM6Ly9zbG90Ym90LmZseS5kZXYvbWluaWFwcC9gIOKGkiBgMjAwYAo0LiBgY3VybCAtcyBodHRwczovL3Nsb3Rib3QuZmx5LmRldi9hcGkvbWVgIOKGkiBgNDAxYCAoYmluYSBpbml0RGF0YSDigJQgc2VjdXJpdHkgT0spCjUuIEJvdCBtZWluIGAvc3RhcnRgIOKGkiB0dXRvciBob21lIGtleWJvYXJkIG1laW4gKirwn5OKIERhc2hib2FyZCoqIHdlYmFwcCBidXR0b24KICAgZGlraGUgKHllaCBidXR0b24gQkFTRV9VUkwgc2V0IGhvbmUga2UgYmFhZCBoaSBhYXRhIGhhaSDigJQgaXNrYSBkaWtobmEKICAgcHJvdmUga2FydGEgaGFpIEJBU0VfVVJMIHNhaGkgc2V0IGhhaSkuCjYuICoqTWluaSBBcHAgbGl2ZSBXZWJWaWV3IHRlc3Q6KiogRGFzaGJvYXJkIGJ1dHRvbiBkYWJhbyDihpIgVGVsZWdyYW0ga2UgYW5kYXIKICAga2h1bGUsIGJvb2tpbmdzL2Vhcm5pbmdzL3Nsb3RzIGRpa2hlaW4gKHR1dG9yIGlzb2xhdGlvbjogc2lyZiBhcG5hIGRhdGEpLgo3LiAqKkNoYXQtbGV2ZWwgT3BlbiBidXR0b24qKiAodXNlciBuZSBtYW5nYTogImJvdCBrZSBzYWF0aCBhdHRhY2gga2Fybywgb3BlbgogICBidXR0b24geWEgbGluayBkaWtobmEgY2hhaGl5ZSIpOgogICBgYGBiYXNoCiAgIGN1cmwgLXMgLVggUE9TVCBodHRwczovL2FwaS50ZWxlZ3JhbS5vcmcvYm90PFRPS0VOPi9zZXRDaGF0TWVudUJ1dHRvbiBcCiAgICAgLUggJ0NvbnRlbnQtVHlwZTogYXBwbGljYXRpb24vanNvbicgXAogICAgIC1kICd7Im1lbnVfYnV0dG9uIjp7InR5cGUiOiJ3ZWJfYXBwIiwidGV4dCI6IkRhc2hib2FyZCIsCiAgICAgICAgICJ3ZWJfYXBwIjp7InVybCI6Imh0dHBzOi8vc2xvdGJvdC5mbHkuZGV2L21pbmlhcHAvIn19fScKICAgYGBgCiAgIFBoaXIgY2hhdCBrZSBuZWVjaGUgbWVudSBidXR0b24g4oaSICJEYXNoYm9hcmQiIOKGkiBNaW5pIEFwcCBraHVsbmEgY2hhaGl5ZS4KOC4gKipFMkUgcGF5bWVudCByZWdyZXNzaW9uIChsaXZlKToqKiBuYXlhIHNsb3Qg4oaSIGJvb2tpbmcgbGluayDihpIgc3R1ZGVudCBob2xkIOKGkgogICBTdGFycyBpbnZvaWNlIOKGkiBwcmUtY2hlY2tvdXQgKGZpeGVkIGJ1ZyDigJQgYHF1ZXJ5WyJpZCJdYCkg4oaSIHBheSDihpIgZG9ubyB0YXJhZgogICBjb25maXJtYXRpb24uIFBlaGxlIHdhbGkgbGl2ZSBwYXltZW50ICg2IFN0YXJzLCBib29raW5nICM1IHJlZnVuZCB0ZXN0KQogICBpc2kgY29kZSBwYXRoIHNlIGd1emFyIGNodWtpIGhhaTsgZGVwbG95IGtlIGJhYWQgZWsgZnJlc2ggYm9va2luZyBzZQogICByZS12ZXJpZnkga2Fyby4KOS4gKipSZW1pbmRlcjoqKiBib29raW5nIGthIHNsb3QgMWggZG9vciByYWtobyDihpIgcmVtaW5kZXIgYWF5ZSAoY29kZSBwYXRoCiAgIDI0aCB3YWxhIHNhbWUgaGFpOyBwZWhsZSAxNDo0OCBVVEMgcGFyIGxpdmUgZmlyZSBobyBjaHVrYSBoYWkpLgoxMC4gKipQZXJzaXN0ZW5jZToqKiBgZmx5IG1hY2hpbmUgcmVzdGFydGAg4oaSIGRhdGEgaW50YWN0IChTUUxpdGUgdm9sdW1lIHBhciBoYWkpLgoxMS4gKipMb2dzOioqIGBmbHkgbG9nc2AgbWVpbiBrb2kgdG9rZW4gbGVhayBuYWhpLCBrb2kgZXhjZXB0aW9uIG5haGkuCgojIyDCpzMgRmluYWwgbGl2ZSByZWdyZXNzaW9uIHJlcG9ydCAodXNlciBrbyBkZW5hIGhhaSkKClJlcG9ydCBtZWluIHllaCB0YWJsZSBiaGFybyDigJQgaGFyIHJvdyBQQVNTL0ZBSUwgKyBldmlkZW5jZSAodGltZXN0YW1wL21lc3NhZ2UpOgoKfCBDaGVjayB8IFN0YXR1cyB8IEV2aWRlbmNlIHwKfC0tLXwtLS18LS0tfAp8IC9oZWFsdGggfCB8IHwKfCBnZXRXZWJob29rSW5mbyB8IHwgfAp8IE1pbmkgQXBwIHN0YXRpYyAyMDAgfCB8IHwKfCAvYXBpL21lIDQwMSAoc2VjdXJpdHkpIHwgfCB8CnwgL3N0YXJ0IOKGkiDwn5OKIERhc2hib2FyZCBidXR0b24gfCB8IHwKfCBNaW5pIEFwcCBXZWJWaWV3IChUZWxlZ3JhbSBrZSBhbmRhcikgfCB8IHwKfCBDaGF0IG1lbnUgT3BlbiBidXR0b24gfCB8IHwKfCBGcmVzaCBFMkUgU3RhcnMgcGF5bWVudCB8IHwgfAp8IFJlbWluZGVyIGZpcmVkIHwgfCB8CnwgUmVzdGFydCDihpIgZGF0YSBpbnRhY3QgfCB8IHwKfCBMb2dzIGNsZWFuIChubyBsZWFrKSB8IHwgfAoKU2FhcmUgUEFTUyDihpIgVjEgcHJvZHVjdGlvbi1yZWFkeSBkZWNsYXJlIGthcm8uIEtvaSBGQUlMIOKGkiBmaXggKyByZS10ZXN0LCByZXBvcnQgbWVpbiBub3RlLgo=
+# SlotBot — Fly.io Deploy + Final Live Regression Runbook
+
+Banaya: 2026-10-07 (~21:20 IST). User order (15:12Z chat): "Fly.io deploy karo,
+Mini App ko live Telegram WebView mein test karo, deployment ke baad final live
+regression report do." Deploy abhi **blocked hai — fresh Fly.io token ka intezaar**
+(last user question 15:26Z: token type kya rakhe; assistant ne 15:27Z jawab diya).
+Yeh runbook deploy ke turant baad execute karna hai taaki regression report
+turant ban sake. Pre-deploy verification researcher ne kar li hai (neeche §0).
+
+Test bot: @Cripercore_bot (polling mode, local). Deploy ke baad webhook mode.
+
+---
+
+## §0 Pre-deploy verification (researcher ne check kiya — OK)
+
+- `fly.toml`: app `slotbot`, region `bom` (Mumbai), `internal_port=8000` =
+  Dockerfile CMD port, volume mount `slotbot_data → /data`, `DB_PATH=/data/slotbot.db`
+  dono jagah match, `auto_stop_machines=false` + `min_machines_running=1`
+  (reminders ke liye zaroori — APScheduler in-process hai).
+- `app/main.py`: non-polling mode mein startup par `set_webhook()` hota hai
+  (secret_token + allowed_updates me `pre_checkout_query` shamil). Polling loop
+  alag (`--polling` flag) — local test bot se conflict nahi hoga jab tak webhook
+  set hai. ⚠️ Deploy se pehle local polling bot **rok dena** (same token par
+  polling + webhook ladenge).
+- `app/bot.py` `_dashboard_btn()`: webapp button sirf tab judta hai jab BASE_URL
+  real `https://` ho — local test mein message-reject wala bug dobara nahi hoga.
+- ⚠️ **Ek asli catch:** `fly.toml` mein `[[mounts]]` declared hai lekin `fly deploy`
+  volume **auto-create nahi karta**. Pehle yeh chahiye:
+  `fly volumes create slotbot_data --region bom --size 1`
+  (bina iske deploy "volume not found" par fail hoga).
+- ⚠️ **Secret order (chicken-and-egg):** `BASE_URL` deploy se pehle pata nahi hota.
+  Order: app create → volume create → secrets (BOT_TOKEN, WEBHOOK_SECRET,
+  BOT_USERNAME=Cripercore_bot) → `fly deploy` → URL mile
+  (https://slotbot.fly.dev) → `fly secrets set BASE_URL=<url>` → dobara deploy
+  ya machine restart (taaki startup hook `setWebhook` chalaye).
+- ⚠️ App naam `slotbot` Fly.io par taken ho sakta hai → `fly apps create
+  slotbot-<suffix>` aur `fly.toml` mein app naam update karna.
+- ⚠️ Fly.io signup par credit card maang sakta hai (unverified heads-up —
+  is chhote app ka bill ~$0 rahega).
+
+## §0.5 Token pre-check (added 2026-10-08 ~13:20 IST — kal ka pasted token 401 de
+gaya tha, comma-joined/double paste ki wajah se; dobara mid-deploy fail na ho)
+
+Token validate karne ka sabse tez tarika — GraphQL `viewer` query (flyctl install
+ki zaroorat nahi, Fly.io ka documented auth path):
+
+```bash
+T='<pasted token, single line — koi comma, space, ya newline nahi>'
+curl -s -X POST https://api.fly.io/graphql \
+  -H "Authorization: Bearer $T" \
+  -H 'Content-Type: application/json' \
+  -d '{"query":"query { viewer { email } }"}' | head -c 300; echo
+# ✅ Valid:  {"data":{"viewer":{"email":"<tumhara email>"}}}
+# ❌ Invalid: {"errors":[...]} ya 401 — to token galat paste hua hai, naya banao
+```
+
+Fresh token banane ka sahi path: Fly.io Dashboard → Account → Settings →
+Access Tokens → Create Access Token. Token **ek hi line** mein copy-paste karo;
+do token comma se chipke hon ya line-break ho to 401 aayega (kal yahi hua tha).
+flyctl installed ho to equivalent check: `FLY_API_TOKEN='<token>' fly auth whoami`.
+
+## §1 Deploy commands (token milte hi)
+
+```bash
+export FLY_API_TOKEN='<fresh-token>'   # ek hi token, bina comma ke
+cd ~/workspace/slotbot
+fly volumes create slotbot_data --region bom --size 1
+fly secrets set BOT_TOKEN='<bot-token>' \
+  WEBHOOK_SECRET="$(openssl rand -hex 32)" \
+  BOT_USERNAME=Cripercore_bot
+fly deploy
+# URL note karo, phir:
+fly secrets set BASE_URL='https://slotbot.fly.dev'
+fly deploy   # ya: fly machine restart  (setWebhook startup par chalega)
+```
+
+## §2 Post-deploy verification (har step ka expected result)
+
+1. `curl https://slotbot.fly.dev/health` → `{"ok":true}`
+2. `curl https://api.telegram.org/bot<TOKEN>/getWebhookInfo` →
+   `url` = `https://slotbot.fly.dev/webhook`, `pending_update_count` = 0
+3. `curl -sI https://slotbot.fly.dev/miniapp/` → `200`
+4. `curl -s https://slotbot.fly.dev/api/me` → `401` (bina initData — security OK)
+5. Bot mein `/start` → tutor home keyboard mein **📊 Dashboard** webapp button
+   dikhe (yeh button BASE_URL set hone ke baad hi aata hai — iska dikhna
+   prove karta hai BASE_URL sahi set hai).
+6. **Mini App live WebView test:** Dashboard button dabao → Telegram ke andar
+   khule, bookings/earnings/slots dikhein (tutor isolation: sirf apna data).
+7. **Chat-level Open button** (user ne manga: "bot ke saath attach karo, open
+   button ya link dikhna chahiye"):
+   ```bash
+   curl -s -X POST https://api.telegram.org/bot<TOKEN>/setChatMenuButton \
+     -H 'Content-Type: application/json' \
+     -d '{"menu_button":{"type":"web_app","text":"Dashboard",
+         "web_app":{"url":"https://slotbot.fly.dev/miniapp/"}}}'
+   ```
+   Phir chat ke neeche menu button → "Dashboard" → Mini App khulna chahiye.
+8. **E2E payment regression (live):** naya slot → booking link → student hold →
+   Stars invoice → pre-checkout (fixed bug — `query["id"]`) → pay → dono taraf
+   confirmation. Pehle wali live payment (6 Stars, booking #5 refund test)
+   isi code path se guzar chuki hai; deploy ke baad ek fresh booking se
+   re-verify karo.
+9. **Reminder:** booking ka slot 1h door rakho → reminder aaye (code path
+   24h wala same hai; pehle 14:48 UTC par live fire ho chuka hai).
+10. **Persistence:** `fly machine restart` → data intact (SQLite volume par hai).
+11. **Logs:** `fly logs` mein koi token leak nahi, koi exception nahi.
+
+## §3 Final live regression report (user ko dena hai)
+
+Report mein yeh table bharo — har row PASS/FAIL + evidence (timestamp/message):
+
+| Check | Status | Evidence |
+|---|---|---|
+| /health | | |
+| getWebhookInfo | | |
+| Mini App static 200 | | |
+| /api/me 401 (security) | | |
+| /start → 📊 Dashboard button | | |
+| Mini App WebView (Telegram ke andar) | | |
+| Chat menu Open button | | |
+| Fresh E2E Stars payment | | |
+| Reminder fired | | |
+| Restart → data intact | | |
+| Logs clean (no leak) | | |
+
+Saare PASS → V1 production-ready declare karo. Koi FAIL → fix + re-test, report mein note.
