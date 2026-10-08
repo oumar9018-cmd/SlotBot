@@ -1,1 +1,112 @@
-IyBTbG90Qm90IOKAlCAzMC1UdXRvciBQYXltZW50IFRlc3Q6IE91dHJlYWNoIFBhY2sKCioqU3RhdHVzOiBSRUFEWSDigJQgY29yZSBsb29wIHdvcmtzIGVuZC10by1lbmQgb24gbG9jYWwgdGVzdHMqKgooVHV0b3IgYXZhaWxhYmlsaXR5IOKGkiBzdHVkZW50IHNsb3Qg4oaSIFN0YXJzIHBheW1lbnQg4oaSIGNvbmZpcm1hdGlvbiDihpIgcmVtaW5kZXIuKQoKKipBcmNoaXRlY3R1cmU6IHNpbmdsZSBwbGF0Zm9ybSBib3QuKiogT25lIFNsb3RCb3Qgc2VydmVzIGFsbCB0dXRvcnMuIFN0dWRlbnQgU3RhcnMgZ28gdG8KU2xvdEJvdCdzIFRlbGVncmFtIGJhbGFuY2U7IGZvdW5kZXIgc2V0dGxlcyBlYWNoIHR1dG9yIHdlZWtseSAoVVBJL2JhbmspIHdpdGggZnVsbCBsZWRnZXIKdmlzaWJsZSBpbiB0aGUgdHV0b3IncyBkYXNoYm9hcmQuIFR1dG9yIG5lZWRzIE5PIEJvdEZhdGhlciBzZXR1cCDigJQgb25ib2FyZGluZyBpcyAyIG1pbnV0ZXMKaW4tY2hhdC4gVGhpcyBpcyB0aGUgdHJ1c3QgdHJhZGU6IHNpbXBsZXIgb25ib2FyZGluZywgZm91bmRlci1oZWxkIG1vbmV5IGluIHBpbG90LgoKKipUYXJnZXQ6KiogMzAgZ2VudWluZSAxOjEgdHV0b3IgY29udmVyc2F0aW9ucyDihpIgKiriiaUyIHBhaWQgcGlsb3RzICjigrkyNDkgLyAkNSBmaXJzdCBtb250aCkqKiA9IENPTlRJTlVFLgoqKjwyIHBhaWQgcGlsb3RzID0gS0lMTCBvbiByZWNvcmQuKiogQ29tcGxpbWVudHMsICJ1c2VmdWwgbGFndGEgaGFpIiwgd2FpdGxpc3RzID0gemVybyBjb3VudC4gTm8gcmF0aW9uYWxpemluZy4KCi0tLQoKIyMgMS4gVGhlIGV4YWN0IG9mZmVyIChtZW1vcml6ZSB0aGlzKQoKPiAiUGVobGEgbWFoaW5hIOKCuTI0OSBrYSBwaWxvdCBoYWkuIE1haW4ga2h1ZCAxNS1taW51dGUgY2FsbCBwZSBhYXBrYSBwb29yYSBzZXR1cCBrYXIgZHVuZ2Eg4oCUCj4ga29pIHRlY2huaWNhbCBrYWFtIG5haGksIGJhcyBoYW1hcmUgVGVsZWdyYW0gYm90IHBlIDIgbWludXRlIG1laW4gYXZhaWxhYmlsaXR5IHNldCBrYXJuaSBoYWkuCj4gQWFwa28gZWsgYm9va2luZyBsaW5rIG1pbHRhIGhhaS4gU3R1ZGVudCBjaGF0IGtlIGFuZGFyIHNsb3QgYm9vayBrYXJlZ2EgYXVyIFRlbGVncmFtIFN0YXJzCj4gc2UgYWR2YW5jZSBwYXkga2FyZWdhLiBQYWlzZSBTbG90Qm90IGtlIGFjY291bnQgbWVpbiBhYXRlIGhhaW4sIGF1ciBtYWluIGhhciBoYWZ0ZSBhYXBrbwo+IFVQSS9iYW5rIHRyYW5zZmVyIHNlIHNldHRsZSBrYXIgZHVuZ2Eg4oCUIHBvb3JhIGhpc2FhYiBhYXBrZSBkYXNoYm9hcmQgbWVpbiBkaWtoZWdhLgo+IER1c3JlIG1haGluZSBzZSDigrk0OTkvbW9udGgsIGphYiBjaGFhaG8gYmFuZCBrYXIgZG8uIgoKV2hhdCB0aGUgdHV0b3IgZ2V0cyBpbiB0aGUgcGlsb3Q6IHdvcmtpbmcgYm9va2luZyBsaW5rICsgMSBtb250aCBvZiBib29raW5ncy9yZW1pbmRlcnMgKyBmb3VuZGVyIHNldHVwIGNhbGwgKyB3ZWVrbHkgc2V0dGxlbWVudCB3aXRoIGxlZGdlci4KCi0tLQoKIyMgMi4gR3JvdXAgcG9zdCAob25lIHBlciBncm91cCwgbm8gc3BhbSkKCj4gT25saW5lIHR1dG9ycyDigJQgZWsgY2hob3RhIHNhd2FhbDogY2xhc3Mga2kgYm9va2luZyBhYmhpIGJoaSBjaGF0IG1laW4gbWFuYWdlIGthcnRlIGhvPwo+IE1pc3NlZCBtZXNzYWdlcywgbm8tc2hvd3MsIGF1ciAiZmVlcyBiaGVqIGRpaml5ZSIgd2FsZSBmb2xsb3ctdXBzIG1laW4gaGFmdGUga2Uga2l0bmUgZ2hhbnRlIGphYXRlIGhhaW4/Cj4KPiBNYWluIGVrIGNoaG90YSBUZWxlZ3JhbSB0b29sIGJhbmEgcmFoYSBob29uOiBzdHVkZW50IGNoYXQga2UgYW5kYXIgaGkgc2xvdCBib29rIGthcmUsCj4gYWR2YW5jZSBwYXkga2FyZSwgYXV0by1yZW1pbmRlciBqYXllLiAxMCB0dXRvcnMga2Ugc2FhdGggcGlsb3Qga2FyIHJhaGEgaG9vbiDigJQKPiBwZWhsYSBtYWhpbmEg4oK5MjQ5LCBzZXR1cCBtYWluIGtodWQga2FyIGR1bmdhLgo+Cj4gSW50ZXJlc3RlZCBobyB0byBETSBrYXJvLCAyIG1pbnV0ZSBtZWluIHNhbWpoYSBkdW5nYS4KClBvc3Qgb25seSBhZnRlciAyIGRheXMgb2Ygb2JzZXJ2aW5nL2NvbnRyaWJ1dGluZyBpbiB0aGUgZ3JvdXAuIE5ldmVyIHBvc3QgdHdpY2UgaW4gdGhlIHNhbWUgZ3JvdXAuCgotLS0KCiMjIDMuIERNIHNjcmlwdCAoYWZ0ZXIgdGhleSByZXBseSBvciBzaG93IGludGVyZXN0KQoKKipTdGVwIDEg4oCUIFF1YWxpZnkgKyBwYWluIChhc2ssIGRvbid0IHBpdGNoKToqKgo+ICJBYXAga2F1bnNlIHN1YmplY3Qga2kgY2xhc3NlcyBsZXRlIGhvPyBCb29raW5nIGFiaGkga2Fpc2UgbWFuYWdlIGhvdGkgaGFpIOKAlCBjaGF0IHBlPwo+IEhhZnRlIG1laW4gYW5kYXphbiBraXRuYSB0aW1lIGlzbWUgamF0YSBoYWk/IE5vLXNob3dzIGhvdGUgaGFpbj8iCgpPbmx5IGNvbnRpbnVlIGlmIHRoZXkgY29uZmlybSByZWFsIHBhaW4gKGNoYXQgY2hhb3MgLyBtaXNzZWQgbWVzc2FnZXMgLyBwYXltZW50IGNoYXNpbmcgLyBuby1zaG93cykuCgoqKlN0ZXAgMiDigJQgRXhwbGFpbiAoMzAgc2Vjb25kcyk6KioKPiAiS29pIG5heWEgYXBwIGRvd25sb2FkIG5haGksIGtvaSBCb3RGYXRoZXIga2EgY2hha2thciBuYWhpLiBBYXAgaGFtYXJlIFRlbGVncmFtIGJvdCBwZQo+IDIgbWludXRlIG1laW4gYXZhaWxhYmlsaXR5IHNldCBrYXJ0ZSBobyDigJQga2F1bnNlIGRpbiwga2l0bmUgYmFqZS4gQWFwa28gZWsgYm9va2luZyBsaW5rCj4gbWlsdGEgaGFpLiBTdHVkZW50IGxpbmsga2hvbHRhIGhhaSwgc2xvdCBjaG9vc2Uga2FydGEgaGFpLCBUZWxlZ3JhbSBTdGFycyBzZSBhZHZhbmNlIHBheQo+IGthcnRhIGhhaS4gRG9ubyBrbyBjb25maXJtYXRpb24gYXVyIGNsYXNzIHNlIHBlaGxlIGF1dG8tcmVtaW5kZXIuIFBhaXNlIFNsb3RCb3QgYWNjb3VudAo+IG1laW4gYWF0ZSBoYWluLCBtYWluIGhhciBoYWZ0ZSBVUEkgc2Ugc2V0dGxlIGthciBkdW5nYSDigJQgZGFzaGJvYXJkIG1laW4gaGFyIGJvb2tpbmcga2EKPiBoaXNhYWIgZGlraGVnYS4iCgoqKlN0ZXAgMyDigJQgT2ZmZXIgKyBjbG9zZToqKgo+ICJQaWxvdCBtZWluIHBlaGxhIG1haGluYSDigrkyNDkgaGFpLCB1c2tlIGJhYWQg4oK5NDk5L21vbnRoLiBNYWluIGtodWQgMTUtbWluIGNhbGwgcGUgc2V0dXAKPiBrYXIgZHVuZ2Eg4oCUIGFhcGtvIGt1Y2ggdGVjaG5pY2FsIG5haGkga2FybmEuIFBheW1lbnQgYWJoaSBrYXIgZG8gKFVQSSksIHRvIGthbCBzZSBhYXBrYQo+IGJvb2tpbmcgbGluayBsaXZlLiBLYWwgc2hhYW0ga28gMTUgbWluIG1pbGVuZ2Ugc2V0dXAga2UgbGl5ZT8iCgoqKlN0ZXAgNCDigJQgQ29sbGVjdCBwaWxvdCBwYXltZW50IGltbWVkaWF0ZWx5KiogKFN0YXJzIHRvIGZvdW5kZXIncyBib3QgLyBVUEkg4oCUIGRlY2lkZSBvbmUgcGF0aCBiZWZvcmUgb3V0cmVhY2ggc3RhcnRzKS4gTm8gImthbCBiYXRhdGEgaG9vbiIg4oCUIHBheW1lbnQgeWEgY2xlYXIgbm8uCgotLS0KCiMjIDQuIE9iamVjdGlvbiBoYW5kbGluZwoKfCBPYmplY3Rpb24gfCBBbnN3ZXIgfAp8LS0tfC0tLXwKfCAiUGFpc2Ega2FoYW4gamF5ZWdhPyBBYXAgcmFraCBsb2dlIGt5YT8iIHwgIlNlZWRoYSBqYXdhYjogcGFpc2UgU2xvdEJvdCBrZSBUZWxlZ3JhbSBhY2NvdW50IG1laW4gYWF0ZSBoYWluLCBreXVua2kgYm9va2luZyBoYW1hcmUgYm90IHNlIGhvdGkgaGFpLiBNYWluIGhhciBoYWZ0ZSBhYXBrbyBVUEkvYmFuayB0cmFuc2ZlciBzZSBwb29yYSBhbW91bnQgc2V0dGxlIGthciBkdW5nYSDigJQga29pIGthYXQtcGVldCBuYWhpLCBhdXIgaGFyIGJvb2tpbmcga2EgaGlzYWFiIGFhcGtlIGRhc2hib2FyZCBtZWluIGxpdmUgZGlraGVnYS4gUGlsb3QgbWVpbiAxMCB0dXRvcnMgaGFpbiwgc2Fia28gbWFpbiBwZXJzb25hbGx5IGphYW50YSBob29uIOKAlCB5ZWggdHJ1c3QgcGUgY2hhbCByYWhhIGhhaSwgYXVyIGFnYXIgc2V0dGxlbWVudCBtZWluIGVrIGRpbiBraSBiaGkgZGVyaSBodWkgdG8gYWFwIHR1cmFudCBiYW5kIGthciBzYWt0ZSBoby4iIHwKfCAiTWVyZSBzdHVkZW50cyBTdGFycyB1c2UgbmFoaSBrYXJ0ZS4iIHwgIlN0YXJzIFRlbGVncmFtIGtlIGFuZGFyIDEtdGFwIHB1cmNoYXNlIGhhaS4gUGVobGkgYm9va2luZyBwZSBzdHVkZW50IGtvIDMwLXNlY29uZCBndWlkZSBtaWx0YSBoYWkuIEFnYXIgYWFwa2Ugc3R1ZGVudHMgYWxyZWFkeSBUZWxlZ3JhbSBwZSBoYWluLCBmcmljdGlvbiBtaW5pbWFsIGhhaSDigJQgcGlsb3QgbWVpbiBoaSBwYXRhIGNoYWwgamF5ZWdhLiIgfAp8ICJNYWluIENhbGVuZGx5IC8gV2hhdHNBcHAgdXNlIGthcnRhIGhvb24uIiB8ICJDYWxlbmRseSBtZWluIHBheW1lbnQgYXVyIHJlbWluZGVycyBrZSBsaXllIGFsYWcgc2V0dXAgY2hhaGl5ZSwgYXVyIHN0dWRlbnQga28gVGVsZWdyYW0gY2hob2RuYSBwYWR0YSBoYWkuIFlhaGFuIGJvb2tpbmcgd2FoaW4gaG90aSBoYWkgamFoYW4gYmFhdCBob3RpIGhhaSDigJQgc3R1ZGVudCBrbyBrYWhpbiBqYWFuYSBuYWhpIHBhZHRhLiIgfAp8ICLigrk0OTkvbW9udGggenlhZGEgaGFpLiIgfCAiRWsgYmhpIHJlY292ZXJlZCBib29raW5nIHlhIGJhY2hhIGh1YSBuby1zaG93IG1haGluZSBrYSBraGFyY2hhIG5pa2FsIGRldGEgaGFpLiBQaWxvdCDigrkyNDkgaGFpIOKAlCBlayBtYWhpbmUgbWVpbiBoaXNhYWIgYWFwIGtodWQgbGFnYSBsZW5hLiIgfAp8ICJTZXR1cCBtZWluIHRpbWUgbGFnZWdhIC8gdGVjaG5pY2FsIGhhaS4iIHwgIklzaWxpeWUgbWFpbiBraHVkIGNhbGwgcGUga2FyIGR1bmdhIOKAlCAxNSBtaW51dGUuIEFhcGtvIGtvaSB0b2tlbiB5YSB0ZWNobmljYWwga2FhbSBuYWhpIGthcm5hLCBiYXMgYXBuaSBhdmFpbGFiaWxpdHkgYmF0YW5pIGhhaS4iIHwKfCAiUGVobGUgZnJlZSB0cmlhbCBkby4iIHwgIkZyZWUgdHJpYWwgbmFoaSBoYWkg4oCUIHBpbG90IGhpIOKCuTI0OSBrYSBoYWkgdGFha2kgZG9ubyBzZXJpb3VzIHJhaGVuLiBFayBtYWhpbmUgbWVpbiBrYWFtIG5hIGthcmUgdG8gYmFuZCBrYXIgZGVuYS4iIHwKCi0tLQoKIyMgNS4gV2hlcmUgdG8gZmluZCB0dXRvcnMgKHNlYXJjaCwgZG9uJ3Qgc3BhbSkKClRlbGVncmFtIGluLWFwcCBzZWFyY2ggdGVybXMgKEVuZ2xpc2ggKyBIaW5nbGlzaCArIGNpdHkgbmFtZXMpOgotIGBvbmxpbmUgdHVpdGlvbmAsIGBob21lIHR1dG9yYCwgYG1hdGhzIHR1aXRpb25gLCBgcGh5c2ljcyB0dXRvcmAKLSBgc3Bva2VuIGVuZ2xpc2ggY2xhc3Nlc2AsIGBpZWx0cyBjb2FjaGluZ2AKLSBgeW9nYSBjb2FjaCBvbmxpbmVgLCBgZml0bmVzcyBjb2FjaGAsIGBndWl0YXIgY2xhc3NlcyBvbmxpbmVgLCBgbXVzaWMgdGVhY2hlcmAKLSBBZGQgY2l0aWVzOiBEZWxoaSwgTXVtYmFpLCBCYW5nYWxvcmUsIEphaXB1ciwgTHVja25vdywgRGhha2EsIEthcmFjaGksIER1YmFpCgpQbGFuOiBqb2luIDjigJMxMiBncm91cHMg4oaSIG9ic2VydmUgMiBkYXlzIOKGkiBwb3N0IG9uY2Ug4oaSIERNIG9ubHkgcGVvcGxlIHdobyByZXBseS9yZWFjdC4KQWxzbzogci90dXRvci1hZGphY2VudCBjb21tdW5pdGllcywgRmFjZWJvb2sgdHV0b3IgZ3JvdXBzLCBhbmQgInlvdXIgZmlyc3QgMyB0dXRvcnMgZnJvbSBwZXJzb25hbCBuZXR3b3JrIiDigJQgd2FybSBpbnRyb3MgY29udmVydCAxMMOXIGJldHRlci4KCi0tLQoKIyMgNi4gQ29udmVyc2F0aW9uIHRyYWNrZXIgKGNvcHkgcGVyIDMwKQoKfCAjIHwgRGF0ZSB8IE5hbWUgfCBTdWJqZWN0IHwgU291cmNlIHwgUGFpbiBjb25maXJtZWQ/IHwgU2V0dXAgY2FsbD8gfCBQYWlkIHBpbG90PyB8IE5vdGVzIHwKfC0tLXwtLS18LS0tfC0tLXwtLS18LS0tfC0tLXwtLS18LS0tfAp8IDEgfCB8IHwgfCB8IHwgfCB8IHwKfCDigKYgfCB8IHwgfCB8IHwgfCB8IHwKCkNvdW50IG9ubHkgZ2VudWluZSAxOjEgY29udmVyc2F0aW9ucyAoRE0vY2FsbCB3aGVyZSBwYWluIHdhcyBkaXNjdXNzZWQpLiBHcm91cCBwb3N0IHZpZXdzIGRvbid0IGNvdW50LgoKLS0tCgojIyA3LiBIYXJkIHJ1bGVzCgoxLiBObyBvdXRyZWFjaCBiZWZvcmUgdGhlIGNvcmUgbG9vcCB3b3JrcyBlbmQtdG8tZW5kIG9uIGEgbGl2ZSBib3QuCjIuIFBpbG90IGZlZSBjb2xsZWN0ZWQgQkVGT1JFIHNldHVwIGNhbGwuIE5vIHBheSA9IG5vIHNldHVwLgozLiBGb3VuZGVyIGRvZXMgc2V0dXAgY2FsbHMgbWFudWFsbHkgKGFsbG93ZWQ6IGZvdW5kZXItbGVkIG9uYm9hcmRpbmcpLiBQcm9kdWN0IG11c3Qgb3duIOKJpTgwJSBvZiB0aGUgd29ya2Zsb3cgYWZ0ZXIgc2V0dXAg4oCUIG5vIHBlcm1hbmVudCBtYW51YWwgZnVsZmlsbG1lbnQuCjQuIDMwIGNvbnZlcnNhdGlvbnMg4oaSIGNvdW50IHBhaWQgcGlsb3RzIOKGkiBhcHBseSBraWxsIHJ1bGUuIFdyaXRlIHRoZSByZXN1bHQgZG93biBlaXRoZXIgd2F5Lgo1LiBLaWxsZWQgY2F0ZWdvcmllcyBzdGF5IGRlYWQ6IHRoaXMgaXMgU2FhUyAodHV0b3IgcGF5cyBmb3Igc29mdHdhcmUpLCBOT1QgYSBtYXJrZXRwbGFjZSwgTk9UIGNvbW1pc3Npb24tb24tYm9va2luZ3MsIE5PVCBhbiBhZ2VuY3kuCg==
+# SlotBot — 30-Tutor Payment Test: Outreach Pack
+
+**Status: READY — core loop works end-to-end on local tests**
+(Tutor availability → student slot → Stars payment → confirmation → reminder.)
+
+**Architecture: single platform bot.** One SlotBot serves all tutors. Student Stars go to
+SlotBot's Telegram balance; founder settles each tutor weekly (UPI/bank) with full ledger
+visible in the tutor's dashboard. Tutor needs NO BotFather setup — onboarding is 2 minutes
+in-chat. This is the trust trade: simpler onboarding, founder-held money in pilot.
+
+**Target:** 30 genuine 1:1 tutor conversations → **≥2 paid pilots (₹249 / $5 first month)** = CONTINUE.
+**<2 paid pilots = KILL on record.** Compliments, "useful lagta hai", waitlists = zero count. No rationalizing.
+
+---
+
+## 1. The exact offer (memorize this)
+
+> "Pehla mahina ₹249 ka pilot hai. Main khud 15-minute call pe aapka poora setup kar dunga —
+> koi technical kaam nahi, bas hamare Telegram bot pe 2 minute mein availability set karni hai.
+> Aapko ek booking link milta hai. Student chat ke andar slot book karega aur Telegram Stars
+> se advance pay karega. Paise SlotBot ke account mein aate hain, aur main har hafte aapko
+> UPI/bank transfer se settle kar dunga — poora hisaab aapke dashboard mein dikhega.
+> Dusre mahine se ₹499/month, jab chaaho band kar do."
+
+What the tutor gets in the pilot: working booking link + 1 month of bookings/reminders + founder setup call + weekly settlement with ledger.
+
+---
+
+## 2. Group post (one per group, no spam)
+
+> Online tutors — ek chhota sawaal: class ki booking abhi bhi chat mein manage karte ho?
+> Missed messages, no-shows, aur "fees bhej dijiye" wale follow-ups mein hafte ke kitne ghante jaate hain?
+>
+> Main ek chhota Telegram tool bana raha hoon: student chat ke andar hi slot book kare,
+> advance pay kare, auto-reminder jaye. 10 tutors ke saath pilot kar raha hoon —
+> pehla mahina ₹249, setup main khud kar dunga.
+>
+> Interested ho to DM karo, 2 minute mein samjha dunga.
+
+Post only after 2 days of observing/contributing in the group. Never post twice in the same group.
+
+---
+
+## 3. DM script (after they reply or show interest)
+
+**Step 1 — Qualify + pain (ask, don't pitch):**
+> "Aap kaunse subject ki classes lete ho? Booking abhi kaise manage hoti hai — chat pe?
+> Hafte mein andazan kitna time isme jata hai? No-shows hote hain?"
+
+Only continue if they confirm real pain (chat chaos / missed messages / payment chasing / no-shows).
+
+**Step 2 — Explain (30 seconds):**
+> "Koi naya app download nahi, koi BotFather ka chakkar nahi. Aap hamare Telegram bot pe
+> 2 minute mein availability set karte ho — kaunse din, kitne baje. Aapko ek booking link
+> milta hai. Student link kholta hai, slot choose karta hai, Telegram Stars se advance pay
+> karta hai. Dono ko confirmation aur class se pehle auto-reminder. Paise SlotBot account
+> mein aate hain, main har hafte UPI se settle kar dunga — dashboard mein har booking ka
+> hisaab dikhega."
+
+**Step 3 — Offer + close:**
+> "Pilot mein pehla mahina ₹249 hai, uske baad ₹499/month. Main khud 15-min call pe setup
+> kar dunga — aapko kuch technical nahi karna. Payment abhi kar do (UPI), to kal se aapka
+> booking link live. Kal shaam ko 15 min milenge setup ke liye?"
+
+**Step 4 — Collect pilot payment immediately** (Stars to founder's bot / UPI — decide one path before outreach starts). No "kal batata hoon" — payment ya clear no.
+
+---
+
+## 4. Objection handling
+
+| Objection | Answer |
+|---|---|
+| "Paisa kahan jayega? Aap rakh loge kya?" | "Seedha jawab: paise SlotBot ke Telegram account mein aate hain, kyunki booking hamare bot se hoti hai. Main har hafte aapko UPI/bank transfer se poora amount settle kar dunga — koi kaat-peet nahi, aur har booking ka hisaab aapke dashboard mein live dikhega. Pilot mein 10 tutors hain, sabko main personally jaanta hoon — yeh trust pe chal raha hai, aur agar settlement mein ek din ki bhi deri hui to aap turant band kar sakte ho." |
+| "Mere students Stars use nahi karte." | "Stars Telegram ke andar 1-tap purchase hai. Pehli booking pe student ko 30-second guide milta hai. Agar aapke students already Telegram pe hain, friction minimal hai — pilot mein hi pata chal jayega." |
+| "Main Calendly / WhatsApp use karta hoon." | "Calendly mein payment aur reminders ke liye alag setup chahiye, aur student ko Telegram chhodna padta hai. Yahan booking wahin hoti hai jahan baat hoti hai — student ko kahin jaana nahi padta." |
+| "₹499/month zyada hai." | "Ek bhi recovered booking ya bacha hua no-show mahine ka kharcha nikal deta hai. Pilot ₹249 hai — ek mahine mein hisaab aap khud laga lena." |
+| "Setup mein time lagega / technical hai." | "Isiliye main khud call pe kar dunga — 15 minute. Aapko koi token ya technical kaam nahi karna, bas apni availability batani hai." |
+| "Pehle free trial do." | "Free trial nahi hai — pilot hi ₹249 ka hai taaki dono serious rahen. Ek mahine mein kaam na kare to band kar dena." |
+
+---
+
+## 5. Where to find tutors (search, don't spam)
+
+Telegram in-app search terms (English + Hinglish + city names):
+- `online tuition`, `home tutor`, `maths tuition`, `physics tutor`
+- `spoken english classes`, `ielts coaching`
+- `yoga coach online`, `fitness coach`, `guitar classes online`, `music teacher`
+- Add cities: Delhi, Mumbai, Bangalore, Jaipur, Lucknow, Dhaka, Karachi, Dubai
+
+Plan: join 8–12 groups → observe 2 days → post once → DM only people who reply/react.
+Also: r/tutor-adjacent communities, Facebook tutor groups, and "your first 3 tutors from personal network" — warm intros convert 10× better.
+
+---
+
+## 6. Conversation tracker (copy per 30)
+
+| # | Date | Name | Subject | Source | Pain confirmed? | Setup call? | Paid pilot? | Notes |
+|---|---|---|---|---|---|---|---|---|
+| 1 | | | | | | | | |
+| … | | | | | | | | |
+
+Count only genuine 1:1 conversations (DM/call where pain was discussed). Group post views don't count.
+
+---
+
+## 7. Hard rules
+
+1. No outreach before the core loop works end-to-end on a live bot.
+2. Pilot fee collected BEFORE setup call. No pay = no setup.
+3. Founder does setup calls manually (allowed: founder-led onboarding). Product must own ≥80% of the workflow after setup — no permanent manual fulfillment.
+4. 30 conversations → count paid pilots → apply kill rule. Write the result down either way.
+5. Killed categories stay dead: this is SaaS (tutor pays for software), NOT a marketplace, NOT commission-on-bookings, NOT an agency.

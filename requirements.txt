@@ -1,1 +1,4 @@
-ZmFzdGFwaT09MC4xMTUuNgp1dmljb3JuW3N0YW5kYXJkXT09MC4zNC4wCmh0dHB4PT0wLjI4LjEKYXBzY2hlZHVsZXI9PTMuMTAuNAo=
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+httpx==0.28.1
+apscheduler==3.10.4
