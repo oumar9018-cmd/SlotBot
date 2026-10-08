@@ -1,1 +1,144 @@
-IiIiU2VjdXJpdHkgKyByZWdyZXNzaW9uIHRlc3RzOiB0dXRvciBpc29sYXRpb24sIGNvbmN1cnJlbnQgZG91YmxlLWJvb2tpbmcsCnByZS1jaGVja291dCByZWplY3QgcGF0aCwgQVBJIGF1dGguCiIiIgppbXBvcnQgYXN5bmNpbwppbXBvcnQgaGFzaGxpYgppbXBvcnQgaG1hYwppbXBvcnQganNvbgppbXBvcnQgb3MKaW1wb3J0IHN5cwppbXBvcnQgdGhyZWFkaW5nCmltcG9ydCB0aW1lCmZyb20gdXJsbGliLnBhcnNlIGltcG9ydCB1cmxlbmNvZGUKCnN5cy5wYXRoLmluc2VydCgwLCBvcy5wYXRoLmpvaW4ob3MucGF0aC5kaXJuYW1lKF9fZmlsZV9fKSwgIi4uIikpCm9zLmVudmlyb25bIkRCX1BBVEgiXSA9ICIvdG1wL3Nsb3Rib3Rfc2VjLmRiIgpmb3IgZiBpbiAoIi90bXAvc2xvdGJvdF9zZWMuZGIiLCAiL3RtcC9zbG90Ym90X3NlYy5kYi13YWwiLCAiL3RtcC9zbG90Ym90X3NlYy5kYi1zaG0iKToKICAgIGlmIG9zLnBhdGguZXhpc3RzKGYpOgogICAgICAgIG9zLnJlbW92ZShmKQoKZnJvbSBhcHAgaW1wb3J0IGJvdCwgY29uZmlnLCBkYiwgc2VjdXJpdHkKZnJvbSBhcHAgaW1wb3J0IHRlbGVncmFtIGFzIHRnCgpjb25maWcuQk9UX1RPS0VOID0gIjEyMzQ1NjpURVNUVE9LRU4iCkNBTExTID0geyJwcmVjaGVja291dCI6IFtdfQoKCmFzeW5jIGRlZiBmYWtlX2Fuc3dlcl9wcmVjaGVja291dChxaWQsIG9rLCBlcnJvcl9tZXNzYWdlPU5vbmUpOgogICAgQ0FMTFNbInByZWNoZWNrb3V0Il0uYXBwZW5kKHsicWlkIjogcWlkLCAib2siOiBvaywgImVyciI6IGVycm9yX21lc3NhZ2V9KQogICAgcmV0dXJuIHsib2siOiBUcnVlfQoKCmFzeW5jIGRlZiBmYWtlX2Fuc3dlcl9jYWxsYmFjayhjcWlkLCB0ZXh0PU5vbmUsIHNob3dfYWxlcnQ9RmFsc2UpOgogICAgcmV0dXJuIHsib2siOiBUcnVlfQoKCmFzeW5jIGRlZiBmYWtlX3NlbmRfbWVzc2FnZShjaGF0X2lkLCB0ZXh0LCByZXBseV9tYXJrdXA9Tm9uZSwgcGFyc2VfbW9kZT1Ob25lKToKICAgIHJldHVybiB7Im9rIjogVHJ1ZX0KCgp0Zy5hbnN3ZXJfcHJlY2hlY2tvdXQgPSBmYWtlX2Fuc3dlcl9wcmVjaGVja291dAp0Zy5hbnN3ZXJfY2FsbGJhY2sgPSBmYWtlX2Fuc3dlcl9jYWxsYmFjawp0Zy5zZW5kX21lc3NhZ2UgPSBmYWtlX3NlbmRfbWVzc2FnZQoKCmRlZiBtYWtlX2luaXRfZGF0YSh1c2VyX2lkOiBpbnQpIC0+IHN0cjoKICAgIHVzZXIgPSB7ImlkIjogdXNlcl9pZCwgImZpcnN0X25hbWUiOiAiVCJ9CiAgICBwYWlycyA9IHsiYXV0aF9kYXRlIjogc3RyKGludCh0aW1lLnRpbWUoKSkpLAogICAgICAgICAgICAgInVzZXIiOiBqc29uLmR1bXBzKHVzZXIsIHNlcGFyYXRvcnM9KCIsIiwgIjoiKSl9CiAgICBkY3MgPSAiXG4iLmpvaW4oZiJ7a309e3Z9IiBmb3IgaywgdiBpbiBzb3J0ZWQocGFpcnMuaXRlbXMoKSkpCiAgICBzayA9IGhtYWMubmV3KGIiV2ViQXBwRGF0YSIsIGNvbmZpZy5CT1RfVE9LRU4uZW5jb2RlKCksIGhhc2hsaWIuc2hhMjU2KS5kaWdlc3QoKQogICAgcGFpcnNbImhhc2giXSA9IGhtYWMubmV3KHNrLCBkY3MuZW5jb2RlKCksIGhhc2hsaWIuc2hhMjU2KS5oZXhkaWdlc3QoKQogICAgcmV0dXJuIHVybGVuY29kZShwYWlycykKCgphc3luYyBkZWYgbWFpbigpOgogICAgIyAtLS0tIHR3byB0dXRvcnMsIGlzb2xhdGlvbiAtLS0tCiAgICB0MSA9IGRiLmNyZWF0ZV90dXRvcigxMDEsICJUdXRvckEiLCAiQXNpYS9Lb2xrYXRhIikKICAgIHQyID0gZGIuY3JlYXRlX3R1dG9yKDEwMiwgIlR1dG9yQiIsICJBc2lhL0tvbGthdGEiKQogICAgZGIuc2V0X2F2YWlsYWJpbGl0eV9ydWxlcyh0MVsiaWQiXSwgWwogICAgICAgIHsid2Vla2RheSI6IDAsICJzdGFydF9taW4iOiAxMDgwLCAiZW5kX21pbiI6IDEyMDAsICJzbG90X21pbiI6IDYwfV0pCiAgICBkYi5zZXRfYXZhaWxhYmlsaXR5X3J1bGVzKHQyWyJpZCJdLCBbCiAgICAgICAgeyJ3ZWVrZGF5IjogMCwgInN0YXJ0X21pbiI6IDEwODAsICJlbmRfbWluIjogMTIwMCwgInNsb3RfbWluIjogNjB9XSkKICAgIGZyb20gYXBwIGltcG9ydCBhdmFpbGFiaWxpdHkgYXMgYXYKICAgIGF2LmdlbmVyYXRlX3Nsb3RzX2Zvcl90dXRvcih0MVsiaWQiXSkKICAgIGF2LmdlbmVyYXRlX3Nsb3RzX2Zvcl90dXRvcih0MlsiaWQiXSkKCiAgICAjIFR1dG9yIEEncyBpbml0RGF0YSBtdXN0IHJlc29sdmUgdG8gVHV0b3IgQSBvbmx5CiAgICBmcm9tIGFwcC5taW5pYXBwIGltcG9ydCBfdHV0b3JfZnJvbV9pbml0ZGF0YQogICAgbWVfYSA9IF90dXRvcl9mcm9tX2luaXRkYXRhKG1ha2VfaW5pdF9kYXRhKDEwMSkpCiAgICBtZV9iID0gX3R1dG9yX2Zyb21faW5pdGRhdGEobWFrZV9pbml0X2RhdGEoMTAyKSkKICAgIGFzc2VydCBtZV9hWyJpZCJdID09IHQxWyJpZCJdIGFuZCBtZV9iWyJpZCJdID09IHQyWyJpZCJdLCAiaXNvbGF0aW9uIGZhaWwiCiAgICAjIE5vbi10dXRvciBnZXRzIDQwMwogICAgdHJ5OgogICAgICAgIF90dXRvcl9mcm9tX2luaXRkYXRhKG1ha2VfaW5pdF9kYXRhKDk5OSkpCiAgICAgICAgYXNzZXJ0IEZhbHNlLCAibm9uLXR1dG9yIG5vdCByZWplY3RlZCIKICAgIGV4Y2VwdCBFeGNlcHRpb24gYXMgZToKICAgICAgICBhc3NlcnQgIjQwMyIgaW4gc3RyKGUpLCBmIndyb25nIHJlamVjdGlvbjoge2V9IgogICAgIyBUYW1wZXJlZCBpbml0RGF0YSAtPiA0MDEKICAgIHRyeToKICAgICAgICBfdHV0b3JfZnJvbV9pbml0ZGF0YShtYWtlX2luaXRfZGF0YSgxMDEpICsgIngiKQogICAgICAgIGFzc2VydCBGYWxzZSwgInRhbXBlcmVkIG5vdCByZWplY3RlZCIKICAgIGV4Y2VwdCBFeGNlcHRpb24gYXMgZToKICAgICAgICBhc3NlcnQgIjQwMSIgaW4gc3RyKGUpLCBmIndyb25nIHJlamVjdGlvbjoge2V9IgogICAgcHJpbnQoIjEuIHR1dG9yIGlzb2xhdGlvbiArIGluaXREYXRhIGF1dGggT0siKQoKICAgICMgLS0tLSBjb25jdXJyZW50IGRvdWJsZS1ib29raW5nOiAxMCB0aHJlYWRzLCAxIHNsb3QsIGV4YWN0bHkgMSB3aW5zIC0tLS0KICAgIHNsb3QgPSBkYi5vcGVuX3Nsb3RzKHQxWyJpZCJdKVswXQogICAgd2lubmVycyA9IFtdCgogICAgZGVmIGdyYWIoaSk6CiAgICAgICAgYiA9IGRiLmhvbGRfc2xvdCh0MVsiaWQiXSwgc2xvdFsiaWQiXSwgNTAwICsgaSwgZiJTe2l9IiwgMTApCiAgICAgICAgaWYgYjoKICAgICAgICAgICAgd2lubmVycy5hcHBlbmQoYlsiaWQiXSkKCiAgICB0aHJlYWRzID0gW3RocmVhZGluZy5UaHJlYWQodGFyZ2V0PWdyYWIsIGFyZ3M9KGksKSkgZm9yIGkgaW4gcmFuZ2UoMTApXQogICAgZm9yIHRoIGluIHRocmVhZHM6CiAgICAgICAgdGguc3RhcnQoKQogICAgZm9yIHRoIGluIHRocmVhZHM6CiAgICAgICAgdGguam9pbigpCiAgICBhc3NlcnQgbGVuKHdpbm5lcnMpID09IDEsIGYiY29uY3VycmVudCBkb3VibGUtYm9va2luZyEgd2lubmVycz17d2lubmVyc30iCiAgICBwcmludCgiMi4gY29uY3VycmVudCBkb3VibGUtYm9va2luZyBPSyAoMSB3aW5uZXIpIikKCiAgICAjIC0tLS0gcHJlLWNoZWNrb3V0IHJlamVjdHMgZXhwaXJlZCBob2xkIC0tLS0KICAgIGIgPSBkYi5nZXRfYm9va2luZyh3aW5uZXJzWzBdKQogICAgIyBmb3JjZS1leHBpcmUgdGhlIGhvbGQKICAgIGMgPSBkYi5nZXRfY29ubigpCiAgICBjLmV4ZWN1dGUoIlVQREFURSBib29raW5ncyBTRVQgaG9sZF9leHBpcmVzX2F0PScyMDAwLTAxLTAxVDAwOjAwOjAwKzAwOjAwJyBXSEVSRSBpZD0/IiwKICAgICAgICAgICAgICAoYlsiaWQiXSwpKQogICAgYy5jb21taXQoKQogICAgYXdhaXQgYm90LmhhbmRsZV9wcmVjaGVja291dCh7ImlkIjogInBxWCIsICJpbnZvaWNlX3BheWxvYWQiOiBmImJvb2s6e2JbJ2lkJ119In0pCiAgICBwYyA9IENBTExTWyJwcmVjaGVja291dCJdWy0xXQogICAgYXNzZXJ0IHBjWyJvayJdIGlzIEZhbHNlLCAiZXhwaXJlZCBob2xkIGFjY2VwdGVkISIKICAgICMgc2xvdCByZWxlYXNlZCBieSB0aGUgc3dlZXBlciBpbnNpZGUgdGhlIHJlamVjdCBwYXRoCiAgICBhc3NlcnQgZGIuZ2V0X3Nsb3QoYlsic2xvdF9pZCJdKVsic3RhdHVzIl0gPT0gIm9wZW4iLCAic2xvdCBub3QgcmVsZWFzZWQiCiAgICBwcmludCgiMy4gcHJlLWNoZWNrb3V0IHJlamVjdCBvbiBleHBpcmVkIGhvbGQgT0siKQoKICAgICMgLS0tLSBwcmUtY2hlY2tvdXQgcmVqZWN0cyBhbHJlYWR5LXBhaWQgYm9va2luZyAtLS0tCiAgICBzbG90MiA9IGRiLm9wZW5fc2xvdHModDFbImlkIl0pWzFdCiAgICBiMiA9IGRiLmhvbGRfc2xvdCh0MVsiaWQiXSwgc2xvdDJbImlkIl0sIDYwMCwgIlplZCIsIDEwKQogICAgYXNzZXJ0IGRiLm1hcmtfYm9va2luZ19wYWlkKGIyWyJpZCJdLCAiY2hfcGFpZCIsIDEwMCkKICAgIGF3YWl0IGJvdC5oYW5kbGVfcHJlY2hlY2tvdXQoeyJpZCI6ICJwcVkiLCAiaW52b2ljZV9wYXlsb2FkIjogZiJib29rOntiMlsnaWQnXX0ifSkKICAgIHBjID0gQ0FMTFNbInByZWNoZWNrb3V0Il1bLTFdCiAgICBhc3NlcnQgcGNbIm9rIl0gaXMgRmFsc2UsICJwYWlkIGJvb2tpbmcgcmUtYWNjZXB0ZWQhIgogICAgcHJpbnQoIjQuIHByZS1jaGVja291dCByZWplY3Qgb24gcGFpZCBib29raW5nIE9LIikKCiAgICAjIC0tLS0gc3RhbGUgb25ib2FyZGluZyBjYWxsYmFjayAtPiBncmFjZWZ1bCwgbm8gY3Jhc2ggLS0tLQogICAgX3VpZCA9IFs5OV0KCiAgICBhc3luYyBkZWYgZmFrZV9zZW5kMihjaGF0X2lkLCB0ZXh0LCByZXBseV9tYXJrdXA9Tm9uZSwgcGFyc2VfbW9kZT1Ob25lKToKICAgICAgICBDQUxMUy5zZXRkZWZhdWx0KCJtc2dzIiwgW10pLmFwcGVuZCh0ZXh0KQogICAgICAgIHJldHVybiB7Im9rIjogVHJ1ZX0KCiAgICB0Zy5zZW5kX21lc3NhZ2UgPSBmYWtlX3NlbmQyCiAgICBhd2FpdCBib3QuaGFuZGxlX3VwZGF0ZSh7InVwZGF0ZV9pZCI6IDEwMCwgImNhbGxiYWNrX3F1ZXJ5IjoKICAgICAgICB7ImlkIjogImNxWiIsICJmcm9tIjogeyJpZCI6IDc3NywgImZpcnN0X25hbWUiOiAiR2hvc3QifSwKICAgICAgICAgIm1lc3NhZ2UiOiB7Im1lc3NhZ2VfaWQiOiAxfSwgImRhdGEiOiAib2JfZHVyXzYwIn19KQogICAgYXNzZXJ0IGFueSgiZXhwaXJlZCIgaW4gbSBmb3IgbSBpbiBDQUxMU1sibXNncyJdKSwgIm5vIGdyYWNlZnVsIGV4cGlyeSBtc2ciCiAgICBwcmludCgiNS4gc3RhbGUgY2FsbGJhY2sgZ3JhY2VmdWwgT0siKQoKICAgIHByaW50KCJBTEwgU0VDVVJJVFkgVEVTVFMgUEFTU0VEIikKCgppZiBfX25hbWVfXyA9PSAiX19tYWluX18iOgogICAgYXN5bmNpby5ydW4obWFpbigpKQo=
+"""Security + regression tests: tutor isolation, concurrent double-booking,
+pre-checkout reject path, API auth.
+"""
+import asyncio
+import hashlib
+import hmac
+import json
+import os
+import sys
+import threading
+import time
+from urllib.parse import urlencode
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+os.environ["DB_PATH"] = "/tmp/slotbot_sec.db"
+for f in ("/tmp/slotbot_sec.db", "/tmp/slotbot_sec.db-wal", "/tmp/slotbot_sec.db-shm"):
+    if os.path.exists(f):
+        os.remove(f)
+
+from app import bot, config, db, security
+from app import telegram as tg
+
+config.BOT_TOKEN = "123456:TESTTOKEN"
+CALLS = {"precheckout": []}
+
+
+async def fake_answer_precheckout(qid, ok, error_message=None):
+    CALLS["precheckout"].append({"qid": qid, "ok": ok, "err": error_message})
+    return {"ok": True}
+
+
+async def fake_answer_callback(cqid, text=None, show_alert=False):
+    return {"ok": True}
+
+
+async def fake_send_message(chat_id, text, reply_markup=None, parse_mode=None):
+    return {"ok": True}
+
+
+tg.answer_precheckout = fake_answer_precheckout
+tg.answer_callback = fake_answer_callback
+tg.send_message = fake_send_message
+
+
+def make_init_data(user_id: int) -> str:
+    user = {"id": user_id, "first_name": "T"}
+    pairs = {"auth_date": str(int(time.time())),
+             "user": json.dumps(user, separators=(",", ":"))}
+    dcs = "\n".join(f"{k}={v}" for k, v in sorted(pairs.items()))
+    sk = hmac.new(b"WebAppData", config.BOT_TOKEN.encode(), hashlib.sha256).digest()
+    pairs["hash"] = hmac.new(sk, dcs.encode(), hashlib.sha256).hexdigest()
+    return urlencode(pairs)
+
+
+async def main():
+    # ---- two tutors, isolation ----
+    t1 = db.create_tutor(101, "TutorA", "Asia/Kolkata")
+    t2 = db.create_tutor(102, "TutorB", "Asia/Kolkata")
+    db.set_availability_rules(t1["id"], [
+        {"weekday": 0, "start_min": 1080, "end_min": 1200, "slot_min": 60}])
+    db.set_availability_rules(t2["id"], [
+        {"weekday": 0, "start_min": 1080, "end_min": 1200, "slot_min": 60}])
+    from app import availability as av
+    av.generate_slots_for_tutor(t1["id"])
+    av.generate_slots_for_tutor(t2["id"])
+
+    # Tutor A's initData must resolve to Tutor A only
+    from app.miniapp import _tutor_from_initdata
+    me_a = _tutor_from_initdata(make_init_data(101))
+    me_b = _tutor_from_initdata(make_init_data(102))
+    assert me_a["id"] == t1["id"] and me_b["id"] == t2["id"], "isolation fail"
+    # Non-tutor gets 403
+    try:
+        _tutor_from_initdata(make_init_data(999))
+        assert False, "non-tutor not rejected"
+    except Exception as e:
+        assert "403" in str(e), f"wrong rejection: {e}"
+    # Tampered initData -> 401
+    try:
+        _tutor_from_initdata(make_init_data(101) + "x")
+        assert False, "tampered not rejected"
+    except Exception as e:
+        assert "401" in str(e), f"wrong rejection: {e}"
+    print("1. tutor isolation + initData auth OK")
+
+    # ---- concurrent double-booking: 10 threads, 1 slot, exactly 1 wins ----
+    slot = db.open_slots(t1["id"])[0]
+    winners = []
+
+    def grab(i):
+        b = db.hold_slot(t1["id"], slot["id"], 500 + i, f"S{i}", 10)
+        if b:
+            winners.append(b["id"])
+
+    threads = [threading.Thread(target=grab, args=(i,)) for i in range(10)]
+    for th in threads:
+        th.start()
+    for th in threads:
+        th.join()
+    assert len(winners) == 1, f"concurrent double-booking! winners={winners}"
+    print("2. concurrent double-booking OK (1 winner)")
+
+    # ---- pre-checkout rejects expired hold ----
+    b = db.get_booking(winners[0])
+    # force-expire the hold
+    c = db.get_conn()
+    c.execute("UPDATE bookings SET hold_expires_at='2000-01-01T00:00:00+00:00' WHERE id=?",
+              (b["id"],))
+    c.commit()
+    await bot.handle_precheckout({"id": "pqX", "invoice_payload": f"book:{b['id']}"})
+    pc = CALLS["precheckout"][-1]
+    assert pc["ok"] is False, "expired hold accepted!"
+    # slot released by the sweeper inside the reject path
+    assert db.get_slot(b["slot_id"])["status"] == "open", "slot not released"
+    print("3. pre-checkout reject on expired hold OK")
+
+    # ---- pre-checkout rejects already-paid booking ----
+    slot2 = db.open_slots(t1["id"])[1]
+    b2 = db.hold_slot(t1["id"], slot2["id"], 600, "Zed", 10)
+    assert db.mark_booking_paid(b2["id"], "ch_paid", 100)
+    await bot.handle_precheckout({"id": "pqY", "invoice_payload": f"book:{b2['id']}"})
+    pc = CALLS["precheckout"][-1]
+    assert pc["ok"] is False, "paid booking re-accepted!"
+    print("4. pre-checkout reject on paid booking OK")
+
+    # ---- stale onboarding callback -> graceful, no crash ----
+    _uid = [99]
+
+    async def fake_send2(chat_id, text, reply_markup=None, parse_mode=None):
+        CALLS.setdefault("msgs", []).append(text)
+        return {"ok": True}
+
+    tg.send_message = fake_send2
+    await bot.handle_update({"update_id": 100, "callback_query":
+        {"id": "cqZ", "from": {"id": 777, "first_name": "Ghost"},
+         "message": {"message_id": 1}, "data": "ob_dur_60"}})
+    assert any("expired" in m for m in CALLS["msgs"]), "no graceful expiry msg"
+    print("5. stale callback graceful OK")
+
+    print("ALL SECURITY TESTS PASSED")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

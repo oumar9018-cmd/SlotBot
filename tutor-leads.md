@@ -1,1 +1,116 @@
-IyBTbG90Qm90IOKAlCBQaWxvdCBQcmVwOiBUdXRvciBTb3VyY2luZyBTaG9ydGxpc3QgKyBTZXR0bGVtZW50IEZvcm11bGEKCioqUHJlcGFyZWQ6IDIwMjYtMTAtMDggfjExOjIwIElTVC4qKiBVc2UgYWZ0ZXIgRmx5LmlvIGRlcGxveS4gRG8gbm90IG91dHJlYWNoIGJlZm9yZSB0aGVuCihoYXJkIHJ1bGUgIzEgaW4gb3V0cmVhY2gtcGFjay5tZDogY29yZSBsb29wIG11c3Qgd29yayBlbmQtdG8tZW5kIG9uIGEgbGl2ZSBib3QgZmlyc3QpLgoKLS0tCgojIyBBLiBXaGVyZSB0aGUgMzAgY29udmVyc2F0aW9ucyBjb21lIGZyb20gKHByaW9yaXR5IG9yZGVyKQoKMS4gKipXYXJtIG5ldHdvcmsgZmlyc3QqKiAob3V0cmVhY2gtcGFjayDCpzU6IHdhcm0gaW50cm9zIGNvbnZlcnQgfjEww5cgYmV0dGVyKS4gVXNlciBhY3Rpb246CiAgIGxpc3QgMTAgdHV0b3IvdGVhY2hlciBjb250YWN0cyBmcm9tIHBlcnNvbmFsIG5ldHdvcmsgYmVmb3JlIHRvdWNoaW5nIGFueSBncm91cC4KMi4gKipUZWxlZ3JhbSDigJQgcHJpbWFyeSBjaGFubmVsKiogKHR1dG9ycyBoZXJlIGFyZSBhbHJlYWR5IFRlbGVncmFtLW5hdGl2ZSwgd2hpY2ggaXMgdGhlCiAgIHdob2xlIHByb2R1Y3QgdGhlc2lzKToKICAgLSAqKkBvbmxpbmV0dXRvcmpvYnMqKiDigJQgKiozLjVLIG1lbWJlcnMgVkVSSUZJRUQgMjAyNi0xMC0wOCoqLCAiT25saW5lIHRlYWNoaW5nIGpvYnMgLQogICAgIHBhcnQgdGltZSB0ZWFjaGluZyBqb2JzIC0gYWxsIG92ZXIgaW5kaWEiLCBvbmxpbmUgdHVpdGlvbiBqb2JzIGNsYXNzIDHigJMxMi4gKipCZXN0IGZpdCoqCiAgICAgKEluZGlhIHR1dG9ycyBhY3RpdmVseSBsb29raW5nIGZvciB3b3JrKTogaHR0cHM6Ly90ZWxlZ3JhbS5pbS9Ab25saW5ldHV0b3Jqb2JzCiAgIC0gKipAdHVpdGlvbndvcmsqKiDigJQgKio3NjYgc3Vic2NyaWJlcnMgVkVSSUZJRUQgMjAyNi0xMC0wOCoqICh3YXMgMSw1OTUgaW4gZWFybGllciBub3RlIOKAlAogICAgIGNvcnJlY3RlZCBkb3duKSwgIkhvbWUgVHV0b3IgSm9icyAmIE9ubGluZSBUdXRvciBKb2JzIjogaHR0cHM6Ly90Lm1lL3R1aXRpb253b3JrLgogICAgICoqSGVhZHMtdXA6ICJzdWJzY3JpYmVycyIgd29yZGluZyBtZWFucyB0aGlzIGlzIGEgQ0hBTk5FTCAoYnJvYWRjYXN0KSwgbm90IGEgZGlzY3Vzc2lvbgogICAgIGdyb3VwKiog4oCUIHlvdSBjYW4ndCBwb3N0IGluIGl0LiBVc2UgYXMgYSBsZWFkIHNvdXJjZSAvIERNIGNoYW5uZWwgYWRtaW5zIG9ubHksIG5vdCBhCiAgICAgcG9zdGluZyB2ZW51ZS4gU2Vjb25kYXJ5IGZpdC4KICAgLSAqKlRlYWNoZXJzIFN1cHBvcnQgTmV0d29yayoqIOKAlCB0ZWFjaGVyIGNvbW11bml0eSBncm91cCBWRVJJRklFRCAyMDI2LTEwLTA4IChpbnZpdGUgbGluawogICAgIGxpdmUsIGRlc2NyaXB0aW9uIG1hdGNoZXM6IGhvbWUgdHVpdGlvbiArIG9ubGluZSB0ZWFjaGluZyBvcHBvcnR1bml0aWVzLCBwZWVyIHN1cHBvcnQpOgogICAgIGh0dHBzOi8vdC5tZS8rZHNPY0VCY1N6cGRrT0RrMSDigJQgZ29vZCBmaXQuIE1lbWJlciBjb3VudCBub3QgdmlzaWJsZSB3aXRob3V0IGxvZ2luOwogICAgIGNvbmZpcm0gaW4tYXBwIGFmdGVyIGpvaW5pbmcuCiAgIC0gRGlyZWN0b3J5IGZvciBtb3JlOiBodHRwczovL2dyb3VwZGEuY29tL2VkdWNhdGlvbi90dWl0aW9uLXRlbGVncmFtLWdyb3VwLWxpbmsvCiAgICAgKG1vc3RseSBzdHVkZW50LWZhY2luZyB0dWl0aW9uIGdyb3VwcyDigJQgbG93ZXIgcHJpb3JpdHksIHZlcmlmeSBiZWZvcmUgam9pbmluZykuCjMuICoqUmVkZGl0IC8gRmFjZWJvb2sg4oCUIHNlY29uZGFyeSBvbmx5LioqIFZlcmlmeSBhbnkgc3BlY2lmaWMgZ3JvdXAgZXhpc3RzIGFuZCBhbGxvd3MKICAgcHJvbW8gcG9zdHMgYmVmb3JlIHVzaW5nLiBOb3QgdGhlIHByaW9yaXR5OyBUZWxlZ3JhbS1maXJzdC4KCioqTWV0aG9kIChmcm9tIG91dHJlYWNoLXBhY2sgwqc1LCB1bmNoYW5nZWQpOioqIGpvaW4gOOKAkzEyIGdyb3VwcyDihpIgb2JzZXJ2ZS9jb250cmlidXRlIDIgZGF5cyDihpIKcG9zdCBvbmNlIHBlciBncm91cCAocGFjayDCpzIpIOKGkiBETSBvbmx5IHBlb3BsZSB3aG8gcmVwbHkvcmVhY3QgKHBhY2sgwqcz4oCTNCkuIE5vIHNwYW0sCm5ldmVyIHBvc3QgdHdpY2UgaW4gdGhlIHNhbWUgZ3JvdXAuCgotLS0KCiMjIEIuIFN0YXJzIOKGkiBJTlIgc2V0dGxlbWVudCBmb3JtdWxhIChudW1iZXJzIGxvY2tlZCAyMDI2LTEwLTA4KQoKU2V0dGxlbWVudC1hdWRpdC5tZCByZXF1aXJlZCB0aGlzICoqYmVmb3JlIHJlYWwgdHV0b3IgbW9uZXkgZmxvd3MqKi4gVG9kYXkncyByZXNlYXJjaDoKCi0gKipEZXZlbG9wZXIgcGF5b3V0OiBmbGF0ICQwLjAxMyAvIFN0YXIuKiogVGFrZW4gZnJvbSBUZWxlZ3JhbSdzIG93biBwYXltZW50cyB0YWJsZQogIChlLmcuIDEsMDAwIFN0YXJzIGJvdWdodCBvbiBtb2JpbGUgPSAkMTkuOTkg4oaSICQ2LjAwIHN0b3JlIGN1dCArICQwLjk5IFRlbGVncmFtIGFkbWluICsKICAkMTMuMDAgZGV2ZWxvcGVyKS4gVGhlIGFwcC1zdG9yZSAzMCUgaW5mbGF0ZXMgdGhlICpidXllcidzKiBwcmljZTsgaXQgbmV2ZXIgdG91Y2hlcyB0aGUKICBkZXZlbG9wZXIncyAkMC4wMTMvU3Rhci4gU291cmNlOiBodHRwczovL2Rldi50by9sYW5kc3RyaWRlci90ZWxlZ3JhbS1zdGFycy1wYXlvdXRzLXRoZS1hcHAtc3RvcmUtY3V0LWhpdHMtdGhlLWJ1eWVyLW5vdC15b3UtMmJrMyAoT2N0IDIwMjYsIGNpdGVzIFRlbGVncmFtJ3MgcGF5bWVudHMgdGFibGUpLgotICoqV2l0aGRyYXdhbCBwYXRoOioqIEZyYWdtZW50IOKGkiBUT04g4oaSIGV4Y2hhbmdlL1AyUCDihpIgSU5SLiAqKk1pbmltdW0gMSwwMDAgU3RhcnMgKH4kMTMpKiog4oCUCiAgYmVsb3cgdGhhdCBub3RoaW5nIG1vdmVzLiAqKjIxLWRheSByb2xsaW5nIGhvbGQqKiBmcm9tIGVhY2ggcGF5bWVudCBiZWZvcmUgaXQgYmVjb21lcwogIHdpdGhkcmF3YWJsZS4gUGF5b3V0IHRyaWdnZXJlZCBieSB0aGUgYm90IG93bmVyLgotICoqVVNEL0lOUiB0b2RheToqKiDiiYggOTYuNzcgKEZpbm5odWIsIDIwMjYtMTAtMDgpLgotICoqUHJvcG9zZWQgcGlsb3QgZm9ybXVsYToqKgogIGBzZXR0bGVtZW50IElOUiA9IFN0YXJzX2Vhcm5lZCDDlyAwLjAxMyDDlyA5Ni43NyDDlyAwLjk2ICjiiYg0JSBjb252ZXJzaW9uIGJ1ZmZlcilgCiAg4omIICoq4oK5MS4yMCBwZXIgU3RhcioqLCBmaXhlZCBmb3IgdGhlIHBpbG90LiBSZXZpZXcgbW9udGhseSBhZ2FpbnN0IHRoZSBsaXZlIEZyYWdtZW50IHJhdGUuCi0gKipDYXNoLWZsb3cgY2F0Y2ggKG5ldyk6Kiogc2V0dGxlbWVudC10cmFja2VyLm1kIHByb21pc2VzICJldmVyeSBNb25kYXksIHNldHRsZSBsYXN0CiAgd2VlaydzIHBhaWQgYm9va2luZ3Mg4oCUIG5vIHNldHRsZW1lbnQgb2xkZXIgdGhhbiA3IGRheXMuIiBUaGUgKioyMS1kYXkgaG9sZCBtYWtlcyB0aGF0CiAgaW1wb3NzaWJsZSBmcm9tIHdpdGhkcmF3biBTdGFycyoqIOKAlCB0aGUgZm91bmRlciBtdXN0IGZyb250IHNldHRsZW1lbnRzIGZyb20gcG9ja2V0IGZvcgogIHRoZSBmaXJzdCB+MyB3ZWVrcy4gQXQgcGlsb3Qgc2NhbGUgKOKJpDEwIHR1dG9ycywgYSBmZXcgY2xhc3Nlcy93ZWVrKSB0aGF0J3MgYSBmZXcgdGhvdXNhbmQKICBydXBlZXMgb2YgZmxvYXQg4oCUIGZlYXNpYmxlLCBidXQgZ28gaW4ga25vd2luZyBpdC4gQWxzbzogc3ViLTEsMDAwLVN0YXIgYmFsYW5jZXMgY2FuJ3QgYmUKICB3aXRoZHJhd24gYXQgYWxsLCBzbyBiYXRjaCBGcmFnbWVudCB3aXRoZHJhd2FscyBtb250aGx5IGFuZCBsb2cgdGhlIGV4YWN0IHJhdGUgdXNlZCBlYWNoCiAgd2VlayBpbiBzZXR0bGVtZW50LXRyYWNrZXIubWQgKHRlbXBsYXRlIGFscmVhZHkgaGFzIHRoZSBjb2x1bW4pLgoKRXhhbXBsZTogdHV0b3IgZWFybnMgNTAwIFN0YXJzIGluIGEgd2VlayDihpIgc2V0dGxlIOKCuTYwMCB0aGF0IE1vbmRheSBmcm9tIGZvdW5kZXIncyBwb2NrZXQ7CnRoZSBTdGFycyBiZWNvbWUgd2l0aGRyYXdhYmxlIH4zIHdlZWtzIGxhdGVyIGFuZCBhY2N1bXVsYXRlIHRvd2FyZCB0aGUgMSwwMDAtU3RhciBtaW5pbXVtLgoKLS0tCgojIyBDLiBXZWVrLTEgZXhlY3V0aW9uIHBsYW4gKHBvc3QtZGVwbG95KQoKLSAqKkRheSAxOioqIHBhc3RlIGZyZXNoIEZseS5pbyB0b2tlbiDihpIgZGVwbG95IHBlciBSRUdSRVNTSU9OLm1kIMKnMSAofjMwIG1pbikuIFNldCBjaGF0IG1lbnUKICBidXR0b24gKMKnMi43KSwgdmVyaWZ5IC9oZWFsdGggKyB3ZWJob29rICsgRGFzaGJvYXJkIGJ1dHRvbiAowqcyLjHigJM1KS4KLSAqKkRheSAx4oCTMjoqKiBqb2luIHRoZSAzIFRlbGVncmFtIGdyb3VwcyBhYm92ZSwgb2JzZXJ2ZTsgd3JpdGUgdGhlIDEwLW5hbWUgd2FybSBsaXN0LgotICoqRGF5IDPigJM1OioqIGdyb3VwIHBvc3QgKHBhY2sgwqcyKSDihpIgRE0gcmVzcG9uZGVycyAocGFjayDCpzPigJM0KSDihpIgKipjb2xsZWN0IOKCuTI0OSBCRUZPUkUKICBhbnkgc2V0dXAgY2FsbCoqIChwYWNrIGhhcmQgcnVsZSAjMiDigJQgbm8gcGF5LCBubyBzZXR1cCkuCi0gKipPbmdvaW5nOioqIGxvZyBldmVyeSBnZW51aW5lIDE6MSBjb252ZXJzYXRpb24gaW4gc2V0dGxlbWVudC10cmFja2VyLm1kOyAzMCBjb252ZXJzYXRpb25zCiAg4oaSIGNvdW50IHBhaWQgcGlsb3RzIOKGkiDiiaUyID0gQ09OVElOVUUsIDwyID0gS0lMTC4gQ29tcGxpbWVudHMgZG9uJ3QgY291bnQuCgotLS0KCiMjIEQuIFN0YXRlIGNoZWNrICgyMDI2LTEwLTA4IH4xMToyMCBJU1QpCgotIExvY2FsIHRlc3QgYm90IChAQ3JpcGVyY29yZV9ib3QsIHBvbGxpbmcpIGlzICoqbm90IHJ1bm5pbmcqKiDigJQgbm8gc2xvdGJvdC91dmljb3JuIHByb2Nlc3MKICBmb3VuZC4gUm9vdCBgc2xvdGJvdC5kYmAgaXMgMCBieXRlcyAoZnJlc2gpOyBgZGF0YS9zbG90Ym90LmRiYCBob2xkcyB0aGUgT2N0LTcgdGVzdCBkYXRhCiAgKFdBTCBwcmVzZW50KS4gTm90aGluZyBsaXZlIHRvIHBva2UgdW50aWwgcmVzdGFydCBvciBkZXBsb3kuCi0gRGVwbG95IHN0aWxsIGJsb2NrZWQgb24gdGhlICoqZnJlc2ggRmx5LmlvIHRva2VuKiogKHVzZXIgYWN0aW9uIOKAlCBtb3JuaW5nIG51ZGdlIGFscmVhZHkgcXVldWVkKS4KLSBQcmUtbGl2ZSBmb3VuZGVyIGNoZWNrbGlzdCAoZnJvbSBzZXR0bGVtZW50LWF1ZGl0Lm1kLCBzdGlsbCBvcGVuKTogZW5hYmxlICoqMi1zdGVwCiAgdmVyaWZpY2F0aW9uKiogb24gdGhlIFRlbGVncmFtIGFjY291bnQgdGhhdCBvd25zIHRoZSBib3Q7IGNvbmZpcm0gdGhlIGxpdmUgRnJhZ21lbnQKICBTdGFyc+KGklRPTiByYXRlIG9uY2UgYmVmb3JlIGZpcnN0IHJlYWwgdHV0b3IgcGF5b3V0LgoKIyMgRS4gVHV0b3Igc291cmNpbmcg4oCUIGZpZWxkIHJldmlzaW9uICgyMDI2LTEwLTA4IH4xNToyNSBJU1QpCgpUaGUgwqdBIC8gwqdDICJqb2luIDjigJMxMiBncm91cHMg4oaSIG9ic2VydmUgMiBkYXlzIOKGkiBwb3N0IG9uY2UiIHBsYW4gZG9lcyBOT1Qgc3Vydml2ZQpjb250YWN0IHdpdGggcmVhbGl0eS4gTGl2ZSBjaGVja3MgdG9kYXk6IEluZGlhJ3MgdHV0b3IgVGVsZWdyYW0gc2NlbmUgaXMgZG9taW5hdGVkIGJ5CmpvYi1CUk9BRENBU1QgY2hhbm5lbHMsIG5vdCBkaXNjdXNzaW9uIGNvbW11bml0aWVzLiBPbmx5ICoqMiBwb3N0YWJsZSBncm91cHMqKiBleGlzdDsKZXZlcnl0aGluZyBlbHNlIGlzIGNoYW5uZWxzIChsZWFkIHNvdXJjZSAvIGFkbWluLURNIG9ubHkpLiBSZXZpc2VkIHBsYW46CgoxLiAqKldhcm0gMTAtbmFtZSBwZXJzb25hbCBsaXN0IEZJUlNUKiogKG91dHJlYWNoLXBhY2sgwqc1KSDigJQgY29udmVydHMgfjEww5cgYmV0dGVyCiAgIHRoYW4gYW55IGdyb3VwLgoyLiBKb2luIHRoZSAyIHZlcmlmaWVkIHBvc3RhYmxlIGdyb3VwcyDihpIgb2JzZXJ2ZS9jb250cmlidXRlIDIgZGF5cyDihpIgcG9zdCBvbmNlIGVhY2gKICAgKHBhY2sgwqcyKSDihpIgRE0gb25seSByZXNwb25kZXJzOgogICAtIGBAb25saW5ldHV0b3Jqb2JzYCDigJQgMy41SyBtZW1iZXJzLCAiT25saW5lIHR1aXRpb24gam9icyBjbGFzcyAxIHRvIDEydGgiLCBzdXBlcmdyb3VwCiAgIC0gVGVhY2hlcnMgU3VwcG9ydCBOZXR3b3JrIOKAlCBpbnZpdGUgbGl2ZSwgaG9tZS10dWl0aW9uICsgb25saW5lLXRlYWNoaW5nIGdyb3VwCiAgIChBZnRlciBqb2luaW5nLCBjaGVjayBwaW5uZWQgcnVsZXMgZm9yIHByb21vLXBvc3QgcG9saWN5IGJlZm9yZSBwb3N0aW5nLikKMy4gVGVsZWdyYW0gaW4tYXBwIHNlYXJjaCB3aXRoIHRoZSBwYWNrJ3MgdGVybSBsaXN0IChFbmdsaXNoICsgSGluZ2xpc2ggKyBjaXR5IG5hbWVzKQogICDigJQgdGhlIHNjYWxhYmxlIGxlZy4gRE0gdHV0b3JzIGluIHJlcGx5LWNvbnRleHQsIG5vIHNwYW0uCjQuIENoYW5uZWwtYWRtaW4gRE1zOiBhc2sgYEB0dWl0aW9ud29ya2AgYW5kIFRVSVRJT04gQ09STkVSIGFkbWlucyBmb3IgYSBwaW5uZWQgcGlsb3QKICAgcG9zdCBvciB0dXRvciByZWZlcnJhbHMuIEJvdGggYXJlIGJyb2FkY2FzdCBjaGFubmVscyAoVFVJVElPTiBDT1JORVI6IEtvbGthdGEtZm9jdXNlZCwKICAgbXVsdGlwbGUgcG9zdHMvZGF5LCA1MDDigJMyLDIwMCB2aWV3cy9wb3N0ID0gcmVhbCBhdWRpZW5jZSkg4oCUIGNhbid0IHBvc3QgaW4gdGhlbSwgYnV0CiAgIHRoZWlyIGFkbWlucyByZWFjaCAx4oCTM0sgdHV0b3JzLgo1LiBSZWRkaXQgc2Vjb25kYXJ5OiByL3R1dG9ycywgci9PbmxpbmVUZWFjaGluZyDigJQgdmVyaWZ5IHByb21vIHJ1bGVzIGJlZm9yZSBwb3N0aW5nLgogICAoQHR1dG9yZXhqb2JzID0gU2luZ2Fwb3JlLCB3cm9uZyBmaXQ7IHRkaXJlY3RvcnkgdGVhY2hlci1lZCBncm91cCA9IHN0YWxlIEZlYi0yMDI2LikKCiMjIEYuIEZyYWdtZW50IHJhdGUgY3Jvc3MtY2hlY2sgKDIwMjYtMTAtMDggfjE1OjI1IElTVCwgbGl2ZSkKCkxpdmUgaHR0cHM6Ly9mcmFnbWVudC5jb20vc3RhcnMvYnV5IHRvZGF5OiA1MCBTdGFycyA9ICQwLjc1LCAxLDAwMCBTdGFycyA9ICQxNS4wMCwKMTAwLDAwMCBTdGFycyA9ICQxLDUwMCDihpIgcmV0YWlsICQwLjAxNS9TdGFyLiBUaGUgwqdCIGZvcm11bGEncyAkMC4wMTMgd2hvbGVzYWxlCmFzc3VtcHRpb24gc2l0cyBjb3JyZWN0bHkganVzdCBiZWxvdyByZXRhaWwg4oCUICoq4oK5MS4yMC9TdGFyIGhvbGRzLCBubyByZXZpc2lvbioqLgpGaXJzdCByZWFsIHNldHRsZW1lbnQ6IGxvZyB0aGUgYWN0dWFsIHJhdGUgaW4gc2V0dGxlbWVudC10cmFja2VyLm1kJ3MgcmF0ZSBjb2x1bW47CnRoZSA0JSBidWZmZXIgZXhpc3RzIGZvciBleGFjdGx5IHRoaXMuCg==
+# SlotBot — Pilot Prep: Tutor Sourcing Shortlist + Settlement Formula
+
+**Prepared: 2026-10-08 ~11:20 IST.** Use after Fly.io deploy. Do not outreach before then
+(hard rule #1 in outreach-pack.md: core loop must work end-to-end on a live bot first).
+
+---
+
+## A. Where the 30 conversations come from (priority order)
+
+1. **Warm network first** (outreach-pack §5: warm intros convert ~10× better). User action:
+   list 10 tutor/teacher contacts from personal network before touching any group.
+2. **Telegram — primary channel** (tutors here are already Telegram-native, which is the
+   whole product thesis):
+   - **@onlinetutorjobs** — **3.5K members VERIFIED 2026-10-08**, "Online teaching jobs -
+     part time teaching jobs - all over india", online tuition jobs class 1–12. **Best fit**
+     (India tutors actively looking for work): https://telegram.im/@onlinetutorjobs
+   - **@tuitionwork** — **766 subscribers VERIFIED 2026-10-08** (was 1,595 in earlier note —
+     corrected down), "Home Tutor Jobs & Online Tutor Jobs": https://t.me/tuitionwork.
+     **Heads-up: "subscribers" wording means this is a CHANNEL (broadcast), not a discussion
+     group** — you can't post in it. Use as a lead source / DM channel admins only, not a
+     posting venue. Secondary fit.
+   - **Teachers Support Network** — teacher community group VERIFIED 2026-10-08 (invite link
+     live, description matches: home tuition + online teaching opportunities, peer support):
+     https://t.me/+dsOcEBcSzpdkODk1 — good fit. Member count not visible without login;
+     confirm in-app after joining.
+   - Directory for more: https://groupda.com/education/tuition-telegram-group-link/
+     (mostly student-facing tuition groups — lower priority, verify before joining).
+3. **Reddit / Facebook — secondary only.** Verify any specific group exists and allows
+   promo posts before using. Not the priority; Telegram-first.
+
+**Method (from outreach-pack §5, unchanged):** join 8–12 groups → observe/contribute 2 days →
+post once per group (pack §2) → DM only people who reply/react (pack §3–4). No spam,
+never post twice in the same group.
+
+---
+
+## B. Stars → INR settlement formula (numbers locked 2026-10-08)
+
+Settlement-audit.md required this **before real tutor money flows**. Today's research:
+
+- **Developer payout: flat $0.013 / Star.** Taken from Telegram's own payments table
+  (e.g. 1,000 Stars bought on mobile = $19.99 → $6.00 store cut + $0.99 Telegram admin +
+  $13.00 developer). The app-store 30% inflates the *buyer's* price; it never touches the
+  developer's $0.013/Star. Source: https://dev.to/landstrider/telegram-stars-payouts-the-app-store-cut-hits-the-buyer-not-you-2bk3 (Oct 2026, cites Telegram's payments table).
+- **Withdrawal path:** Fragment → TON → exchange/P2P → INR. **Minimum 1,000 Stars (~$13)** —
+  below that nothing moves. **21-day rolling hold** from each payment before it becomes
+  withdrawable. Payout triggered by the bot owner.
+- **USD/INR today:** ≈ 96.77 (Finnhub, 2026-10-08).
+- **Proposed pilot formula:**
+  `settlement INR = Stars_earned × 0.013 × 96.77 × 0.96 (≈4% conversion buffer)`
+  ≈ **₹1.20 per Star**, fixed for the pilot. Review monthly against the live Fragment rate.
+- **Cash-flow catch (new):** settlement-tracker.md promises "every Monday, settle last
+  week's paid bookings — no settlement older than 7 days." The **21-day hold makes that
+  impossible from withdrawn Stars** — the founder must front settlements from pocket for
+  the first ~3 weeks. At pilot scale (≤10 tutors, a few classes/week) that's a few thousand
+  rupees of float — feasible, but go in knowing it. Also: sub-1,000-Star balances can't be
+  withdrawn at all, so batch Fragment withdrawals monthly and log the exact rate used each
+  week in settlement-tracker.md (template already has the column).
+
+Example: tutor earns 500 Stars in a week → settle ₹600 that Monday from founder's pocket;
+the Stars become withdrawable ~3 weeks later and accumulate toward the 1,000-Star minimum.
+
+---
+
+## C. Week-1 execution plan (post-deploy)
+
+- **Day 1:** paste fresh Fly.io token → deploy per REGRESSION.md §1 (~30 min). Set chat menu
+  button (§2.7), verify /health + webhook + Dashboard button (§2.1–5).
+- **Day 1–2:** join the 3 Telegram groups above, observe; write the 10-name warm list.
+- **Day 3–5:** group post (pack §2) → DM responders (pack §3–4) → **collect ₹249 BEFORE
+  any setup call** (pack hard rule #2 — no pay, no setup).
+- **Ongoing:** log every genuine 1:1 conversation in settlement-tracker.md; 30 conversations
+  → count paid pilots → ≥2 = CONTINUE, <2 = KILL. Compliments don't count.
+
+---
+
+## D. State check (2026-10-08 ~11:20 IST)
+
+- Local test bot (@Cripercore_bot, polling) is **not running** — no slotbot/uvicorn process
+  found. Root `slotbot.db` is 0 bytes (fresh); `data/slotbot.db` holds the Oct-7 test data
+  (WAL present). Nothing live to poke until restart or deploy.
+- Deploy still blocked on the **fresh Fly.io token** (user action — morning nudge already queued).
+- Pre-live founder checklist (from settlement-audit.md, still open): enable **2-step
+  verification** on the Telegram account that owns the bot; confirm the live Fragment
+  Stars→TON rate once before first real tutor payout.
+
+## E. Tutor sourcing — field revision (2026-10-08 ~15:25 IST)
+
+The §A / §C "join 8–12 groups → observe 2 days → post once" plan does NOT survive
+contact with reality. Live checks today: India's tutor Telegram scene is dominated by
+job-BROADCAST channels, not discussion communities. Only **2 postable groups** exist;
+everything else is channels (lead source / admin-DM only). Revised plan:
+
+1. **Warm 10-name personal list FIRST** (outreach-pack §5) — converts ~10× better
+   than any group.
+2. Join the 2 verified postable groups → observe/contribute 2 days → post once each
+   (pack §2) → DM only responders:
+   - `@onlinetutorjobs` — 3.5K members, "Online tuition jobs class 1 to 12th", supergroup
+   - Teachers Support Network — invite live, home-tuition + online-teaching group
+   (After joining, check pinned rules for promo-post policy before posting.)
+3. Telegram in-app search with the pack's term list (English + Hinglish + city names)
+   — the scalable leg. DM tutors in reply-context, no spam.
+4. Channel-admin DMs: ask `@tuitionwork` and TUITION CORNER admins for a pinned pilot
+   post or tutor referrals. Both are broadcast channels (TUITION CORNER: Kolkata-focused,
+   multiple posts/day, 500–2,200 views/post = real audience) — can't post in them, but
+   their admins reach 1–3K tutors.
+5. Reddit secondary: r/tutors, r/OnlineTeaching — verify promo rules before posting.
+   (@tutorexjobs = Singapore, wrong fit; tdirectory teacher-ed group = stale Feb-2026.)
+
+## F. Fragment rate cross-check (2026-10-08 ~15:25 IST, live)
+
+Live https://fragment.com/stars/buy today: 50 Stars = $0.75, 1,000 Stars = $15.00,
+100,000 Stars = $1,500 → retail $0.015/Star. The §B formula's $0.013 wholesale
+assumption sits correctly just below retail — **₹1.20/Star holds, no revision**.
+First real settlement: log the actual rate in settlement-tracker.md's rate column;
+the 4% buffer exists for exactly this.
