@@ -2,222 +2,372 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>SlotBot Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>SlotBot</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   :root {
-    --glass-bg: rgba(255,255,255,0.55);
-    --glass-border: rgba(255,255,255,0.6);
-    --glass-shadow: 0 8px 32px rgba(31,38,135,0.12);
-    --accent: #2481cc;
-    --accent2: #7b61ff;
+    --accent: #2481cc; --accent2: #7b61ff; --green: #34c759; --red: #ff3b30;
+    --glass: rgba(255,255,255,0.6); --glass-brd: rgba(255,255,255,0.65);
+    --txt: #1c1c1e; --txt2: #6b6b70;
   }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
-    min-height: 100vh; padding: 20px 16px 40px; color: #1c1c1e;
-    background: linear-gradient(135deg, #a8c8ec 0%, #d4b8e8 45%, #f5c8d8 100%);
+    color: var(--txt); min-height: 100vh; padding: 0 0 110px;
+    background: linear-gradient(150deg, #9fc2e8 0%, #c9a8e0 50%, #f0b8cc 100%);
     background-attachment: fixed;
   }
-  /* Header */
-  .header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
-            animation: fadeDown .5s ease; }
-  .avatar { width: 52px; height: 52px; border-radius: 50%;
-            background: linear-gradient(135deg, var(--accent), var(--accent2));
-            display: flex; align-items: center; justify-content: center;
-            font-size: 24px; color: #fff; font-weight: 700;
-            box-shadow: var(--glass-shadow); flex-shrink: 0; }
-  .header h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
-  .header .sub { font-size: 13px; color: #555; margin-top: 2px; }
-  /* Glass card */
+  /* ---------- header ---------- */
+  .topbar { padding: 24px 20px 6px; display: flex; align-items: center; gap: 14px; }
+  .avatar { width: 54px; height: 54px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 22px; font-weight: 700;
+    box-shadow: 0 6px 20px rgba(36,129,204,.35); }
+  .topbar h1 { font-size: 21px; font-weight: 700; letter-spacing: -.3px; }
+  .topbar .sub { font-size: 13px; color: var(--txt2); margin-top: 3px; }
+  /* ---------- glass ---------- */
   .glass {
-    background: var(--glass-bg);
-    -webkit-backdrop-filter: blur(20px) saturate(1.4);
-    backdrop-filter: blur(20px) saturate(1.4);
-    border: 1px solid var(--glass-border);
-    border-radius: 20px;
-    box-shadow: var(--glass-shadow);
-    padding: 18px;
-    margin-bottom: 14px;
-    animation: fadeUp .5s ease backwards;
+    background: var(--glass); -webkit-backdrop-filter: blur(22px) saturate(1.5);
+    backdrop-filter: blur(22px) saturate(1.5);
+    border: 1px solid var(--glass-brd); border-radius: 20px;
+    box-shadow: 0 8px 28px rgba(31,38,135,.10);
   }
-  .glass:nth-child(3) { animation-delay: .08s; }
-  .glass:nth-child(4) { animation-delay: .16s; }
-  /* Stats grid */
-  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
-  .stat { padding: 16px; text-align: center; animation: fadeUp .5s ease backwards; }
-  .stat:nth-child(2) { animation-delay: .08s; }
-  .stat .big { font-size: 30px; font-weight: 800; letter-spacing: -0.5px;
-               background: linear-gradient(135deg, var(--accent), var(--accent2));
-               -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-  .stat .lbl { font-size: 12px; color: #666; margin-top: 4px; font-weight: 500; }
-  /* Section title */
-  .sec-title { font-size: 15px; font-weight: 700; margin: 20px 4px 10px; letter-spacing: -0.2px;
-               animation: fadeUp .5s ease backwards; animation-delay: .2s; }
-  /* Booking rows */
-  .booking { display: flex; justify-content: space-between; align-items: center;
-             padding: 13px 4px; border-bottom: 1px solid rgba(0,0,0,0.06); }
-  .booking:last-child { border-bottom: none; }
-  .booking .who { font-weight: 600; font-size: 15px; }
-  .booking .when { font-size: 13px; color: #666; margin-top: 2px; }
-  .badge { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px;
-           background: rgba(52,199,89,0.15); color: #1a7f37; }
-  .empty { text-align: center; color: #666; padding: 28px 10px; font-size: 14px; line-height: 1.6; }
-  .empty .big-emoji { font-size: 36px; display: block; margin-bottom: 8px; }
-  /* Link box */
-  .link-row { display: flex; gap: 8px; align-items: center; }
-  .link-text { flex: 1; font-size: 12px; color: var(--accent); word-break: break-all;
-               background: rgba(36,129,204,0.08); padding: 10px 12px; border-radius: 12px; }
-  .btn { border: none; border-radius: 14px; padding: 12px 18px; font-size: 14px; font-weight: 700;
-         cursor: pointer; transition: transform .15s, opacity .15s; }
-  .btn:active { transform: scale(.96); opacity: .85; }
-  .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2));
-                 color: #fff; box-shadow: 0 4px 16px rgba(36,129,204,0.35); }
-  .btn-copy { padding: 10px 14px; font-size: 13px; flex-shrink: 0; }
-  /* Quick actions */
-  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .action-btn { padding: 16px 10px; font-size: 13px; font-weight: 600; text-align: center;
-                color: #1c1c1e; cursor: pointer; }
-  .action-btn .ico { font-size: 24px; display: block; margin-bottom: 6px; }
-  /* Error */
-  #err { display: none; text-align: center; padding: 40px 20px; color: #666; font-size: 14px; }
-  #err .big-emoji { font-size: 44px; display: block; margin-bottom: 12px; }
-  /* Animations */
-  @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
-  @keyframes fadeDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
-  /* Toast */
-  #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px);
-           background: rgba(28,28,30,0.9); color: #fff; padding: 12px 22px; border-radius: 30px;
-           font-size: 14px; font-weight: 600; opacity: 0; transition: all .3s; pointer-events: none;
-           -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); z-index: 99; }
+  .page { display: none; padding: 14px 16px; animation: fadeUp .35s ease; }
+  .page.active { display: block; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  /* ---------- stats ---------- */
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 6px; }
+  .stat { padding: 18px 14px; text-align: center; }
+  .stat .v { font-size: 28px; font-weight: 800; letter-spacing: -.5px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .stat .l { font-size: 12px; color: var(--txt2); margin-top: 5px; font-weight: 500; }
+  .sec { font-size: 14px; font-weight: 700; margin: 18px 4px 10px; letter-spacing: -.2px;
+    display: flex; justify-content: space-between; align-items: center; }
+  .sec .more { font-size: 13px; color: var(--accent); font-weight: 600; cursor: pointer; }
+  /* ---------- bookings ---------- */
+  .card { padding: 8px 18px; }
+  .bk { display: flex; align-items: center; gap: 12px; padding: 13px 0;
+        border-bottom: 1px solid rgba(0,0,0,.06); }
+  .bk:last-child { border-bottom: none; }
+  .bk-ic { width: 42px; height: 42px; border-radius: 14px; flex-shrink: 0;
+    background: linear-gradient(135deg, rgba(36,129,204,.15), rgba(123,97,255,.15));
+    display: flex; align-items: center; justify-content: center; }
+  .bk-ic svg { width: 22px; height: 22px; stroke: var(--accent); }
+  .bk-info { flex: 1; min-width: 0; }
+  .bk-name { font-weight: 600; font-size: 15px; }
+  .bk-when { font-size: 13px; color: var(--txt2); margin-top: 2px; }
+  .pill { font-size: 11px; font-weight: 700; padding: 5px 11px; border-radius: 20px; flex-shrink: 0; }
+  .pill.paid { background: rgba(52,199,89,.14); color: #15803d; }
+  .pill.cancel { background: rgba(255,59,48,.12); color: #c62828; cursor: pointer; border: none; }
+  .empty { text-align: center; padding: 34px 16px; color: var(--txt2); font-size: 14px; line-height: 1.7; }
+  .empty svg { width: 46px; height: 46px; stroke: #b0b0b8; margin-bottom: 10px; }
+  /* ---------- link ---------- */
+  .linkbox { padding: 16px 18px; }
+  .linkrow { display: flex; gap: 8px; margin-top: 10px; }
+  .linktxt { flex: 1; font-size: 12px; color: var(--accent); word-break: break-all;
+    background: rgba(36,129,204,.08); padding: 11px 12px; border-radius: 12px; }
+  .btn { border: none; border-radius: 14px; padding: 13px 20px; font-size: 14px;
+    font-weight: 700; cursor: pointer; transition: transform .12s, opacity .12s; }
+  .btn:active { transform: scale(.96); }
+  .btn-p { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff;
+    box-shadow: 0 4px 16px rgba(36,129,204,.35); }
+  .btn-sm { padding: 11px 15px; font-size: 13px; }
+  .btn-danger { background: rgba(255,59,48,.1); color: #c62828; }
+  .btn-block { width: 100%; margin-top: 12px; }
+  /* ---------- form ---------- */
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 13px; font-weight: 600; color: var(--txt2); margin-bottom: 7px; }
+  .field input, .field select {
+    width: 100%; padding: 13px 15px; border-radius: 14px; font-size: 15px;
+    border: 1px solid rgba(0,0,0,.08); background: rgba(255,255,255,.7);
+    font-family: inherit; color: var(--txt); outline: none;
+  }
+  .field input:focus, .field select:focus { border-color: var(--accent); }
+  .days { display: flex; gap: 8px; }
+  .day { flex: 1; aspect-ratio: 1; border-radius: 14px; border: 1px solid rgba(0,0,0,.08);
+    background: rgba(255,255,255,.6); font-size: 13px; font-weight: 700; color: var(--txt2);
+    cursor: pointer; transition: all .15s; }
+  .day.on { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none;
+    box-shadow: 0 4px 14px rgba(36,129,204,.35); }
+  .timerow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  /* ---------- settings rows ---------- */
+  .srow { display: flex; justify-content: space-between; align-items: center;
+    padding: 15px 4px; border-bottom: 1px solid rgba(0,0,0,.06); font-size: 15px; }
+  .srow:last-child { border-bottom: none; }
+  .srow .k { color: var(--txt2); font-size: 14px; }
+  .srow .v { font-weight: 600; text-align: right; }
+  /* ---------- tabbar ---------- */
+  .tabbar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+    display: flex; padding: 10px 8px calc(14px + env(safe-area-inset-bottom));
+    background: rgba(255,255,255,.72); -webkit-backdrop-filter: blur(24px) saturate(1.6);
+    backdrop-filter: blur(24px) saturate(1.6);
+    border-top: 1px solid rgba(255,255,255,.7); }
+  .tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 6px 0; cursor: pointer; color: #8e8e93; font-size: 10px; font-weight: 600;
+    transition: color .15s; border: none; background: none; font-family: inherit; }
+  .tab svg { width: 25px; height: 25px; stroke: currentColor; fill: none;
+    stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .tab.on { color: var(--accent); }
+  /* ---------- misc ---------- */
+  #loader { text-align: center; padding: 60px 20px; color: var(--txt2); }
+  .spin { width: 34px; height: 34px; border-radius: 50%; margin: 0 auto 14px;
+    border: 3px solid rgba(36,129,204,.2); border-top-color: var(--accent);
+    animation: sp 0.8s linear infinite; }
+  @keyframes sp { to { transform: rotate(360deg); } }
+  #toast { position: fixed; bottom: 110px; left: 50%; transform: translateX(-50%) translateY(16px);
+    background: rgba(28,28,30,.92); color: #fff; padding: 12px 22px; border-radius: 30px;
+    font-size: 14px; font-weight: 600; opacity: 0; transition: all .3s; pointer-events: none; z-index: 99; }
   #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .ver { text-align: center; font-size: 11px; color: var(--txt2); margin-top: 26px; opacity: .7; }
 </style>
 </head>
 <body>
-<div id="err"><span class="big-emoji">🔗</span><b>Dashboard unavailable</b><br><br>Open this from your bot's Dashboard button<br>so I can verify it's you.</div>
+
+<div id="loader"><div class="spin"></div>Loading…</div>
 
 <div id="app" style="display:none">
-  <div class="header">
-    <div class="avatar" id="avatar">👤</div>
-    <div>
-      <h1 id="tname">Dashboard</h1>
-      <div class="sub" id="ttz"></div>
+  <div class="topbar">
+    <div class="avatar" id="avatar">S</div>
+    <div><h1 id="tname">SlotBot</h1><div class="sub" id="ttz"></div></div>
+  </div>
+
+  <!-- HOME -->
+  <div class="page" id="pg-home">
+    <div class="stats">
+      <div class="glass stat"><div class="v" id="st-earn">–</div><div class="l">Total earnings</div></div>
+      <div class="glass stat"><div class="v" id="st-book">–</div><div class="l">Upcoming</div></div>
+    </div>
+    <div class="sec">Upcoming sessions <span class="more" data-go="bookings">See all</span></div>
+    <div class="glass card" id="home-list"><div class="empty">Loading…</div></div>
+    <div class="sec">Booking link</div>
+    <div class="glass linkbox">
+      <div class="linkrow">
+        <div class="linktxt" id="home-link"></div>
+        <button class="btn btn-p btn-sm" id="copy1">Copy</button>
+      </div>
+      <button class="btn btn-p btn-block" id="share1">Share booking link</button>
     </div>
   </div>
 
-  <div class="stats">
-    <div class="glass stat"><div class="big" id="earn">–</div><div class="lbl">Total earnings</div></div>
-    <div class="glass stat"><div class="big" id="bcount">–</div><div class="lbl">Upcoming bookings</div></div>
+  <!-- BOOKINGS -->
+  <div class="page" id="pg-bookings">
+    <div class="sec" style="margin-top:6px">All bookings</div>
+    <div class="glass card" id="bk-list"><div class="empty">Loading…</div></div>
   </div>
 
-  <div class="sec-title">📅 Upcoming sessions</div>
-  <div class="glass" id="blist" style="padding:6px 18px;"><div class="empty">Loading…</div></div>
-
-  <div class="sec-title">🔗 Your booking link</div>
-  <div class="glass">
-    <div class="link-row">
-      <div class="link-text" id="blink"></div>
-      <button class="btn btn-primary btn-copy" id="copybtn">Copy</button>
+  <!-- AVAILABILITY -->
+  <div class="page" id="pg-avail">
+    <div class="sec" style="margin-top:6px">Working days</div>
+    <div class="glass card" style="padding:16px 18px">
+      <div class="days" id="days"></div>
     </div>
+    <div class="sec">Daily hours</div>
+    <div class="glass card" style="padding:16px 18px">
+      <div class="timerow">
+        <div class="field" style="margin:0"><label>Start</label><input type="time" id="t-start" value="18:00"></div>
+        <div class="field" style="margin:0"><label>End</label><input type="time" id="t-end" value="21:00"></div>
+      </div>
+    </div>
+    <div class="sec">Session length</div>
+    <div class="glass card" style="padding:16px 18px">
+      <div class="field" style="margin:0"><label>Minutes per session</label>
+        <select id="t-dur">
+          <option value="30">30 min</option><option value="45">45 min</option>
+          <option value="60" selected>60 min</option><option value="90">90 min</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-p btn-block" id="save-avail" style="margin:4px 16px 0; width:calc(100% - 32px)">Save availability</button>
+    <div class="ver">Slots regenerate automatically</div>
   </div>
 
-  <div class="sec-title">⚡ Quick actions</div>
-  <div class="actions">
-    <div class="glass action-btn" id="sharebtn"><span class="ico">📤</span>Share link</div>
-    <div class="glass action-btn" id="refreshbtn"><span class="ico">🔄</span>Refresh</div>
+  <!-- SETTINGS -->
+  <div class="page" id="pg-settings">
+    <div class="sec" style="margin-top:6px">Profile</div>
+    <div class="glass card" style="padding:8px 18px">
+      <div class="srow"><span class="k">Display name</span><span class="v" id="s-name">–</span></div>
+      <div class="srow"><span class="k">Timezone</span><span class="v" id="s-tz">–</span></div>
+      <div class="srow"><span class="k">Price / session</span><span class="v" id="s-price">–</span></div>
+    </div>
+    <div class="sec">Support</div>
+    <div class="glass card" style="padding:8px 18px">
+      <div class="srow"><span class="k">Terms of service</span><span class="v" style="color:var(--accent)">View</span></div>
+      <div class="srow"><span class="k">Payment support</span><span class="v" style="color:var(--accent)">Contact</span></div>
+    </div>
+    <div class="ver">SlotBot v1.0</div>
   </div>
 </div>
+
+<!-- TAB BAR -->
+<nav class="tabbar" id="tabbar" style="display:none">
+  <button class="tab on" data-pg="home">
+    <svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9 21v-6h6v6"/></svg>
+    Home</button>
+  <button class="tab" data-pg="bookings">
+    <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+    Bookings</button>
+  <button class="tab" data-pg="avail">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+    Availability</button>
+  <button class="tab" data-pg="settings">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3 1a7 7 0 0 0-2-1.2L14.2 3h-4l-.4 2.7a7 7 0 0 0-2 1.2l-2.3-1-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 2 1.2l.4 2.7h4l.4-2.7a7 7 0 0 0 2-1.2l2.3 1 2-3.4-2-1.5c.1-.4.1-.8.1-1.2Z"/></svg>
+    Settings</button>
+</nav>
 
 <div id="toast"></div>
 
 <script>
 const tg = window.Telegram ? window.Telegram.WebApp : null;
-if (tg) { tg.ready(); tg.expand(); }
+if (tg) { tg.ready(); tg.expand(); try { tg.setHeaderColor("#00000000"); } catch(e){} }
 
-function toast(msg) {
-  const t = document.getElementById("toast");
-  t.textContent = msg; t.classList.add("show");
-  setTimeout(() => t.classList.remove("show"), 2200);
-}
+const $ = id => document.getElementById(id);
+function toast(m){ const t=$("toast"); t.textContent=m; t.classList.add("show");
+  clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),2200); }
 
-async function api(path) {
-  const headers = {};
-  if (tg && tg.initData) headers["X-Init-Data"] = tg.initData;
-  const r = await fetch(path, { headers });
-  if (!r.ok) throw new Error("auth " + r.status);
+async function api(path, opts){
+  const h = {};
+  if (tg && tg.initData) h["X-Init-Data"] = tg.initData;
+  const r = await fetch(path, Object.assign({headers:h}, opts||{}));
+  if (!r.ok) throw new Error("api "+r.status);
   return r.json();
 }
 
-function render(me, bk, earn) {
-  document.getElementById("tname").textContent = "Hi, " + me.name + " 👋";
-  document.getElementById("avatar").textContent = (me.name || "?")[0].toUpperCase();
-  document.getElementById("ttz").textContent = me.timezone + "  •  " + me.price_stars + " ⭐ / session";
-  document.getElementById("earn").textContent = earn.total_stars + " ⭐";
-  document.getElementById("bcount").textContent = bk.bookings.length;
+/* ---------- tabs ---------- */
+document.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));
+  document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
+  b.classList.add("on");
+  $("pg-"+b.dataset.pg).classList.add("active");
+  if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+  window.scrollTo(0,0);
+}));
+document.querySelectorAll("[data-go]").forEach(el=>el.addEventListener("click",()=>{
+  document.querySelector('.tab[data-pg="'+el.dataset.go+'"]').click();
+}));
 
-  const bl = document.getElementById("blist");
-  if (!bk.bookings.length) {
-    bl.innerHTML = '<div class="empty"><span class="big-emoji">🗓️</span>No upcoming bookings yet.<br>Share your link with students!</div>';
-  } else {
-    bl.innerHTML = "";
-    bk.bookings.forEach(b => {
-      const d = document.createElement("div");
-      d.className = "booking";
-      const left = document.createElement("div");
-      const who = document.createElement("div"); who.className = "who";
-      who.textContent = "👤 " + (b.student || "Student");
-      const when = document.createElement("div"); when.className = "when";
-      when.textContent = b.label || "";
-      left.appendChild(who); left.appendChild(when);
-      const badge = document.createElement("div"); badge.className = "badge"; badge.textContent = "✓ paid";
-      d.appendChild(left); d.appendChild(badge);
-      bl.appendChild(d);
-    });
-  }
+/* ---------- render ---------- */
+const personSvg = '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>';
+const calSvg = '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
 
-  const link = me.booking_link || "";
-  document.getElementById("blink").textContent = link;
-
-  document.getElementById("copybtn").onclick = async () => {
-    try { await navigator.clipboard.writeText(link); toast("Link copied! 📋"); }
-    catch (e) {
-      const ta = document.createElement("textarea");
-      ta.value = link; document.body.appendChild(ta); ta.select();
-      try { document.execCommand("copy"); toast("Link copied! 📋"); }
-      catch (e2) { toast("Copy manually: " + link); }
-      ta.remove();
-    }
-  };
-  document.getElementById("sharebtn").onclick = () => {
-    const url = "https://t.me/share/url?url=" + encodeURIComponent(link) +
-                "&text=" + encodeURIComponent("Book a session with me! 📚");
-    if (tg) tg.openTelegramLink(url); else window.open(url, "_blank");
-  };
-  document.getElementById("refreshbtn").onclick = () => location.reload();
-
-  document.getElementById("app").style.display = "block";
+function bkRow(b, cancellable){
+  const d = document.createElement("div"); d.className = "bk";
+  d.innerHTML = '<div class="bk-ic">'+personSvg+'</div><div class="bk-info"><div class="bk-name"></div><div class="bk-when"></div></div>';
+  d.querySelector(".bk-name").textContent = b.student || "Student";
+  d.querySelector(".bk-when").textContent = b.label || "";
+  const pill = document.createElement(b.cancel ? "button" : "div");
+  pill.className = "pill " + (b.cancel ? "cancel" : "paid");
+  pill.textContent = b.cancel ? "Cancel" : "Paid";
+  if (b.cancel) pill.onclick = () => cancelBooking(b.id);
+  d.appendChild(pill);
+  return d;
+}
+function emptyBox(icon, t){
+  return '<div class="empty">'+icon+'<br>'+t+'</div>';
 }
 
-(async () => {
+async function cancelBooking(id){
+  if (!confirm("Cancel this booking? The student will be refunded.")) return;
   try {
-    const me = await api("/api/me");
-    const [bk, earn] = await Promise.all([api("/api/bookings"), api("/api/earnings")]);
-    render(me, bk, earn);
-  } catch (e) {
-    // Demo fallback: show beautiful UI with sample data when no backend
-    if (location.hostname.includes("github.io")) {
-      render(
-        { name: "Pepe", timezone: "Asia/Kolkata", price_stars: 6,
-          booking_link: "https://t.me/Cripercore_bot?start=book_DtAwbex_" },
-        { bookings: [{ student: "Hajan", label: "Mon 12 Oct, 6:30 PM" }] },
-        { total_stars: 6 }
-      );
-      toast("👀 Preview mode — connect backend for live data");
-    } else {
-      document.getElementById("err").style.display = "block";
-    }
+    await api("/api/bookings/"+id+"/cancel", {method:"POST"});
+    toast("Booking cancelled, refund issued");
+    load();
+  } catch(e){ toast("Could not cancel: "+e.message); }
+}
+
+let STATE = {me:null, bookings:[], earn:null};
+
+async function load(){
+  const me = await api("/api/me");
+  const [bk, earn] = await Promise.all([api("/api/bookings"), api("/api/earnings")]);
+  STATE = {me, bookings: bk.bookings||[], earn};
+
+  $("tname").textContent = "Hi, " + me.name;
+  $("avatar").textContent = (me.name||"S")[0].toUpperCase();
+  $("ttz").textContent = me.timezone + "  ·  " + me.price_stars + " Stars / session";
+  $("st-earn").textContent = earn.total_stars + " ⭐";
+  $("st-book").textContent = STATE.bookings.length;
+
+  // home preview (first 3)
+  const hl = $("home-list"); hl.innerHTML = "";
+  const up = STATE.bookings.slice(0,3);
+  hl.innerHTML = up.length ? "" : emptyBox(calSvg, "No upcoming bookings yet.<br>Share your link with students!");
+  up.forEach(b => hl.appendChild(bkRow(b)));
+
+  // full list
+  const bl = $("bk-list"); bl.innerHTML = "";
+  bl.innerHTML = STATE.bookings.length ? "" : emptyBox(calSvg, "No bookings yet.<br>Your upcoming sessions will appear here.");
+  STATE.bookings.forEach(b => bl.appendChild(bkRow(b, true)));
+
+  // link
+  const link = me.booking_link || "";
+  $("home-link").textContent = link;
+  const doCopy = async () => {
+    try { await navigator.clipboard.writeText(link); toast("Link copied"); }
+    catch(e){ const ta=document.createElement("textarea"); ta.value=link;
+      document.body.appendChild(ta); ta.select();
+      try{ document.execCommand("copy"); toast("Link copied"); }catch(_){ toast("Copy manually"); }
+      ta.remove(); }
+  };
+  $("copy1").onclick = doCopy;
+  $("share1").onclick = () => {
+    const u = "https://t.me/share/url?url="+encodeURIComponent(link)+
+              "&text="+encodeURIComponent("Book a 1:1 session with me");
+    if (tg) tg.openTelegramLink(u); else window.open(u,"_blank");
+  };
+
+  // settings
+  $("s-name").textContent = me.name || "–";
+  $("s-tz").textContent = me.timezone || "–";
+  $("s-price").textContent = (me.price_stars||"–") + " ⭐";
+
+  // availability defaults
+  buildDays(me);
+}
+
+/* ---------- availability ---------- */
+const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const selDays = new Set([0,1,2,3,4]);
+function buildDays(me){
+  const w = $("days"); w.innerHTML = "";
+  DAYS.forEach((d,i)=>{
+    const b = document.createElement("button");
+    b.className = "day"+(selDays.has(i)?" on":""); b.textContent = d[0];
+    b.title = d;
+    b.onclick = ()=>{ selDays.has(i)?selDays.delete(i):selDays.add(i); b.classList.toggle("on");
+      if (tg&&tg.HapticFeedback) tg.HapticFeedback.selectionChanged(); };
+    w.appendChild(b);
+  });
+}
+$("save-avail").onclick = async ()=>{
+  const btn = $("save-avail"); btn.textContent = "Saving…"; btn.disabled = true;
+  try {
+    await api("/api/availability", { method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ days:[...selDays].sort(),
+        start:$("t-start").value, end:$("t-end").value, duration:+$("t-dur").value })});
+    toast("Availability saved");
+    if (tg&&tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
+  } catch(e){ toast("Save failed: "+e.message); }
+  btn.textContent = "Save availability"; btn.disabled = false;
+};
+
+/* ---------- boot ---------- */
+(async ()=>{
+  document.querySelector('.tab[data-pg="home"]').click();
+  try {
+    await load();
+  } catch(e){
+    $("loader").innerHTML = '<div style="font-size:44px;margin-bottom:12px">'
+      + '<svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#8e8e93" stroke-width="1.6"><path d="M10 13a5 5 0 0 0 7 0l3 3a5 5 0 0 1-7 7l-1.5-1.5"/><path d="M14 11a5 5 0 0 0-7 0l-3-3a5 5 0 0 1 7-7l1.5 1.5"/></svg></div>'
+      + '<b>Backend not connected</b><br><br>Open this Mini App from your bot<br>once the backend is live.';
+    return;
   }
+  $("loader").style.display = "none";
+  $("app").style.display = "block";
+  $("tabbar").style.display = "flex";
 })();
 </script>
 </body>
