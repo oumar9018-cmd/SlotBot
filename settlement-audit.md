@@ -1,1 +1,54 @@
-IyBTZXR0bGVtZW50IE1vZGVsIEF1ZGl0IOKAlCBTdGFycyDihpIgTWFudWFsIFVQSSAoU2luZ2xlLUJvdCBBcmNoaXRlY3R1cmUpCgoqKk1vZGVsOioqIFN0dWRlbnQgcGF5cyBTdGFycyDihpIgU3RhcnMgbGFuZCBpbiBTbG90Qm90J3MgVGVsZWdyYW0gYmFsYW5jZSDihpIKZm91bmRlciB3aXRoZHJhd3MgdmlhIEZyYWdtZW50IChUT04g4oaSIGZpYXQpIOKGkiBzZXR0bGVzIHR1dG9ycyB3ZWVrbHkgdmlhIFVQSS9iYW5rCndpdGggcGVyLWJvb2tpbmcgbGVkZ2VyLiBUdXRvciBTYWFTIGZlZSAo4oK5MjQ5L+KCuTQ5OSkgY29sbGVjdGVkIHNlcGFyYXRlbHkgYnkgZm91bmRlci4KCioqQXVkaXRlZCBhZ2FpbnN0OioqIFRlbGVncmFtIEJvdCBQYXltZW50cyBkb2NzIChwYXltZW50cy1zdGFycyksIEJvdCBQbGF0Zm9ybQpEZXZlbG9wZXIgVGVybXMgb2YgU2VydmljZSDCpzYuMiAoRGlnaXRhbCBHb29kcyBhbmQgU2VydmljZXMpLCBBcHAgU3RvcmUvUGxheSBTdG9yZQpkaWdpdGFsLWdvb2RzIHJ1bGVzIHJlZmVyZW5jZWQgdGhlcmVpbi4gUmVhZCAyMDI2LTEwLTA3LgoKIyMgVmVyZGljdDogQUNDRVBUQUJMRSBmb3IgcGlsb3QsIHdpdGggMyBjb25kaXRpb25zCgojIyMgMS4gU2VsbGluZyB0dXRvcmluZyBib29raW5ncyB2aWEgU3RhcnMg4oCUIEFMTE9XRUQg4pyFClN0YXJzIGFyZSBmb3IgImRpZ2l0YWwgZ29vZHMgYW5kIHNlcnZpY2VzLiIgQSB0dXRvcmluZyBzZXNzaW9uIGlzIGEgc2VydmljZQpkZWxpdmVyZWQgZGlnaXRhbGx5ICh2aWRlbyBjYWxsKS4gVGhpcyBmaXRzLiBUZWxlZ3JhbSBpbXBvc2VzIG5vIHByb2R1Y3QtY2F0ZWdvcnkKYmFuOyB0aGUgY29uc3RyYWludCBpcyB1c2luZyBTdGFycyAobm90IGV4dGVybmFsIHBheW1lbnRzKSBmb3IgaW4tVGVsZWdyYW0KZGlnaXRhbCBzYWxlcyDigJQgd2hpY2ggd2UgZG8uCgojIyMgMi4gTWFudWFsIFVQSSBzZXR0bGVtZW50IHRvIHR1dG9ycyDigJQgTk9UIFBST0hJQklURUQg4pyFClRlbGVncmFtJ3MgcGF5bWVudCB0ZXJtcyBnb3Zlcm4gdGhlIFN0YXJzIHRyYW5zYWN0aW9uIChzdHVkZW50IOKGkiBib3QpLiBXaGF0IHRoZQpib3Qgb3duZXIgZG9lcyB3aXRoIHdpdGhkcmF3biBTdGFycyAoRnJhZ21lbnQg4oaSIFRPTiDihpIgZmlhdCDihpIgVVBJIHRvIHR1dG9ycykgaXMKb3V0c2lkZSBUZWxlZ3JhbSdzIHBheW1lbnQgdGVybXMg4oCUIGl0IGlzIGEgbm9ybWFsIGJ1c2luZXNzIHBheW91dCB0byBhIHN1cHBsaWVyLgpObyBUZWxlZ3JhbSBydWxlIHByb2hpYml0cyBpdC4gVGhlIGxlZGdlciAocGVyLXR1dG9yIGVhcm5pbmdzLCBwZXItcGF5bWVudApjaGFyZ2UgSURzKSBtYWtlcyBldmVyeSBydXBlZSB0cmFjZWFibGUuCgojIyMgMy4gQ29tcGxpYW5jZSBpdGVtcyDigJQgSU1QTEVNRU5URUQg4pyFCi0gYC90ZXJtc2AgY29tbWFuZDogaW1wbGVtZW50ZWQgKHJlcXVpcmVkIGJlZm9yZSBsaXZlKS4KLSBgL3BheXN1cHBvcnRgIGNvbW1hbmQ6IGltcGxlbWVudGVkIChyZXF1aXJlZDsgYm90IG93bmVyIGhhbmRsZXMgZGlzcHV0ZXMpLgotIEJvdCBvd25lciBkaXNwdXRlIHJlc3BvbnNpYmlsaXR5OiBmb3VuZGVyLWxlZCBpbiBwaWxvdCAocGVyIFRvUyDCpzYuMi4xKS4KLSAyLXN0ZXAgdmVyaWZpY2F0aW9uIG9uIHRoZSBib3Qgb3duZXIncyBUZWxlZ3JhbSBhY2NvdW50OiBETyBCRUZPUkUgTElWRS4KCiMjIENvbmRpdGlvbnMgLyByaXNrcyAobm90IGJsb2NrZXJzIGZvciBwaWxvdCkKCjEuICoqU3RhciBlY29ub21pY3Mgc3ByZWFkLioqIFVzZXJzIGJ1eSBTdGFycyBhdCByZXRhaWwgKEFwcGxlL0dvb2dsZSB0YWtlIGEgY3V0KTsKICAgYm90IG93bmVycyB3aXRoZHJhdyB2aWEgRnJhZ21lbnQgYXQgVGVsZWdyYW0ncyB3aG9sZXNhbGUgcmF0ZS4gMjAwIFN0YXJzIHBhaWQKICAgYnkgYSBzdHVkZW50IOKJoCAyMDAgU3RhcnMgb2Ygd2l0aGRyYXdhYmxlIHZhbHVlLiAqKkZvdW5kZXIgbXVzdCBjaGVjayB0aGUgbGl2ZQogICBGcmFnbWVudCByYXRlIGFuZCBzZXQgdGhlIHNldHRsZW1lbnQgZm9ybXVsYSBCRUZPUkUgcmVhbCB0dXRvciBtb25leSBmbG93cy4qKgogICBEb2N1bWVudCB0aGUgcmF0ZSB1c2VkIGVhY2ggd2VlayBpbiBzZXR0bGVtZW50LXRyYWNrZXIubWQuCjIuICoqRGlzcHV0ZSBsaWFiaWxpdHkgc2l0cyB3aXRoIHRoZSBmb3VuZGVyLioqIElmIGEgc3R1ZGVudCBkaXNwdXRlcyBhIGNoYXJnZSwKICAgVGVsZWdyYW0gcG9pbnRzIHRoZW0gdG8gdGhlIGJvdCAoL3BheXN1cHBvcnQpIOKAlCB0aGUgZm91bmRlciBtdXN0IGhhbmRsZSBpdC4KICAgS2VlcCB0aGUgcmVmdW5kIHBhdGggKHR1dG9yIGNhbmNlbCDihpIgYXV0by1yZWZ1bmQpIHdvcmtpbmc7IGl0IGlzIHRoZSBtYWluCiAgIGRpc3B1dGUgZmlyZS1lc2NhcGUuCjMuICoqUGlsb3QgdHJ1c3QgbW9kZWwuKiogVHV0b3JzIGFyZSB0cnVzdGluZyB0aGUgZm91bmRlciB3aXRoIHRoZWlyIGNsYXNzIGZlZXMKICAgdW50aWwgd2Vla2x5IHNldHRsZW1lbnQuIFRoaXMgd29ya3MgZm9yIDEwIGZvdW5kZXItbGVkIHBpbG90czsgaXQgZG9lcyBub3QKICAgc2NhbGUgd2l0aG91dCBhdXRvbWF0ZWQgcGF5b3V0cy4gUmV2aXNpdCBiZWZvcmUgNTArIHR1dG9ycy4KNC4gKipQb2xpY3kgZ3JheSB6b25lIChsb3cgcmlzaykuKiogSWYgVGVsZWdyYW0gZXZlciByZWNsYXNzaWZpZXMgbGl2ZSB0dXRvcmluZwogICBhcyBhIG5vbi1kaWdpdGFsIHNlcnZpY2UsIFN0YXJzIGNvdWxkIGJlIHF1ZXN0aW9uZWQuIE1pdGlnYXRpb246IHNlc3Npb25zIEFSRQogICBkZWxpdmVyZWQgZGlnaXRhbGx5OyBrZWVwIC90ZXJtcyBhY2N1cmF0ZTsgbm8gYWN0aW9uIG5lZWRlZCBub3cuCgojIyBXaGF0IHdhcyB2ZXJpZmllZCBpbiBjb2RlCi0gRXZlcnkgcGF5bWVudCBzdG9yZXMgYHRlbGVncmFtX3BheW1lbnRfY2hhcmdlX2lkYCAocmVmdW5kL2Rpc3B1dGUgdHJhY2VhYmlsaXR5KS4KLSBQZXItdHV0b3IgZWFybmluZ3MgcXVlcnlhYmxlOyBwZXItcGF5bWVudCBsZWRnZXIgY29tcGxldGUuCi0gVHV0b3ItY2FuY2VsIHRyaWdnZXJzIGByZWZ1bmRTdGFyUGF5bWVudGAgYXV0b21hdGljYWxseSAodGVzdGVkIGxpdmUgYmVsb3cpLgotIE5vIHR1dG9yIGNhbiBzZWUgYW5vdGhlciB0dXRvcidzIGVhcm5pbmdzIChBUEkgc2NvcGVkIGJ5IHZhbGlkYXRlZCBpbml0RGF0YSkuCg==
+# Settlement Model Audit — Stars → Manual UPI (Single-Bot Architecture)
+
+**Model:** Student pays Stars → Stars land in SlotBot's Telegram balance →
+founder withdraws via Fragment (TON → fiat) → settles tutors weekly via UPI/bank
+with per-booking ledger. Tutor SaaS fee (₹249/₹499) collected separately by founder.
+
+**Audited against:** Telegram Bot Payments docs (payments-stars), Bot Platform
+Developer Terms of Service §6.2 (Digital Goods and Services), App Store/Play Store
+digital-goods rules referenced therein. Read 2026-10-07.
+
+## Verdict: ACCEPTABLE for pilot, with 3 conditions
+
+### 1. Selling tutoring bookings via Stars — ALLOWED ✅
+Stars are for "digital goods and services." A tutoring session is a service
+delivered digitally (video call). This fits. Telegram imposes no product-category
+ban; the constraint is using Stars (not external payments) for in-Telegram
+digital sales — which we do.
+
+### 2. Manual UPI settlement to tutors — NOT PROHIBITED ✅
+Telegram's payment terms govern the Stars transaction (student → bot). What the
+bot owner does with withdrawn Stars (Fragment → TON → fiat → UPI to tutors) is
+outside Telegram's payment terms — it is a normal business payout to a supplier.
+No Telegram rule prohibits it. The ledger (per-tutor earnings, per-payment
+charge IDs) makes every rupee traceable.
+
+### 3. Compliance items — IMPLEMENTED ✅
+- `/terms` command: implemented (required before live).
+- `/paysupport` command: implemented (required; bot owner handles disputes).
+- Bot owner dispute responsibility: founder-led in pilot (per ToS §6.2.1).
+- 2-step verification on the bot owner's Telegram account: DO BEFORE LIVE.
+
+## Conditions / risks (not blockers for pilot)
+
+1. **Star economics spread.** Users buy Stars at retail (Apple/Google take a cut);
+   bot owners withdraw via Fragment at Telegram's wholesale rate. 200 Stars paid
+   by a student ≠ 200 Stars of withdrawable value. **Founder must check the live
+   Fragment rate and set the settlement formula BEFORE real tutor money flows.**
+   Document the rate used each week in settlement-tracker.md.
+2. **Dispute liability sits with the founder.** If a student disputes a charge,
+   Telegram points them to the bot (/paysupport) — the founder must handle it.
+   Keep the refund path (tutor cancel → auto-refund) working; it is the main
+   dispute fire-escape.
+3. **Pilot trust model.** Tutors are trusting the founder with their class fees
+   until weekly settlement. This works for 10 founder-led pilots; it does not
+   scale without automated payouts. Revisit before 50+ tutors.
+4. **Policy gray zone (low risk).** If Telegram ever reclassifies live tutoring
+   as a non-digital service, Stars could be questioned. Mitigation: sessions ARE
+   delivered digitally; keep /terms accurate; no action needed now.
+
+## What was verified in code
+- Every payment stores `telegram_payment_charge_id` (refund/dispute traceability).
+- Per-tutor earnings queryable; per-payment ledger complete.
+- Tutor-cancel triggers `refundStarPayment` automatically (tested live below).
+- No tutor can see another tutor's earnings (API scoped by validated initData).

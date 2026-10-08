@@ -1,1 +1,58 @@
-IiIiREIgbGF5ZXIgdGVzdHM6IHNjaGVtYSwgZG91YmxlLWJvb2tpbmcgcHJldmVudGlvbiwgaWRlbXBvdGVudCBwYXltZW50cy4iIiIKaW1wb3J0IG9zCmltcG9ydCBzeXMKCnN5cy5wYXRoLmluc2VydCgwLCBvcy5wYXRoLmpvaW4ob3MucGF0aC5kaXJuYW1lKF9fZmlsZV9fKSwgIi4uIikpCgojIFVzZSBhIHRocm93YXdheSBEQiBmb3IgdGVzdHMKb3MuZW52aXJvblsiREJfUEFUSCJdID0gIi90bXAvc2xvdGJvdF90ZXN0LmRiIgpmb3IgZiBpbiAoIi90bXAvc2xvdGJvdF90ZXN0LmRiIiwgIi90bXAvc2xvdGJvdF90ZXN0LmRiLXdhbCIsICIvdG1wL3Nsb3Rib3RfdGVzdC5kYi1zaG0iKToKICAgIGlmIG9zLnBhdGguZXhpc3RzKGYpOgogICAgICAgIG9zLnJlbW92ZShmKQoKZnJvbSBhcHAgaW1wb3J0IGRiCgoKZGVmIG1haW4oKToKICAgIHQgPSBkYi5jcmVhdGVfdHV0b3IoMTExLCAiQXNoYSIsICJBc2lhL0tvbGthdGEiKQogICAgYXNzZXJ0IHRbIm5hbWUiXSA9PSAiQXNoYSIgYW5kIHRbImxpbmtfY29kZSJdLCAidHV0b3IgY3JlYXRlIgoKICAgIGRiLnNldF9hdmFpbGFiaWxpdHlfcnVsZXModFsiaWQiXSwgWwogICAgICAgIHsid2Vla2RheSI6IDAsICJzdGFydF9taW4iOiAxMDgwLCAiZW5kX21pbiI6IDEyNjAsICJzbG90X21pbiI6IDYwfSwKICAgIF0pCiAgICBhc3NlcnQgbGVuKGRiLmdldF9hdmFpbGFiaWxpdHlfcnVsZXModFsiaWQiXSkpID09IDEsICJydWxlcyIKCiAgICBuID0gZGIudXBzZXJ0X3Nsb3RzKHRbImlkIl0sIFsoIjIwMjYtMTAtMTJUMTI6MzA6MDArMDA6MDAiLCAiMjAyNi0xMC0xMlQxMzozMDowMCswMDowMCIpXSkKICAgIGFzc2VydCBuID09IDEsICJzbG90IGluc2VydCIKICAgIG4yID0gZGIudXBzZXJ0X3Nsb3RzKHRbImlkIl0sIFsoIjIwMjYtMTAtMTJUMTI6MzA6MDArMDA6MDAiLCAiMjAyNi0xMC0xMlQxMzozMDowMCswMDowMCIpXSkKICAgIGFzc2VydCBuMiA9PSAwLCAic2xvdCBkZWR1cCIKICAgIHNsb3RzID0gZGIub3Blbl9zbG90cyh0WyJpZCJdKQogICAgYXNzZXJ0IGxlbihzbG90cykgPT0gMSwgIm9wZW5fc2xvdHMiCgogICAgYjEgPSBkYi5ob2xkX3Nsb3QodFsiaWQiXSwgc2xvdHNbMF1bImlkIl0sIDIyMiwgIlJhdmkiLCAxMCkKICAgIGFzc2VydCBiMSBhbmQgYjFbInN0YXR1cyJdID09ICJoZWxkIiwgImhvbGQiCiAgICBiMiA9IGRiLmhvbGRfc2xvdCh0WyJpZCJdLCBzbG90c1swXVsiaWQiXSwgMzMzLCAiU25laGEiLCAxMCkKICAgIGFzc2VydCBiMiBpcyBOb25lLCAiRE9VQkxFIEJPT0tJTkcgTk9UIFBSRVZFTlRFRCIKCiAgICBhc3NlcnQgZGIubWFya19ib29raW5nX3BhaWQoYjFbImlkIl0sICJjaGFyZ2VfYWJjIiwgMjAwKSBpcyBUcnVlLCAibWFyayBwYWlkIgogICAgYXNzZXJ0IGRiLm1hcmtfYm9va2luZ19wYWlkKGIxWyJpZCJdLCAiY2hhcmdlX2FiYyIsIDIwMCkgaXMgRmFsc2UsICJEVVAgUEFZTUVOVCIKICAgIGFzc2VydCBkYi5tYXJrX2Jvb2tpbmdfcGFpZChiMVsiaWQiXSwgImNoYXJnZV94eXoiLCAyMDApIGlzIEZhbHNlLCAiMm5kIHBheSBvbiBwYWlkIgoKICAgIGFzc2VydCBkYi5lYXJuaW5nc19zdGFycyh0WyJpZCJdKSA9PSAyMDAsICJlYXJuaW5ncyIKICAgIGRiLnNjaGVkdWxlX3JlbWluZGVycyhiMVsiaWQiXSwgIjIwMjYtMTAtMTJUMTI6MzA6MDArMDA6MDAiKQogICAgYXNzZXJ0IGxlbihkYi51cGNvbWluZ19ib29raW5ncyh0WyJpZCJdKSkgPT0gMSwgInVwY29taW5nIgoKICAgICMgZXhwaXJlZCBob2xkIHJlbGVhc2UKICAgIGIzc2xvdCA9IGRiLnVwc2VydF9zbG90cyh0WyJpZCJdLCBbKCIyMDI2LTEwLTEzVDEyOjMwOjAwKzAwOjAwIiwgIjIwMjYtMTAtMTNUMTM6MzA6MDArMDA6MDAiKV0pCiAgICBzMiA9IFtzIGZvciBzIGluIGRiLm9wZW5fc2xvdHModFsiaWQiXSwgMTApIGlmIHNbInN0YXJ0c19hdF91dGMiXS5zdGFydHN3aXRoKCIyMDI2LTEwLTEzIildWzBdCiAgICBiMyA9IGRiLmhvbGRfc2xvdCh0WyJpZCJdLCBzMlsiaWQiXSwgNDQ0LCAiTWVlbmEiLCBob2xkX21pbnV0ZXM9LTEpICAjIGFscmVhZHkgZXhwaXJlZAogICAgYXNzZXJ0IGIzIGlzIG5vdCBOb25lCiAgICByZWxlYXNlZCA9IGRiLnJlbGVhc2VfZXhwaXJlZF9ob2xkcygpCiAgICBhc3NlcnQgcmVsZWFzZWQgPj0gMSwgImV4cGlyZWQgcmVsZWFzZSIKICAgIGFzc2VydCBkYi5nZXRfc2xvdChzMlsiaWQiXSlbInN0YXR1cyJdID09ICJvcGVuIiwgInNsb3QgcmVvcGVuZWQiCgogICAgcHJpbnQoIkFMTCBEQiBURVNUUyBQQVNTRUQiKQoKCmlmIF9fbmFtZV9fID09ICJfX21haW5fXyI6CiAgICBtYWluKCkK
+"""DB layer tests: schema, double-booking prevention, idempotent payments."""
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+# Use a throwaway DB for tests
+os.environ["DB_PATH"] = "/tmp/slotbot_test.db"
+for f in ("/tmp/slotbot_test.db", "/tmp/slotbot_test.db-wal", "/tmp/slotbot_test.db-shm"):
+    if os.path.exists(f):
+        os.remove(f)
+
+from app import db
+
+
+def main():
+    t = db.create_tutor(111, "Asha", "Asia/Kolkata")
+    assert t["name"] == "Asha" and t["link_code"], "tutor create"
+
+    db.set_availability_rules(t["id"], [
+        {"weekday": 0, "start_min": 1080, "end_min": 1260, "slot_min": 60},
+    ])
+    assert len(db.get_availability_rules(t["id"])) == 1, "rules"
+
+    n = db.upsert_slots(t["id"], [("2026-10-12T12:30:00+00:00", "2026-10-12T13:30:00+00:00")])
+    assert n == 1, "slot insert"
+    n2 = db.upsert_slots(t["id"], [("2026-10-12T12:30:00+00:00", "2026-10-12T13:30:00+00:00")])
+    assert n2 == 0, "slot dedup"
+    slots = db.open_slots(t["id"])
+    assert len(slots) == 1, "open_slots"
+
+    b1 = db.hold_slot(t["id"], slots[0]["id"], 222, "Ravi", 10)
+    assert b1 and b1["status"] == "held", "hold"
+    b2 = db.hold_slot(t["id"], slots[0]["id"], 333, "Sneha", 10)
+    assert b2 is None, "DOUBLE BOOKING NOT PREVENTED"
+
+    assert db.mark_booking_paid(b1["id"], "charge_abc", 200) is True, "mark paid"
+    assert db.mark_booking_paid(b1["id"], "charge_abc", 200) is False, "DUP PAYMENT"
+    assert db.mark_booking_paid(b1["id"], "charge_xyz", 200) is False, "2nd pay on paid"
+
+    assert db.earnings_stars(t["id"]) == 200, "earnings"
+    db.schedule_reminders(b1["id"], "2026-10-12T12:30:00+00:00")
+    assert len(db.upcoming_bookings(t["id"])) == 1, "upcoming"
+
+    # expired hold release
+    b3slot = db.upsert_slots(t["id"], [("2026-10-13T12:30:00+00:00", "2026-10-13T13:30:00+00:00")])
+    s2 = [s for s in db.open_slots(t["id"], 10) if s["starts_at_utc"].startswith("2026-10-13")][0]
+    b3 = db.hold_slot(t["id"], s2["id"], 444, "Meena", hold_minutes=-1)  # already expired
+    assert b3 is not None
+    released = db.release_expired_holds()
+    assert released >= 1, "expired release"
+    assert db.get_slot(s2["id"])["status"] == "open", "slot reopened"
+
+    print("ALL DB TESTS PASSED")
+
+
+if __name__ == "__main__":
+    main()
