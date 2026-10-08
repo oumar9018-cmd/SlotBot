@@ -1,1 +1,104 @@
-IyBTbG90Qm90IOKAlCBUZWxlZ3JhbSBib29raW5nICsgU3RhcnMtcGF5bWVudCBib3QgZm9yIHNvbG8gdHV0b3JzCgpWMSBzY29wZSAobG9ja2VkKTogdHV0b3Igb25ib2FyZGluZyDihpIgYXZhaWxhYmlsaXR5IOKGkiBzaGFyZWFibGUgYm9va2luZyBsaW5rIOKGkgpzdHVkZW50IHBpY2tzIHNsb3Qg4oaSIFRlbGVncmFtIFN0YXJzIHBheW1lbnQg4oaSIGNvbmZpcm1hdGlvbnMg4oaSIGF1dG8tcmVtaW5kZXJzCuKGkiB0dXRvciBNaW5pIEFwcCBkYXNoYm9hcmQgKHVwY29taW5nIGJvb2tpbmdzLCBlYXJuaW5ncywgYm9va2luZyBsaW5rKS4KCiMjIDAuIE9uZS10aW1lIFRlbGVncmFtIHNldHVwIChmb3VuZGVyIGRvZXMgdGhpcyBvbiBwaG9uZSkKCjEuIENoYXQgd2l0aCBbQEJvdEZhdGhlcl0oaHR0cHM6Ly90Lm1lL0JvdEZhdGhlcikg4oaSIGAvbmV3Ym90YCDihpIgbmFtZSBpdCAoZS5nLiBgU2xvdEJvdGApCiAgIOKGkiBjb3B5IHRoZSAqKmJvdCB0b2tlbioqLgoyLiBCb3RGYXRoZXIg4oaSIGAvbXlib3RzYCDihpIgeW91ciBib3Qg4oaSICoqQm90IFNldHRpbmdzIOKGkiBDb25maWd1cmUgTWluaSBBcHAqKiDihpIKICAgZW5hYmxlLCBzZXQgVVJMIHRvIGBodHRwczovLzx5b3VyLWRvbWFpbj4vbWluaWFwcC9gLgozLiBHZW5lcmF0ZSBhIHdlYmhvb2sgc2VjcmV0OiBgb3BlbnNzbCByYW5kIC1oZXggMzJgLgo0LiBJbiB0aGUgYm90OiBub3RoaW5nIGVsc2UgbmVlZGVkIGZvciBTdGFycyDigJQgZGlnaXRhbC1nb29kcyBpbnZvaWNlcyB3b3JrCiAgIG91dCBvZiB0aGUgYm94OyB0ZXN0IGluIFRlbGVncmFtJ3MgdGVzdCBlbnZpcm9ubWVudCBmaXJzdC4KCiMjIDEuIExvY2FsIHJ1biAocG9sbGluZyDigJQgbm8gcHVibGljIFVSTCBuZWVkZWQpCgpgYGBiYXNoCmNkIH4vd29ya3NwYWNlL3Nsb3Rib3QKcHl0aG9uMyAtbSB2ZW52IC52ZW52ICYmIC52ZW52L2Jpbi9waXAgaW5zdGFsbCAtciByZXF1aXJlbWVudHMudHh0CmNwIC5lbnYuZXhhbXBsZSAuZW52ICAgIyB0aGVuIGZpbGwgQk9UX1RPS0VOIChXRUJIT09LX1NFQ1JFVC9CQVNFX1VSTCBub3QgbmVlZGVkIGZvciBwb2xsaW5nKQoudmVudi9iaW4vcHl0aG9uIC1tIGFwcC5tYWluIC0tcG9sbGluZwpgYGAKClRhbGsgdG8geW91ciBib3Qgb24gVGVsZWdyYW06IGAvc3RhcnRgIOKGkiBvbmJvYXJkaW5nIOKGkiBib29raW5nIGxpbmsuCgojIyAyLiBUZXN0cwoKYGBgYmFzaAoudmVudi9iaW4vcHl0aG9uIC11IHRlc3RzL3Rlc3RfZGIucHkgICAgIyBzY2hlbWEsIGRvdWJsZS1ib29raW5nICsgZHVwbGljYXRlLXBheW1lbnQgZ3VhcmRzCi52ZW52L2Jpbi9weXRob24gLXUgdGVzdHMvdGVzdF9lMmUucHkgICAjIGZ1bGwgY29yZSBsb29wIHdpdGggVGVsZWdyYW0gbW9ja2VkCmBgYAoKQm90aCBtdXN0IHByaW50IGBBTEwgLi4uIFRFU1RTIFBBU1NFRGAuCgojIyAzLiBEZXBsb3kgKEZseS5pbyDigJQgZnJlZSB0aWVyICsgcGVyc2lzdGVudCB2b2x1bWUgZm9yIFNRTGl0ZSkKCmBgYGJhc2gKIyBpbnN0YWxsIGZseWN0bDogaHR0cHM6Ly9mbHkuaW8vZG9jcy9oYW5kcy1vbi9pbnN0YWxsLWZseWN0bC8KZmx5IGF1dGggbG9naW4KZmx5IGxhdW5jaCAtLW5vLWRlcGxveSAgICAgICAgICAjIGFjY2VwdCBkZWZhdWx0czsgYXBwIG5hbWUgZS5nLiBzbG90Ym90CmZseSB2b2x1bWVzIGNyZWF0ZSBzbG90Ym90X2RhdGEgLS1yZWdpb24gYm9tIC0tc2l6ZSAxCmZseSBzZWNyZXRzIHNldCBCT1RfVE9LRU49Ijx0b2tlbj4iIFdFQkhPT0tfU0VDUkVUPSI8aGV4PiIgQkFTRV9VUkw9Imh0dHBzOi8vc2xvdGJvdC5mbHkuZGV2IgpmbHkgZGVwbG95CmBgYAoKT24gc3RhcnR1cCB0aGUgc2VydmVyIGNhbGxzIGBzZXRXZWJob29rYCBhdXRvbWF0aWNhbGx5IGFuZCBzdGFydHMgdGhlCnJlbWluZGVyIHNjaGVkdWxlci4gSGVhbHRoIGNoZWNrOiBgaHR0cHM6Ly9zbG90Ym90LmZseS5kZXYvaGVhbHRoYC4KCiMjIDQuIFByb2plY3Qgc3RydWN0dXJlCgpgYGAKc2xvdGJvdC8K4pSc4pSA4pSAIGFwcC8K4pSCICAg4pSc4pSA4pSAIG1haW4ucHkgICAgICAgICAgIyBGYXN0QVBJOiAvd2ViaG9vaywgL2FwaS8qLCAvbWluaWFwcCBzdGF0aWMsIC9oZWFsdGgK4pSCICAg4pSc4pSA4pSAIGJvdC5weSAgICAgICAgICAgIyBhbGwgVGVsZWdyYW0gaGFuZGxlcnMgKG9uYm9hcmRpbmcsIGJvb2tpbmcsIHBheW1lbnRzKQrilIIgICDilJzilIDilIAgYXZhaWxhYmlsaXR5LnB5ICAjIHNsb3QgZ2VuZXJhdGlvbiAodHV0b3ItbG9jYWwgLT4gVVRDKSwgdGltZSBwYXJzaW5nCuKUgiAgIOKUnOKUgOKUgCBib29raW5nLnB5ICAgICAgICMgKGxvZ2ljIGxpdmVzIGluIGRiLnB5IHRyYW5zYWN0aW9uczsgc2VlIGJlbG93KQrilIIgICDilJzilIDilIAgZGIucHkgICAgICAgICAgICAjIFNRTGl0ZSBzY2hlbWEgKyBhdG9taWMgaGVscGVycyAoaG9sZHMsIHBheW1lbnRzKQrilIIgICDilJzilIDilIAgcGF5bWVudHMucHkgICAgICAjIChTdGFycyBmbG93IGxpdmVzIGluIGJvdC5weTsgdGhpbiBieSBkZXNpZ24pCuKUgiAgIOKUnOKUgOKUgCByZW1pbmRlcnMucHkgICAgICMgQVBTY2hlZHVsZXI6IGV4cGlyZWQtaG9sZCBzd2VlcGVyICsgMjRoLzFoIHJlbWluZGVycwrilIIgICDilJzilIDilIAgbWluaWFwcC5weSAgICAgICAjIGRhc2hib2FyZCBSRVNUIEFQSSAoaW5pdERhdGEtYXV0aGVudGljYXRlZCkK4pSCICAg4pSc4pSA4pSAIHNlY3VyaXR5LnB5ICAgICAgIyB3ZWJob29rIHNlY3JldCArIGluaXREYXRhIEhNQUMgdmFsaWRhdGlvbgrilIIgICDilJzilIDilIAgdGVsZWdyYW0ucHkgICAgICAjIHRoaW4gQm90IEFQSSBjbGllbnQgKGh0dHB4KQrilIIgICDilJTilIDilIAgY29uZmlnLnB5ICAgICAgICAjIGVudiBjb25maWcK4pSc4pSA4pSAIG1pbmlhcHAvaW5kZXguaHRtbCAgICMgdHV0b3IgZGFzaGJvYXJkICh2YW5pbGxhIEpTICsgVGVsZWdyYW0gV2ViQXBwIFNESykK4pSc4pSA4pSAIHRlc3RzL3Rlc3RfZGIucHkgICAgICMgREIgY29ycmVjdG5lc3MgdGVzdHMK4pSc4pSA4pSAIHRlc3RzL3Rlc3RfZTJlLnB5ICAgICMgZnVsbCBjb3JlLWxvb3AgdGVzdCAoVGVsZWdyYW0gbW9ja2VkKQrilJzilIDilIAgRG9ja2VyZmlsZSAgZmx5LnRvbWwgIHJlcXVpcmVtZW50cy50eHQgIC5lbnYuZXhhbXBsZQpgYGAKCiMjIDUuIFNlY3VyaXR5IHByb3BlcnRpZXMgKGltcGxlbWVudGVkKQoKLSBCb3QgdG9rZW4gKyB3ZWJob29rIHNlY3JldCAqKm9ubHkqKiBmcm9tIGVudiwgbmV2ZXIgaW4gY29kZS9sb2dzLgotIFdlYmhvb2sgdmVyaWZpZWQgdmlhIGBYLVRlbGVncmFtLUJvdC1BcGktU2VjcmV0LVRva2VuYC4KLSBNaW5pIEFwcCBgaW5pdERhdGFgIHZhbGlkYXRlZCB3aXRoIEhNQUMtU0hBMjU2IChgY29tcGFyZV9kaWdlc3RgKS4KLSBTbG90cyBoZWxkIGF0b21pY2FsbHkgKGBCRUdJTiBJTU1FRElBVEVgKTogdHdvIHN0dWRlbnRzIGNhbid0IHRha2Ugb25lIHNsb3QuCi0gUGF5bWVudHMgaWRlbXBvdGVudDogYHRlbGVncmFtX3BheW1lbnRfY2hhcmdlX2lkYCBVTklRVUUg4oCUIGR1cGxpY2F0ZQogIGBzdWNjZXNzZnVsX3BheW1lbnRgIHVwZGF0ZXMgYXJlIGlnbm9yZWQsIG5ldmVyIGRvdWJsZS1jb3VudGVkLgotIGBwcmVfY2hlY2tvdXRfcXVlcnlgIHJlLXZhbGlkYXRlcyB0aGUgaG9sZCBzZXJ2ZXItc2lkZSAoZXhwaXJlZC9nb25lIOKGkiByZWplY3QpLgotIEFsbCBzbG90IHRpbWVzIHN0b3JlZCBVVEM7IGNvbnZlcnRlZCBwZXIgdHV0b3IgdGltZXpvbmUgZm9yIGRpc3BsYXkuCi0gVHV0b3IgY2FuY2VsIOKGkiBzbG90IGZyZWVkICsgYHJlZnVuZFN0YXJQYXltZW50YCBpc3N1ZWQgYXV0b21hdGljYWxseS4KCiMjIDYuIE1vbmV5IGZsb3cgKFYxIHBpbG90KQoKU3R1ZGVudCBwYXlzICoqU3RhcnMqKiB2aWEgYm90IGludm9pY2Ug4oaSIFN0YXJzIGxhbmQgaW4gdGhlICoqYm90IG93bmVyJ3MqKgpUZWxlZ3JhbSBiYWxhbmNlIOKGkiB3aXRoZHJhdyB2aWEgRnJhZ21lbnQgKFRPTikg4oaSIHNldHRsZSB0dXRvcnMgbWFudWFsbHkKKGZvdW5kZXItbGVkLCBmaW5lIGZvciAxMCBwaWxvdCB0dXRvcnMpLiBUdXRvciBTYWFTIGZlZSAo4oK5MjQ5LyQ1IHBpbG90KQpjb2xsZWN0ZWQgbWFudWFsbHkgYnkgZm91bmRlciAoVVBJL2JhbmspIOKAlCBubyBpbi1ib3Qgc3Vic2NyaXB0aW9uIGJpbGxpbmcKaW4gVjEgc2NvcGUuCgojIyA3LiBLbm93biBsaW1pdGF0aW9ucyAvIGJsb2NrZXJzCgotICoqQm90IHRva2VuIHJlcXVpcmVkKio6IGZvdW5kZXIgbXVzdCBjcmVhdGUgdGhlIGJvdCB2aWEgQEJvdEZhdGhlciAoY2FuJ3QgYmUKICBkb25lIGZyb20gaGVyZSkuCi0gKipTdGFycyDihpIgdHV0b3IgcGF5b3V0IGlzIG1hbnVhbCoqIGluIFYxIChkb2N1bWVudGVkIGFib3ZlKS4KLSAqKlR1dG9yaW5nIHZpYSBTdGFycyoqOiBzZXNzaW9ucyBhcmUgYSBkaWdpdGFsIHNlcnZpY2U7IHRoaXMgZml0cyBUZWxlZ3JhbSdzCiAgZGlnaXRhbC1nb29kcyBTdGFycyBmbG93LCBidXQga2VlcCBgL3Rlcm1zYCArIGAvcGF5c3VwcG9ydGAgKGltcGxlbWVudGVkKS4KLSAqKlNpbmdsZSBwcm9jZXNzKio6IGluLW1lbW9yeSBvbmJvYXJkaW5nIHNlc3Npb25zIHJlc2V0IG9uIHJlc3RhcnQ7CiAgYWNjZXB0YWJsZSBmb3IgcGlsb3QsIG1vdmUgdG8gREIvUmVkaXMgaWYgaXQgZXZlciBtYXR0ZXJzLgotICoqRnJlZS10aWVyIGhvc3RpbmcqKjogRmx5IGtlZXBzIG9uZSBtYWNoaW5lIGFsd2F5cy1vbiAocmVtaW5kZXJzIHdvcmspLgogIFJlbmRlciBmcmVlIHdvdWxkIHNsZWVwIChyZW1pbmRlcnMgZGVsYXllZCkgYW5kIGhhcyBubyBwZXJzaXN0ZW50IGRpc2sg4oCUCiAgZG9uJ3QgdXNlIFJlbmRlciBmcmVlIHdpdGggU1FMaXRlLgo=
+# SlotBot — Telegram booking + Stars-payment bot for solo tutors
+
+V1 scope (locked): tutor onboarding → availability → shareable booking link →
+student picks slot → Telegram Stars payment → confirmations → auto-reminders
+→ tutor Mini App dashboard (upcoming bookings, earnings, booking link).
+
+## 0. One-time Telegram setup (founder does this on phone)
+
+1. Chat with [@BotFather](https://t.me/BotFather) → `/newbot` → name it (e.g. `SlotBot`)
+   → copy the **bot token**.
+2. BotFather → `/mybots` → your bot → **Bot Settings → Configure Mini App** →
+   enable, set URL to `https://<your-domain>/miniapp/`.
+3. Generate a webhook secret: `openssl rand -hex 32`.
+4. In the bot: nothing else needed for Stars — digital-goods invoices work
+   out of the box; test in Telegram's test environment first.
+
+## 1. Local run (polling — no public URL needed)
+
+```bash
+cd ~/workspace/slotbot
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+cp .env.example .env   # then fill BOT_TOKEN (WEBHOOK_SECRET/BASE_URL not needed for polling)
+.venv/bin/python -m app.main --polling
+```
+
+Talk to your bot on Telegram: `/start` → onboarding → booking link.
+
+## 2. Tests
+
+```bash
+.venv/bin/python -u tests/test_db.py    # schema, double-booking + duplicate-payment guards
+.venv/bin/python -u tests/test_e2e.py   # full core loop with Telegram mocked
+```
+
+Both must print `ALL ... TESTS PASSED`.
+
+## 3. Deploy (Fly.io — free tier + persistent volume for SQLite)
+
+```bash
+# install flyctl: https://fly.io/docs/hands-on/install-flyctl/
+fly auth login
+fly launch --no-deploy          # accept defaults; app name e.g. slotbot
+fly volumes create slotbot_data --region bom --size 1
+fly secrets set BOT_TOKEN="<token>" WEBHOOK_SECRET="<hex>" BASE_URL="https://slotbot.fly.dev"
+fly deploy
+```
+
+On startup the server calls `setWebhook` automatically and starts the
+reminder scheduler. Health check: `https://slotbot.fly.dev/health`.
+
+## 4. Project structure
+
+```
+slotbot/
+├── app/
+│   ├── main.py          # FastAPI: /webhook, /api/*, /miniapp static, /health
+│   ├── bot.py           # all Telegram handlers (onboarding, booking, payments)
+│   ├── availability.py  # slot generation (tutor-local -> UTC), time parsing
+│   ├── booking.py       # (logic lives in db.py transactions; see below)
+│   ├── db.py            # SQLite schema + atomic helpers (holds, payments)
+│   ├── payments.py      # (Stars flow lives in bot.py; thin by design)
+│   ├── reminders.py     # APScheduler: expired-hold sweeper + 24h/1h reminders
+│   ├── miniapp.py       # dashboard REST API (initData-authenticated)
+│   ├── security.py      # webhook secret + initData HMAC validation
+│   ├── telegram.py      # thin Bot API client (httpx)
+│   └── config.py        # env config
+├── miniapp/index.html   # tutor dashboard (vanilla JS + Telegram WebApp SDK)
+├── tests/test_db.py     # DB correctness tests
+├── tests/test_e2e.py    # full core-loop test (Telegram mocked)
+├── Dockerfile  fly.toml  requirements.txt  .env.example
+```
+
+## 5. Security properties (implemented)
+
+- Bot token + webhook secret **only** from env, never in code/logs.
+- Webhook verified via `X-Telegram-Bot-Api-Secret-Token`.
+- Mini App `initData` validated with HMAC-SHA256 (`compare_digest`).
+- Slots held atomically (`BEGIN IMMEDIATE`): two students can't take one slot.
+- Payments idempotent: `telegram_payment_charge_id` UNIQUE — duplicate
+  `successful_payment` updates are ignored, never double-counted.
+- `pre_checkout_query` re-validates the hold server-side (expired/gone → reject).
+- All slot times stored UTC; converted per tutor timezone for display.
+- Tutor cancel → slot freed + `refundStarPayment` issued automatically.
+
+## 6. Money flow (V1 pilot)
+
+Student pays **Stars** via bot invoice → Stars land in the **bot owner's**
+Telegram balance → withdraw via Fragment (TON) → settle tutors manually
+(founder-led, fine for 10 pilot tutors). Tutor SaaS fee (₹249/$5 pilot)
+collected manually by founder (UPI/bank) — no in-bot subscription billing
+in V1 scope.
+
+## 7. Known limitations / blockers
+
+- **Bot token required**: founder must create the bot via @BotFather (can't be
+  done from here).
+- **Stars → tutor payout is manual** in V1 (documented above).
+- **Tutoring via Stars**: sessions are a digital service; this fits Telegram's
+  digital-goods Stars flow, but keep `/terms` + `/paysupport` (implemented).
+- **Single process**: in-memory onboarding sessions reset on restart;
+  acceptable for pilot, move to DB/Redis if it ever matters.
+- **Free-tier hosting**: Fly keeps one machine always-on (reminders work).
+  Render free would sleep (reminders delayed) and has no persistent disk —
+  don't use Render free with SQLite.

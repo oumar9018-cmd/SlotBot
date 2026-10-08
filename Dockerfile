@@ -1,1 +1,10 @@
-RlJPTSBweXRob246My4xMi1zbGltCldPUktESVIgL3NydgpDT1BZIHJlcXVpcmVtZW50cy50eHQgLgpSVU4gcGlwIGluc3RhbGwgLS1uby1jYWNoZS1kaXIgLXIgcmVxdWlyZW1lbnRzLnR4dApDT1BZIGFwcC8gYXBwLwpDT1BZIG1pbmlhcHAvIG1pbmlhcHAvCkVOViBEQl9QQVRIPS9kYXRhL3Nsb3Rib3QuZGIKVk9MVU1FIC9kYXRhCkVYUE9TRSA4MDAwCkNNRCBbInV2aWNvcm4iLCAiYXBwLm1haW46YXBwIiwgIi0taG9zdCIsICIwLjAuMC4wIiwgIi0tcG9ydCIsICI4MDAwIl0K
+FROM python:3.12-slim
+WORKDIR /srv
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY app/ app/
+COPY miniapp/ miniapp/
+ENV DB_PATH=/data/slotbot.db
+VOLUME /data
+EXPOSE 8000
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

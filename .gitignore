@@ -1,1 +1,21 @@
-IyBTZWNyZXRzIOKAlCBORVZFUiBjb21taXQKLmVudgoqLmVudgoKIyBEYXRhYmFzZSDigJQgY29udGFpbnMgdXNlciBkYXRhCmRhdGEvCiouZGIKKi5kYi13YWwKKi5kYi1zaG0KCiMgUHl0aG9uCl9fcHljYWNoZV9fLwoqLnB5YwoudmVudi8KCiMgTG9ncyAobWF5IGNvbnRhaW4gc2Vuc2l0aXZlIGRhdGEpCi90bXAvCioubG9nCgojIE9TCi5EU19TdG9yZQo=
+# Secrets — NEVER commit
+.env
+*.env
+
+# Database — contains user data
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Logs (may contain sensitive data)
+/tmp/
+*.log
+
+# OS
+.DS_Store
