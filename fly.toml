@@ -1,1 +1,21 @@
-IyBGbHkuaW8gZGVwbG95bWVudCAocmVjb21tZW5kZWQgemVyby1jb3N0IG9wdGlvbjogcGVyc2lzdGVudCB2b2x1bWUgZm9yIFNRTGl0ZSkKYXBwID0gInNsb3Rib3QiCnByaW1hcnlfcmVnaW9uID0gImJvbSIgICAjIE11bWJhaSDigJQgY2xvc2UgdG8gaW5pdGlhbCB0dXRvciBiYXNlCgpbYnVpbGRdCiAgZG9ja2VyZmlsZSA9ICJEb2NrZXJmaWxlIgoKW2h0dHBfc2VydmljZV0KICBpbnRlcm5hbF9wb3J0ID0gODAwMAogIGZvcmNlX2h0dHBzID0gdHJ1ZQogIGF1dG9fc3RvcF9tYWNoaW5lcyA9IGZhbHNlICAgIyBrZWVwIHJ1bm5pbmcgc28gcmVtaW5kZXJzIGZpcmUgb24gdGltZQogIGF1dG9fc3RhcnRfbWFjaGluZXMgPSB0cnVlCiAgbWluX21hY2hpbmVzX3J1bm5pbmcgPSAxCgpbW21vdW50c11dCiAgc291cmNlID0gInNsb3Rib3RfZGF0YSIKICBkZXN0aW5hdGlvbiA9ICIvZGF0YSIKCltlbnZdCiAgREJfUEFUSCA9ICIvZGF0YS9zbG90Ym90LmRiIgogIExPR19MRVZFTCA9ICJJTkZPIgo=
+# Fly.io deployment (recommended zero-cost option: persistent volume for SQLite)
+app = "slotbot"
+primary_region = "bom"   # Mumbai — close to initial tutor base
+
+[build]
+  dockerfile = "Dockerfile"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = false   # keep running so reminders fire on time
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[mounts]]
+  source = "slotbot_data"
+  destination = "/data"
+
+[env]
+  DB_PATH = "/data/slotbot.db"
+  LOG_LEVEL = "INFO"

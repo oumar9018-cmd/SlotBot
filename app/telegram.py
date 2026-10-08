@@ -1,1 +1,130 @@
-IiIiVGhpbiBhc3luYyBjbGllbnQgZm9yIHRoZSBUZWxlZ3JhbSBCb3QgQVBJIChodHRweCwgbm8gZnJhbWV3b3JrKS4iIiIKaW1wb3J0IGxvZ2dpbmcKaW1wb3J0IG9zCgppbXBvcnQgaHR0cHgKCmZyb20gLiBpbXBvcnQgY29uZmlnCgpsb2cgPSBsb2dnaW5nLmdldExvZ2dlcigic2xvdGJvdC50ZWxlZ3JhbSIpCgoKZGVmIF9jbGllbnQodGltZW91dDogaW50ID0gMTUpIC0+IGh0dHB4LkFzeW5jQ2xpZW50OgogICAgIyB0cnVzdF9lbnY9RmFsc2U6IGh0dHB4IDAuMjggZmFpbHMgcGFyc2luZyBJUHY2IGVudHJpZXMgaW4gbm9fcHJveHk7CiAgICAjIHJlYWQgdGhlIHByb3h5IFVSTCBleHBsaWNpdGx5IGluc3RlYWQuIE5vbmUgLT4gZGlyZWN0IGNvbm5lY3Rpb24uCiAgICBwcm94eSA9IChvcy5lbnZpcm9uLmdldCgiSFRUUFNfUFJPWFkiKSBvciBvcy5lbnZpcm9uLmdldCgiaHR0cHNfcHJveHkiKQogICAgICAgICAgICAgb3Igb3MuZW52aXJvbi5nZXQoIkhUVFBfUFJPWFkiKSBvciBvcy5lbnZpcm9uLmdldCgiaHR0cF9wcm94eSIpKQogICAgIyBFZ3Jlc3MgcHJveHkgZG9lcyBUTFMgaW50ZXJjZXB0aW9uOiB1c2UgaXRzIENBIGJ1bmRsZSB3aGVuIHByZXNlbnQuCiAgICBjYV9idW5kbGUgPSAob3MuZW52aXJvbi5nZXQoIlNTTF9DRVJUX0ZJTEUiKQogICAgICAgICAgICAgICAgIG9yIG9zLmVudmlyb24uZ2V0KCJSRVFVRVNUU19DQV9CVU5ETEUiKSkKICAgIHZlcmlmeSA9IGNhX2J1bmRsZSBvciBUcnVlCiAgICByZXR1cm4gaHR0cHguQXN5bmNDbGllbnQodGltZW91dD10aW1lb3V0LCB0cnVzdF9lbnY9RmFsc2UsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcHJveHk9cHJveHksIHZlcmlmeT12ZXJpZnkpCgoKYXN5bmMgZGVmIGFwaShtZXRob2Q6IHN0ciwgKipwYXJhbXMpOgogICAgdXJsID0gZiJ7Y29uZmlnLlRFTEVHUkFNX0FQSX0vYm90e2NvbmZpZy5CT1RfVE9LRU59L3ttZXRob2R9IgogICAgIyBOZXZlciBsb2cgdGhlIHRva2VuCiAgICBzYWZlID0ge2s6ICgiPHJlZGFjdGVkPiIgaWYgInRva2VuIiBpbiBrLmxvd2VyKCkgZWxzZSB2KSBmb3IgaywgdiBpbiBwYXJhbXMuaXRlbXMoKX0KICAgIHRyeToKICAgICAgICBhc3luYyB3aXRoIF9jbGllbnQoKSBhcyBjbGllbnQ6CiAgICAgICAgICAgIHIgPSBhd2FpdCBjbGllbnQucG9zdCh1cmwsIGpzb249cGFyYW1zKQogICAgICAgICAgICBkYXRhID0gci5qc29uKCkKICAgIGV4Y2VwdCBFeGNlcHRpb24gYXMgZToKICAgICAgICBsb2cuZXJyb3IoIlRlbGVncmFtIEFQSSAlcyBmYWlsZWQ6ICVzIHBhcmFtcz0lcyIsIG1ldGhvZCwgZSwgc2FmZSkKICAgICAgICByZXR1cm4geyJvayI6IEZhbHNlLCAiZXJyb3IiOiBzdHIoZSl9CiAgICBpZiBub3QgZGF0YS5nZXQoIm9rIik6CiAgICAgICAgbG9nLndhcm5pbmcoIlRlbGVncmFtIEFQSSAlcyBlcnJvcjogJXMgcGFyYW1zPSVzIiwKICAgICAgICAgICAgICAgICAgICBtZXRob2QsIGRhdGEuZ2V0KCJkZXNjcmlwdGlvbiIpLCBzYWZlKQogICAgcmV0dXJuIGRhdGEKCgphc3luYyBkZWYgc2VuZF9tZXNzYWdlKGNoYXRfaWQ6IGludCwgdGV4dDogc3RyLCByZXBseV9tYXJrdXA6IGRpY3QgfCBOb25lID0gTm9uZSwKICAgICAgICAgICAgICAgICAgICAgICBwYXJzZV9tb2RlOiBzdHIgfCBOb25lID0gTm9uZSk6CiAgICBwYXJhbXMgPSB7ImNoYXRfaWQiOiBjaGF0X2lkLCAidGV4dCI6IHRleHR9CiAgICBpZiByZXBseV9tYXJrdXA6CiAgICAgICAgcGFyYW1zWyJyZXBseV9tYXJrdXAiXSA9IHJlcGx5X21hcmt1cAogICAgaWYgcGFyc2VfbW9kZToKICAgICAgICBwYXJhbXNbInBhcnNlX21vZGUiXSA9IHBhcnNlX21vZGUKICAgIHJldHVybiBhd2FpdCBhcGkoInNlbmRNZXNzYWdlIiwgKipwYXJhbXMpCgoKYXN5bmMgZGVmIGFuc3dlcl9jYWxsYmFjayhjYWxsYmFja19xdWVyeV9pZDogc3RyLCB0ZXh0OiBzdHIgfCBOb25lID0gTm9uZSwKICAgICAgICAgICAgICAgICAgICAgICAgICBzaG93X2FsZXJ0OiBib29sID0gRmFsc2UpOgogICAgcGFyYW1zID0geyJjYWxsYmFja19xdWVyeV9pZCI6IGNhbGxiYWNrX3F1ZXJ5X2lkLCAic2hvd19hbGVydCI6IHNob3dfYWxlcnR9CiAgICBpZiB0ZXh0OgogICAgICAgIHBhcmFtc1sidGV4dCJdID0gdGV4dAogICAgcmV0dXJuIGF3YWl0IGFwaSgiYW5zd2VyQ2FsbGJhY2tRdWVyeSIsICoqcGFyYW1zKQoKCmFzeW5jIGRlZiBlZGl0X21lc3NhZ2UoY2hhdF9pZDogaW50LCBtZXNzYWdlX2lkOiBpbnQsIHRleHQ6IHN0ciwKICAgICAgICAgICAgICAgICAgICAgICByZXBseV9tYXJrdXA6IGRpY3QgfCBOb25lID0gTm9uZSk6CiAgICBwYXJhbXMgPSB7ImNoYXRfaWQiOiBjaGF0X2lkLCAibWVzc2FnZV9pZCI6IG1lc3NhZ2VfaWQsICJ0ZXh0IjogdGV4dH0KICAgIGlmIHJlcGx5X21hcmt1cCBpcyBub3QgTm9uZToKICAgICAgICBwYXJhbXNbInJlcGx5X21hcmt1cCJdID0gcmVwbHlfbWFya3VwCiAgICByZXR1cm4gYXdhaXQgYXBpKCJlZGl0TWVzc2FnZVRleHQiLCAqKnBhcmFtcykKCgphc3luYyBkZWYgc2VuZF9pbnZvaWNlKGNoYXRfaWQ6IGludCwgdGl0bGU6IHN0ciwgZGVzY3JpcHRpb246IHN0ciwgcGF5bG9hZDogc3RyLAogICAgICAgICAgICAgICAgICAgICAgIGFtb3VudF9zdGFyczogaW50KToKICAgICIiIlN0YXJzIGludm9pY2UgZm9yIGEgZGlnaXRhbCBzZXJ2aWNlLiBwcm92aWRlcl90b2tlbiBlbXB0eSBwZXIgZG9jcy4iIiIKICAgIHJldHVybiBhd2FpdCBhcGkoCiAgICAgICAgInNlbmRJbnZvaWNlIiwKICAgICAgICBjaGF0X2lkPWNoYXRfaWQsCiAgICAgICAgdGl0bGU9dGl0bGUsCiAgICAgICAgZGVzY3JpcHRpb249ZGVzY3JpcHRpb24sCiAgICAgICAgcGF5bG9hZD1wYXlsb2FkLAogICAgICAgIGN1cnJlbmN5PSJYVFIiLAogICAgICAgIHByaWNlcz1beyJsYWJlbCI6IHRpdGxlLCAiYW1vdW50IjogYW1vdW50X3N0YXJzfV0sCiAgICAgICAgcHJvdmlkZXJfdG9rZW49IiIsCiAgICApCgoKYXN5bmMgZGVmIGFuc3dlcl9wcmVjaGVja291dChwcmVfY2hlY2tvdXRfcXVlcnlfaWQ6IHN0ciwgb2s6IGJvb2wsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgZXJyb3JfbWVzc2FnZTogc3RyIHwgTm9uZSA9IE5vbmUpOgogICAgcGFyYW1zID0geyJwcmVfY2hlY2tvdXRfcXVlcnlfaWQiOiBwcmVfY2hlY2tvdXRfcXVlcnlfaWQsICJvayI6IG9rfQogICAgaWYgZXJyb3JfbWVzc2FnZToKICAgICAgICBwYXJhbXNbImVycm9yX21lc3NhZ2UiXSA9IGVycm9yX21lc3NhZ2UKICAgIHJldHVybiBhd2FpdCBhcGkoImFuc3dlclByZUNoZWNrb3V0UXVlcnkiLCAqKnBhcmFtcykKCgphc3luYyBkZWYgcmVmdW5kX3N0YXJzKHVzZXJfaWQ6IGludCwgdGVsZWdyYW1fY2hhcmdlX2lkOiBzdHIpOgogICAgcmV0dXJuIGF3YWl0IGFwaSgKICAgICAgICAicmVmdW5kU3RhclBheW1lbnQiLAogICAgICAgIHVzZXJfaWQ9dXNlcl9pZCwKICAgICAgICB0ZWxlZ3JhbV9wYXltZW50X2NoYXJnZV9pZD10ZWxlZ3JhbV9jaGFyZ2VfaWQsCiAgICApCgoKYXN5bmMgZGVmIHNldF93ZWJob29rKCk6CiAgICB1cmwgPSBmIntjb25maWcuQkFTRV9VUkx9L3dlYmhvb2siCiAgICByZXR1cm4gYXdhaXQgYXBpKCJzZXRXZWJob29rIiwgdXJsPXVybCwgc2VjcmV0X3Rva2VuPWNvbmZpZy5XRUJIT09LX1NFQ1JFVCwKICAgICAgICAgICAgICAgICAgICAgYWxsb3dlZF91cGRhdGVzPVsibWVzc2FnZSIsICJjYWxsYmFja19xdWVyeSIsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgInByZV9jaGVja291dF9xdWVyeSJdKQoKCmFzeW5jIGRlZiBkZWxldGVfd2ViaG9vaygpOgogICAgcmV0dXJuIGF3YWl0IGFwaSgiZGVsZXRlV2ViaG9vayIsIGRyb3BfcGVuZGluZ191cGRhdGVzPUZhbHNlKQoKCmFzeW5jIGRlZiBnZXRfdXBkYXRlcyhvZmZzZXQ6IGludCB8IE5vbmUgPSBOb25lLCB0aW1lb3V0OiBpbnQgPSAzMCk6CiAgICBwYXJhbXMgPSB7InRpbWVvdXQiOiB0aW1lb3V0LAogICAgICAgICAgICAgICJhbGxvd2VkX3VwZGF0ZXMiOiBbIm1lc3NhZ2UiLCAiY2FsbGJhY2tfcXVlcnkiLCAicHJlX2NoZWNrb3V0X3F1ZXJ5Il19CiAgICBpZiBvZmZzZXQgaXMgbm90IE5vbmU6CiAgICAgICAgcGFyYW1zWyJvZmZzZXQiXSA9IG9mZnNldAogICAgdXJsID0gZiJ7Y29uZmlnLlRFTEVHUkFNX0FQSX0vYm90e2NvbmZpZy5CT1RfVE9LRU59L2dldFVwZGF0ZXMiCiAgICB0cnk6CiAgICAgICAgYXN5bmMgd2l0aCBfY2xpZW50KHRpbWVvdXQgKyAxMCkgYXMgY2xpZW50OgogICAgICAgICAgICByID0gYXdhaXQgY2xpZW50LnBvc3QodXJsLCBqc29uPXBhcmFtcykKICAgICAgICAgICAgcmV0dXJuIHIuanNvbigpCiAgICBleGNlcHQgRXhjZXB0aW9uIGFzIGU6CiAgICAgICAgbG9nLmVycm9yKCJnZXRVcGRhdGVzIGZhaWxlZDogJXMiLCBlKQogICAgICAgIHJldHVybiB7Im9rIjogRmFsc2UsICJyZXN1bHQiOiBbXX0KCgpkZWYgaW5saW5lX2tleWJvYXJkKGJ1dHRvbnM6IGxpc3RbbGlzdFtkaWN0XV0pIC0+IGRpY3Q6CiAgICByZXR1cm4geyJpbmxpbmVfa2V5Ym9hcmQiOiBidXR0b25zfQoKCmRlZiB3ZWJhcHBfYnV0dG9uKHRleHQ6IHN0ciwgdXJsOiBzdHIpIC0+IGRpY3Q6CiAgICByZXR1cm4geyJ0ZXh0IjogdGV4dCwgIndlYl9hcHAiOiB7InVybCI6IHVybH19Cg==
+"""Thin async client for the Telegram Bot API (httpx, no framework)."""
+import logging
+import os
+
+import httpx
+
+from . import config
+
+log = logging.getLogger("slotbot.telegram")
+
+
+def _client(timeout: int = 15) -> httpx.AsyncClient:
+    # trust_env=False: httpx 0.28 fails parsing IPv6 entries in no_proxy;
+    # read the proxy URL explicitly instead. None -> direct connection.
+    proxy = (os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy")
+             or os.environ.get("HTTP_PROXY") or os.environ.get("http_proxy"))
+    # Egress proxy does TLS interception: use its CA bundle when present.
+    ca_bundle = (os.environ.get("SSL_CERT_FILE")
+                 or os.environ.get("REQUESTS_CA_BUNDLE"))
+    verify = ca_bundle or True
+    return httpx.AsyncClient(timeout=timeout, trust_env=False,
+                             proxy=proxy, verify=verify)
+
+
+async def api(method: str, **params):
+    url = f"{config.TELEGRAM_API}/bot{config.BOT_TOKEN}/{method}"
+    # Never log the token
+    safe = {k: ("<redacted>" if "token" in k.lower() else v) for k, v in params.items()}
+    try:
+        async with _client() as client:
+            r = await client.post(url, json=params)
+            data = r.json()
+    except Exception as e:
+        log.error("Telegram API %s failed: %s params=%s", method, e, safe)
+        return {"ok": False, "error": str(e)}
+    if not data.get("ok"):
+        log.warning("Telegram API %s error: %s params=%s",
+                    method, data.get("description"), safe)
+    return data
+
+
+async def send_message(chat_id: int, text: str, reply_markup: dict | None = None,
+                       parse_mode: str | None = None):
+    params = {"chat_id": chat_id, "text": text}
+    if reply_markup:
+        params["reply_markup"] = reply_markup
+    if parse_mode:
+        params["parse_mode"] = parse_mode
+    return await api("sendMessage", **params)
+
+
+async def answer_callback(callback_query_id: str, text: str | None = None,
+                          show_alert: bool = False):
+    params = {"callback_query_id": callback_query_id, "show_alert": show_alert}
+    if text:
+        params["text"] = text
+    return await api("answerCallbackQuery", **params)
+
+
+async def edit_message(chat_id: int, message_id: int, text: str,
+                       reply_markup: dict | None = None):
+    params = {"chat_id": chat_id, "message_id": message_id, "text": text}
+    if reply_markup is not None:
+        params["reply_markup"] = reply_markup
+    return await api("editMessageText", **params)
+
+
+async def send_invoice(chat_id: int, title: str, description: str, payload: str,
+                       amount_stars: int):
+    """Stars invoice for a digital service. provider_token empty per docs."""
+    return await api(
+        "sendInvoice",
+        chat_id=chat_id,
+        title=title,
+        description=description,
+        payload=payload,
+        currency="XTR",
+        prices=[{"label": title, "amount": amount_stars}],
+        provider_token="",
+    )
+
+
+async def answer_precheckout(pre_checkout_query_id: str, ok: bool,
+                             error_message: str | None = None):
+    params = {"pre_checkout_query_id": pre_checkout_query_id, "ok": ok}
+    if error_message:
+        params["error_message"] = error_message
+    return await api("answerPreCheckoutQuery", **params)
+
+
+async def refund_stars(user_id: int, telegram_charge_id: str):
+    return await api(
+        "refundStarPayment",
+        user_id=user_id,
+        telegram_payment_charge_id=telegram_charge_id,
+    )
+
+
+async def set_webhook():
+    url = f"{config.BASE_URL}/webhook"
+    return await api("setWebhook", url=url, secret_token=config.WEBHOOK_SECRET,
+                     allowed_updates=["message", "callback_query",
+                                      "pre_checkout_query"])
+
+
+async def delete_webhook():
+    return await api("deleteWebhook", drop_pending_updates=False)
+
+
+async def get_updates(offset: int | None = None, timeout: int = 30):
+    params = {"timeout": timeout,
+              "allowed_updates": ["message", "callback_query", "pre_checkout_query"]}
+    if offset is not None:
+        params["offset"] = offset
+    url = f"{config.TELEGRAM_API}/bot{config.BOT_TOKEN}/getUpdates"
+    try:
+        async with _client(timeout + 10) as client:
+            r = await client.post(url, json=params)
+            return r.json()
+    except Exception as e:
+        log.error("getUpdates failed: %s", e)
+        return {"ok": False, "result": []}
+
+
+def inline_keyboard(buttons: list[list[dict]]) -> dict:
+    return {"inline_keyboard": buttons}
+
+
+def webapp_button(text: str, url: str) -> dict:
+    return {"text": text, "web_app": {"url": url}}

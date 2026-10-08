@@ -1,1 +1,65 @@
-IiIiUmVtaW5kZXIgc2NoZWR1bGVyOiAyNGggKyAxaCBiZWZvcmUgZWFjaCBwYWlkIHNlc3Npb24uCgpSdW5zIGluc2lkZSB0aGUgbWFpbiBwcm9jZXNzIHZpYSBBUFNjaGVkdWxlci4gQWxzbyByZWxlYXNlcyBleHBpcmVkIGhvbGRzLgoiIiIKaW1wb3J0IGxvZ2dpbmcKZnJvbSBkYXRldGltZSBpbXBvcnQgZGF0ZXRpbWUsIHRpbWV6b25lCgpmcm9tIGFwc2NoZWR1bGVyLnNjaGVkdWxlcnMuYXN5bmNpbyBpbXBvcnQgQXN5bmNJT1NjaGVkdWxlcgpmcm9tIHpvbmVpbmZvIGltcG9ydCBab25lSW5mbwoKZnJvbSAuIGltcG9ydCBhdmFpbGFiaWxpdHkgYXMgYXYKZnJvbSAuIGltcG9ydCBkYiwgdGVsZWdyYW0gYXMgdGcKCmxvZyA9IGxvZ2dpbmcuZ2V0TG9nZ2VyKCJzbG90Ym90LnJlbWluZGVycyIpCl9zY2hlZHVsZXI6IEFzeW5jSU9TY2hlZHVsZXIgfCBOb25lID0gTm9uZQoKCmFzeW5jIGRlZiBfc2VuZF9kdWVfcmVtaW5kZXJzKCk6CiAgICAjIEhvdXNla2VlcGluZzogZnJlZSBleHBpcmVkIGhvbGRzCiAgICB0cnk6CiAgICAgICAgcmVsZWFzZWQgPSBkYi5yZWxlYXNlX2V4cGlyZWRfaG9sZHMoKQogICAgICAgIGlmIHJlbGVhc2VkOgogICAgICAgICAgICBsb2cuaW5mbygicmVsZWFzZWQgJWQgZXhwaXJlZCBob2xkcyIsIHJlbGVhc2VkKQogICAgZXhjZXB0IEV4Y2VwdGlvbjoKICAgICAgICBsb2cuZXhjZXB0aW9uKCJyZWxlYXNlX2V4cGlyZWRfaG9sZHMgZmFpbGVkIikKCiAgICBmb3IgciBpbiBkYi5kdWVfcmVtaW5kZXJzKCk6CiAgICAgICAgdHJ5OgogICAgICAgICAgICB0dXRvciA9IGRiLmdldF90dXRvcl9ieV9pZChyWyJ0dXRvcl9pZCJdKQogICAgICAgICAgICBzbG90ID0geyJzdGFydHNfYXRfdXRjIjogclsic3RhcnRzX2F0X3V0YyJdfQogICAgICAgICAgICBsYWJlbCA9IGF2LmZtdF9zbG90KHNsb3QsIHR1dG9yWyJ0aW1lem9uZSJdKQogICAgICAgICAgICB3aGVuID0gInRvbW9ycm93IiBpZiByWyJraW5kIl0gPT0gIjI0aCIgZWxzZSAiaW4gMSBob3VyIgogICAgICAgICAgICB0ZXh0ID0gKAogICAgICAgICAgICAgICAgZiLij7AgUmVtaW5kZXI6IHlvdXIgc2Vzc2lvbiBpcyB7d2hlbn0hXG5cbiIKICAgICAgICAgICAgICAgIGYi8J+RqeKAjfCfj6sgVHV0b3I6IHt0dXRvclsnbmFtZSddfVxuIgogICAgICAgICAgICAgICAgZiLwn5WQIHtsYWJlbH0gKHt0dXRvclsndGltZXpvbmUnXX0pIgogICAgICAgICAgICApCiAgICAgICAgICAgIGF3YWl0IHRnLnNlbmRfbWVzc2FnZShyWyJzdHVkZW50X3RnX2lkIl0sIHRleHQpCiAgICAgICAgICAgIHN0dWRlbnRfbmFtZSA9IGRiLmdldF9ib29raW5nKHJbImJvb2tpbmdfaWQiXSlbInN0dWRlbnRfbmFtZSJdCiAgICAgICAgICAgIGF3YWl0IHRnLnNlbmRfbWVzc2FnZSgKICAgICAgICAgICAgICAgIHR1dG9yWyJ0Z191c2VyX2lkIl0sCiAgICAgICAgICAgICAgICBmIuKPsCBSZW1pbmRlcjogc2Vzc2lvbiB7d2hlbn0gd2l0aCB7c3R1ZGVudF9uYW1lfVxu8J+VkCB7bGFiZWx9IiwKICAgICAgICAgICAgKQogICAgICAgICAgICBkYi5tYXJrX3JlbWluZGVyX3NlbnQoclsiaWQiXSkKICAgICAgICAgICAgbG9nLmluZm8oInJlbWluZGVyIHNlbnQ6IGJvb2tpbmc9JWQga2luZD0lcyIsIHJbImJvb2tpbmdfaWQiXSwgclsia2luZCJdKQogICAgICAgIGV4Y2VwdCBFeGNlcHRpb246CiAgICAgICAgICAgIGxvZy5leGNlcHRpb24oInJlbWluZGVyIGZhaWxlZDogJXMiLCByWyJpZCJdKQoKCmRlZiBzdGFydCgpOgogICAgZ2xvYmFsIF9zY2hlZHVsZXIKICAgIGlmIF9zY2hlZHVsZXI6CiAgICAgICAgcmV0dXJuCiAgICBfc2NoZWR1bGVyID0gQXN5bmNJT1NjaGVkdWxlcih0aW1lem9uZT1ab25lSW5mbygiVVRDIikpCiAgICBfc2NoZWR1bGVyLmFkZF9qb2IoX3NlbmRfZHVlX3JlbWluZGVycywgImludGVydmFsIiwgc2Vjb25kcz02MCwKICAgICAgICAgICAgICAgICAgICAgICBtYXhfaW5zdGFuY2VzPTEsIGNvYWxlc2NlPVRydWUpCiAgICBfc2NoZWR1bGVyLnN0YXJ0KCkKICAgIGxvZy5pbmZvKCJyZW1pbmRlciBzY2hlZHVsZXIgc3RhcnRlZCAoNjBzIGludGVydmFsKSIpCgoKZGVmIHN0b3AoKToKICAgIGdsb2JhbCBfc2NoZWR1bGVyCiAgICBpZiBfc2NoZWR1bGVyOgogICAgICAgIF9zY2hlZHVsZXIuc2h1dGRvd24od2FpdD1GYWxzZSkKICAgICAgICBfc2NoZWR1bGVyID0gTm9uZQo=
+"""Reminder scheduler: 24h + 1h before each paid session.
+
+Runs inside the main process via APScheduler. Also releases expired holds.
+"""
+import logging
+from datetime import datetime, timezone
+
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from zoneinfo import ZoneInfo
+
+from . import availability as av
+from . import db, telegram as tg
+
+log = logging.getLogger("slotbot.reminders")
+_scheduler: AsyncIOScheduler | None = None
+
+
+async def _send_due_reminders():
+    # Housekeeping: free expired holds
+    try:
+        released = db.release_expired_holds()
+        if released:
+            log.info("released %d expired holds", released)
+    except Exception:
+        log.exception("release_expired_holds failed")
+
+    for r in db.due_reminders():
+        try:
+            tutor = db.get_tutor_by_id(r["tutor_id"])
+            slot = {"starts_at_utc": r["starts_at_utc"]}
+            label = av.fmt_slot(slot, tutor["timezone"])
+            when = "tomorrow" if r["kind"] == "24h" else "in 1 hour"
+            text = (
+                f"⏰ Reminder: your session is {when}!\n\n"
+                f"👩‍🏫 Tutor: {tutor['name']}\n"
+                f"🕐 {label} ({tutor['timezone']})"
+            )
+            await tg.send_message(r["student_tg_id"], text)
+            student_name = db.get_booking(r["booking_id"])["student_name"]
+            await tg.send_message(
+                tutor["tg_user_id"],
+                f"⏰ Reminder: session {when} with {student_name}\n🕐 {label}",
+            )
+            db.mark_reminder_sent(r["id"])
+            log.info("reminder sent: booking=%d kind=%s", r["booking_id"], r["kind"])
+        except Exception:
+            log.exception("reminder failed: %s", r["id"])
+
+
+def start():
+    global _scheduler
+    if _scheduler:
+        return
+    _scheduler = AsyncIOScheduler(timezone=ZoneInfo("UTC"))
+    _scheduler.add_job(_send_due_reminders, "interval", seconds=60,
+                       max_instances=1, coalesce=True)
+    _scheduler.start()
+    log.info("reminder scheduler started (60s interval)")
+
+
+def stop():
+    global _scheduler
+    if _scheduler:
+        _scheduler.shutdown(wait=False)
+        _scheduler = None

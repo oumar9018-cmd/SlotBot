@@ -1,1 +1,43 @@
-IiIiU2VjdXJpdHk6IHdlYmhvb2sgc2VjcmV0IHZlcmlmaWNhdGlvbiArIE1pbmkgQXBwIGluaXREYXRhIHZhbGlkYXRpb24uIiIiCmltcG9ydCBoYXNobGliCmltcG9ydCBobWFjCmZyb20gdXJsbGliLnBhcnNlIGltcG9ydCBwYXJzZV9xc2wKCmZyb20gLiBpbXBvcnQgY29uZmlnCgoKZGVmIHZlcmlmeV93ZWJob29rX3NlY3JldChyZXF1ZXN0X2hlYWRlcnMpIC0+IGJvb2w6CiAgICAiIiJUZWxlZ3JhbSBzZW5kcyBYLVRlbGVncmFtLUJvdC1BcGktU2VjcmV0LVRva2VuIG9uIHdlYmhvb2sgY2FsbHMuIiIiCiAgICBpZiBub3QgY29uZmlnLldFQkhPT0tfU0VDUkVUOgogICAgICAgIHJldHVybiBGYWxzZQogICAgc2VudCA9IHJlcXVlc3RfaGVhZGVycy5nZXQoIngtdGVsZWdyYW0tYm90LWFwaS1zZWNyZXQtdG9rZW4iLCAiIikKICAgIHJldHVybiBobWFjLmNvbXBhcmVfZGlnZXN0KHNlbnQsIGNvbmZpZy5XRUJIT09LX1NFQ1JFVCkKCgpkZWYgdmFsaWRhdGVfaW5pdF9kYXRhKGluaXRfZGF0YTogc3RyKSAtPiBkaWN0IHwgTm9uZToKICAgICIiIlZhbGlkYXRlIFRlbGVncmFtIE1pbmkgQXBwIGluaXREYXRhLiBSZXR1cm5zIHBhcnNlZCB1c2VyIGRpY3Qgb3IgTm9uZS4KCiAgICBBbGdvcml0aG0gKHBlciBUZWxlZ3JhbSBkb2NzKTogc29ydCBhbGwga2V5PTx2YWx1ZT4gcGFpcnMgZXhjZXB0IGBoYXNoYAogICAgam9pbmVkIGJ5IG5ld2xpbmUgLT4gZGF0YV9jaGVja19zdHJpbmcuIHNlY3JldF9rZXkgPSBITUFDX1NIQTI1Nihib3RfdG9rZW4sCiAgICBrZXk9IldlYkFwcERhdGEiKS4gQ29tcGFyZSBITUFDX1NIQTI1NihkYXRhX2NoZWNrX3N0cmluZywgc2VjcmV0X2tleSkKICAgIGhleCBkaWdlc3Qgd2l0aCBgaGFzaGAgdXNpbmcgY29tcGFyZV9kaWdlc3QuCiAgICAiIiIKICAgIHRyeToKICAgICAgICBwYWlycyA9IGRpY3QocGFyc2VfcXNsKGluaXRfZGF0YSwga2VlcF9ibGFua192YWx1ZXM9VHJ1ZSkpCiAgICAgICAgcmVjZWl2ZWRfaGFzaCA9IHBhaXJzLnBvcCgiaGFzaCIsIE5vbmUpCiAgICAgICAgaWYgbm90IHJlY2VpdmVkX2hhc2g6CiAgICAgICAgICAgIHJldHVybiBOb25lCiAgICAgICAgZGF0YV9jaGVja19zdHJpbmcgPSAiXG4iLmpvaW4oZiJ7a309e3Z9IiBmb3IgaywgdiBpbiBzb3J0ZWQocGFpcnMuaXRlbXMoKSkpCiAgICAgICAgc2VjcmV0X2tleSA9IGhtYWMubmV3KAogICAgICAgICAgICBiIldlYkFwcERhdGEiLCBjb25maWcuQk9UX1RPS0VOLmVuY29kZSgpLCBoYXNobGliLnNoYTI1NgogICAgICAgICkuZGlnZXN0KCkKICAgICAgICBjYWxjID0gaG1hYy5uZXcoCiAgICAgICAgICAgIHNlY3JldF9rZXksIGRhdGFfY2hlY2tfc3RyaW5nLmVuY29kZSgpLCBoYXNobGliLnNoYTI1NgogICAgICAgICkuaGV4ZGlnZXN0KCkKICAgICAgICBpZiBub3QgaG1hYy5jb21wYXJlX2RpZ2VzdChjYWxjLCByZWNlaXZlZF9oYXNoKToKICAgICAgICAgICAgcmV0dXJuIE5vbmUKICAgICAgICBpbXBvcnQganNvbgogICAgICAgIHVzZXIgPSBqc29uLmxvYWRzKHBhaXJzLmdldCgidXNlciIsICJ7fSIpKQogICAgICAgIHJldHVybiB1c2VyIGlmIHVzZXIuZ2V0KCJpZCIpIGVsc2UgTm9uZQogICAgZXhjZXB0IEV4Y2VwdGlvbjoKICAgICAgICByZXR1cm4gTm9uZQo=
+"""Security: webhook secret verification + Mini App initData validation."""
+import hashlib
+import hmac
+from urllib.parse import parse_qsl
+
+from . import config
+
+
+def verify_webhook_secret(request_headers) -> bool:
+    """Telegram sends X-Telegram-Bot-Api-Secret-Token on webhook calls."""
+    if not config.WEBHOOK_SECRET:
+        return False
+    sent = request_headers.get("x-telegram-bot-api-secret-token", "")
+    return hmac.compare_digest(sent, config.WEBHOOK_SECRET)
+
+
+def validate_init_data(init_data: str) -> dict | None:
+    """Validate Telegram Mini App initData. Returns parsed user dict or None.
+
+    Algorithm (per Telegram docs): sort all key=<value> pairs except `hash`
+    joined by newline -> data_check_string. secret_key = HMAC_SHA256(bot_token,
+    key="WebAppData"). Compare HMAC_SHA256(data_check_string, secret_key)
+    hex digest with `hash` using compare_digest.
+    """
+    try:
+        pairs = dict(parse_qsl(init_data, keep_blank_values=True))
+        received_hash = pairs.pop("hash", None)
+        if not received_hash:
+            return None
+        data_check_string = "\n".join(f"{k}={v}" for k, v in sorted(pairs.items()))
+        secret_key = hmac.new(
+            b"WebAppData", config.BOT_TOKEN.encode(), hashlib.sha256
+        ).digest()
+        calc = hmac.new(
+            secret_key, data_check_string.encode(), hashlib.sha256
+        ).hexdigest()
+        if not hmac.compare_digest(calc, received_hash):
+            return None
+        import json
+        user = json.loads(pairs.get("user", "{}"))
+        return user if user.get("id") else None
+    except Exception:
+        return None
