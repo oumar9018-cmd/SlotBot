@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Set up your booking page — SlotTutor</title>
+<meta name="description" content="Create your SlotTutor booking page in a few steps.">
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/svg+xml" href="./assets/logo.svg">
+<link rel="stylesheet" href="./assets/style.css">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDJc3nU26V8Has-Hug3b3emFaXPja_hg5c",
+  authDomain: "slotbot-9d27f.firebaseapp.com",
+  projectId: "slotbot-9d27f",
+  storageBucket: "slotbot-9d27f.firebasestorage.app",
+  messagingSenderId: "552109197539",
+  appId: "1:552109197539:web:ff2c1efd9d3a730e9f9dd6"
+};
+let fbAuth = null, fbDb = null;
+try {
+  firebase.initializeApp(firebaseConfig);
+  fbAuth = firebase.auth();
+  fbDb = firebase.firestore();
+} catch(e){ console.warn("Firebase init failed:", e.message); }
+</script>
+<style>
+  @keyframes wizUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .wiz-wrap { min-height: 100vh; padding: 26px 16px 90px; }
+  .wiz-top { max-width: 680px; margin: 0 auto 18px; display: flex; align-items: center; justify-content: space-between; }
+  .wiz-top .logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 19px; color: var(--ink); }
+  .wiz-top .logo img { width: 32px; height: 32px; }
+  .wiz-card { max-width: 680px; margin: 0 auto; padding: 32px 30px; }
+  .steps { display: flex; gap: 4px; margin-bottom: 26px; overflow-x: auto; padding-bottom: 4px; }
+  .step-it { flex: 1; min-width: 64px; text-align: center; position: relative; }
+  .step-it .dot { width: 30px; height: 30px; border-radius: 50%; margin: 0 auto 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800; color: var(--ink2);
+    background: rgba(255,255,255,.6); border: 1px solid rgba(0,0,0,.1); transition: all .2s; }
+  .step-it .lb { font-size: 10.5px; font-weight: 600; color: var(--ink2); white-space: nowrap; }
+  .step-it.done .dot { background: rgba(52,199,89,.18); border-color: rgba(52,199,89,.5); color: #15803d; }
+  .step-it.cur .dot { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none;
+    box-shadow: 0 4px 14px rgba(36,129,204,.4); }
+  .step-it.cur .lb { color: var(--ink); }
+  .wstep { display: none; }
+  .wstep.on { display: block; animation: wizUp .25s ease; }
+  .wstep h2 { font-size: 22px; font-weight: 800; letter-spacing: -.5px; margin-bottom: 6px; }
+  .wstep .wsub { color: var(--ink2); font-size: 14px; margin-bottom: 22px; }
+  .wiz-nav { display: flex; gap: 12px; margin-top: 28px; }
+  .wiz-nav .sp { flex: 1; }
+  .photo-row { display: flex; gap: 16px; align-items: center; margin-bottom: 16px; }
+  .photo-preview { width: 76px; height: 76px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
+    background: linear-gradient(135deg, rgba(36,129,204,.15), rgba(123,97,255,.15));
+    border: 1px solid var(--glass-brd); display: none; }
+  .photo-preview.show { display: block; }
+  .photo-fallback { width: 76px; height: 76px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff;
+    font-weight: 800; font-size: 26px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; min-height: 8px; }
+  .tag { display: inline-flex; align-items: center; gap: 8px; padding: 8px 8px 8px 14px;
+    background: rgba(36,129,204,.1); border: 1px solid rgba(36,129,204,.25);
+    border-radius: 20px; font-size: 14px; font-weight: 600; }
+  .tag button { border: none; background: rgba(0,0,0,.08); width: 20px; height: 20px; border-radius: 50%;
+    cursor: pointer; font-size: 12px; line-height: 1; color: var(--ink2); }
+  .tag-input-row { display: flex; gap: 10px; }
+  .tag-input-row input { flex: 1; }
+  .hint { font-size: 12.5px; color: var(--ink2); margin-top: 8px; }
+  .err { display: none; font-size: 13px; color: #c62828; background: rgba(255,59,48,.08);
+    border-radius: 10px; padding: 10px 14px; margin-top: 14px; }
+  .err.show { display: block; }
+  .prev-card { padding: 26px; }
+  .prev-head { display: flex; gap: 16px; align-items: center; margin-bottom: 16px; }
+  .prev-head img, .prev-head .photo-fallback { width: 64px; height: 64px; font-size: 22px; }
+  .prev-head img { border-radius: 50%; object-fit: cover; }
+  .prev-head h3 { font-size: 19px; font-weight: 800; }
+  .prev-head .meta { font-size: 13px; color: var(--ink2); margin-top: 4px; }
+  .prev-subj { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+  .prev-subj span { font-size: 12.5px; font-weight: 700; padding: 6px 12px; border-radius: 14px;
+    background: rgba(123,97,255,.12); color: var(--accent2); }
+  .prev-row { display: flex; justify-content: space-between; font-size: 14px; padding: 9px 0;
+    border-bottom: 1px solid rgba(0,0,0,.06); }
+  .prev-row:last-child { border: none; }
+  .prev-row b { font-weight: 700; }
+  .prev-row span { color: var(--ink2); text-align: right; }
+  .prev-bio { font-size: 14px; color: #2e2e34; background: rgba(255,255,255,.5);
+    border-radius: 12px; padding: 14px 16px; margin: 12px 0; }
+  .slug-row { display: flex; gap: 10px; }
+  .slug-row input { flex: 1; font-family: monospace; }
+  .url-preview { font-size: 13px; color: var(--accent); background: rgba(36,129,204,.08);
+    padding: 12px 14px; border-radius: 12px; margin-top: 12px; word-break: break-all; }
+  .success-check { width: 72px; height: 72px; border-radius: 50%; margin: 6px auto 18px;
+    background: linear-gradient(135deg, #34c759, #2481cc);
+    display: flex; align-items: center; justify-content: center; }
+  .success-check svg { width: 36px; height: 36px; stroke: #fff; fill: none; stroke-width: 3;
+    stroke-linecap: round; stroke-linejoin: round; }
+  .center { text-align: center; }
+  .share-row { display: flex; gap: 10px; margin-top: 16px; }
+  .share-row .btn { flex: 1; }
+  #loading { min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    color: var(--ink2); font-weight: 600; }
+  .spin { width: 34px; height: 34px; border-radius: 50%; border: 3px solid rgba(36,129,204,.2);
+    border-top-color: var(--accent); animation: spin 0.8s linear infinite; margin-right: 12px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (max-width: 560px) {
+    .wiz-card { padding: 24px 20px; }
+    .step-it .lb { display: none; }
+    .step-it { min-width: 34px; }
+    .slug-row { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<div id="loading"><div class="spin"></div>Loading…</div>
+
+<div class="wiz-wrap" id="wizard" style="display:none">
+  <div class="wiz-top">
+    <a class="logo" href="./"><img src="./assets/logo.svg" alt="SlotTutor">SlotTutor</a>
+    <span style="font-size:13px;color:var(--ink2);font-weight:600" id="step-count"></span>
+  </div>
+
+  <!-- Already onboarded -->
+  <div class="glass wiz-card center" id="already" style="display:none">
+    <div class="success-check"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div>
+    <h2 style="font-size:22px;font-weight:800;margin-bottom:8px">You're all set up!</h2>
+    <p style="color:var(--ink2);font-size:15px;margin-bottom:24px">Your booking page is already live.</p>
+    <div class="wiz-nav" style="margin-top:0">
+      <a class="btn btn-p" href="./app.html" style="flex:1">Go to dashboard</a>
+      <button class="btn btn-ghost" id="edit-setup" style="flex:1">Edit my setup</button>
+    </div>
+  </div>
+
+  <!-- Wizard -->
+  <div class="glass wiz-card" id="wizcard" style="display:none">
+    <div class="steps" id="steps"></div>
+
+    <!-- STEP 1: Profile -->
+    <div class="wstep" data-s="1">
+      <h2>Your profile</h2>
+      <p class="wsub">Students see this on your public booking page.</p>
+      <div class="photo-row">
+        <img id="photo-preview" class="photo-preview" alt="Profile photo preview">
+        <div class="photo-fallback" id="photo-fallback">?</div>
+        <div class="field" style="flex:1;margin:0"><label>Photo URL (optional)</label>
+          <input id="f-photo" type="url" placeholder="https://…"></div>
+      </div>
+      <div class="field"><label>Display name *</label>
+        <input id="f-name" placeholder="e.g. Priya Sharma" maxlength="60"></div>
+      <div class="field"><label>Short intro / bio</label>
+        <textarea id="f-bio" rows="3" maxlength="500" placeholder="e.g. IIT graduate, 6 years teaching Maths for JEE. I make concepts click with real-world examples."></textarea></div>
+      <div class="field"><label>Experience (years)</label>
+        <input id="f-exp" type="number" min="0" max="60" placeholder="e.g. 5"></div>
+      <div class="err" id="e1"></div>
+    </div>
+
+    <!-- STEP 2: Subjects -->
+    <div class="wstep" data-s="2">
+      <h2>Subjects you teach</h2>
+      <p class="wsub">Add at least one. Students find you by subject.</p>
+      <div class="field"><label>Subjects *</label>
+        <div class="tags" id="subj-tags"></div>
+        <div class="tag-input-row">
+          <input id="f-subj-input" placeholder="e.g. Maths" maxlength="40">
+          <button class="btn btn-ghost btn-sm" id="subj-add" type="button">Add</button>
+        </div>
+        <p class="hint">Press Enter or click Add after each subject.</p>
+      </div>
+      <div class="err" id="e2"></div>
+    </div>
+
+    <!-- STEP 3: Pricing -->
+    <div class="wstep" data-s="3">
+      <h2>Pricing &amp; sessions</h2>
+      <p class="wsub">Set what students pay per session.</p>
+      <div class="timerow">
+        <div class="field"><label>Price per session *</label>
+          <input id="f-price" type="number" min="1" step="1" placeholder="499"></div>
+        <div class="field"><label>Currency</label>
+          <select id="f-cur"><option value="INR">INR (₹)</option><option value="USD">USD ($)</option></select></div>
+      </div>
+      <div class="timerow">
+        <div class="field"><label>Session duration</label>
+          <select id="f-dur"><option value="30">30 minutes</option><option value="45">45 minutes</option><option value="60" selected>60 minutes</option></select></div>
+        <div class="field"><label>Timezone</label>
+          <select id="f-tz">
+            <option value="Asia/Kolkata" selected>Asia/Kolkata (IST)</option>
+            <option value="Asia/Dubai">Asia/Dubai (GST)</option>
+            <option value="Asia/Singapore">Asia/Singapore (SGT)</option>
+            <option value="Europe/London">Europe/London (GMT/BST)</option>
+            <option value="America/New_York">America/New_York (ET)</option>
+            <option value="America/Los_Angeles">America/Los_Angeles (PT)</option>
+            <option value="Australia/Sydney">Australia/Sydney (AET)</option>
+            <option value="UTC">UTC</option>
+          </select></div>
+      </div>
+      <div class="err" id="e3"></div>
+    </div>
+
+    <!-- STEP 4: Availability -->
+    <div class="wstep" data-s="4">
+      <h2>Your availability</h2>
+      <p class="wsub">Students can only book inside these hours. Slots generate automatically.</p>
+      <div class="field"><label>Working days *</label><div class="days" id="days"></div></div>
+      <div class="timerow">
+        <div class="field"><label>Start time</label><input type="time" id="f-start" value="09:00"></div>
+        <div class="field"><label>End time</label><input type="time" id="f-end" value="17:00"></div>
+      </div>
+      <div class="err" id="e4"></div>
+    </div>
+
+    <!-- STEP 5: Meeting -->
+    <div class="wstep" data-s="5">
+      <h2>How classes happen</h2>
+      <p class="wsub">Students get these instructions after booking.</p>
+      <div class="field"><label>Meeting method</label>
+        <select id="f-meet">
+          <option>Google Meet</option><option>Zoom</option>
+          <option>WhatsApp Video</option><option>Custom link</option>
+        </select></div>
+      <div class="field"><label id="meet-link-label">Meeting link / instructions</label>
+        <input id="f-meetlink" placeholder="e.g. Link will be shared on WhatsApp before class"></div>
+      <div class="err" id="e5"></div>
+    </div>
+
+    <!-- STEP 6: Policies -->
+    <div class="wstep" data-s="6">
+      <h2>Booking policies</h2>
+      <p class="wsub">Clear rules mean fewer no-shows and disputes.</p>
+      <div class="timerow">
+        <div class="field"><label>Booking notice (hours)</label>
+          <input id="f-notice" type="number" min="0" max="720" value="2">
+          <p class="hint">Students must book at least this far ahead.</p></div>
+        <div class="field"><label>Buffer between classes (min)</label>
+          <input id="f-buffer" type="number" min="0" max="120" value="0"></div>
+      </div>
+      <div class="field"><label>Cancellation policy</label>
+        <select id="f-cancel">
+          <option value="Flexible 24h">Flexible — free cancellation up to 24h before</option>
+          <option value="Moderate 12h">Moderate — free cancellation up to 12h before</option>
+          <option value="Strict 4h">Strict — free cancellation up to 4h before</option>
+        </select></div>
+      <div class="err" id="e6"></div>
+    </div>
+
+    <!-- STEP 7: Preview -->
+    <div class="wstep" data-s="7">
+      <h2>Preview your page</h2>
+      <p class="wsub">This is what students will see.</p>
+      <div class="glass prev-card" id="preview-card"></div>
+      <div class="err" id="e7"></div>
+    </div>
+
+    <!-- STEP 8: Publish -->
+    <div class="wstep" data-s="8" id="publish-step">
+      <h2>Publish your booking page</h2>
+      <p class="wsub">Choose your unique page address. You can change it later in Settings.</p>
+      <div class="field"><label>Page address (username)</label>
+        <div class="slug-row">
+          <input id="f-slug" maxlength="40" placeholder="priya-sharma">
+          <button class="btn btn-ghost btn-sm" id="slug-check" type="button">Check</button>
+        </div>
+        <div class="url-preview" id="url-preview"></div>
+      </div>
+      <div class="err" id="e8"></div>
+    </div>
+
+    <!-- SUCCESS -->
+    <div class="wstep center" data-s="9" id="success-step">
+      <div class="success-check"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div>
+      <h2>You're live! 🎉</h2>
+      <p class="wsub" style="margin-bottom:8px">Your booking page is published. Share it everywhere.</p>
+      <div class="url-preview" id="final-url" style="font-size:15px;font-weight:700"></div>
+      <div class="share-row">
+        <button class="btn btn-p" id="copy-link">Copy link</button>
+        <button class="btn btn-ghost" id="wa-share">WhatsApp</button>
+      </div>
+      <div style="margin-top:22px"><a class="btn btn-ghost btn-block" href="./app.html">Go to dashboard</a></div>
+    </div>
+
+    <div class="wiz-nav" id="wiz-nav">
+      <button class="btn btn-ghost" id="btn-back">← Back</button>
+      <div class="sp"></div>
+      <button class="btn btn-p" id="btn-next">Save &amp; continue →</button>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("show"),2400);}
+function showErr(n,m){const e=$("e"+n);e.textContent=m;e.classList.add("show");}
+function hideErr(n){$("e"+n).classList.remove("show");}
+
+const STEP_LABELS = ["Profile","Subjects","Pricing","Availability","Meeting","Policies","Preview","Publish"];
+const TOTAL = 8;
+const DN = ["M","T","W","T","F","S","S"];
+const DFULL = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const CUR_SYM = { INR:"₹", USD:"$" };
+
+let uid = null, step = 1;
+let tutorRef = null, availRef = null;
+let existingDoc = null;
+
+/* ---------- auth guard ---------- */
+fbAuth.onAuthStateChanged(async user => {
+  if(!user){ location.href="./login.html"; return; }
+  uid = user.uid;
+  tutorRef = fbDb.collection("tutors").doc(uid);
+  availRef = tutorRef.collection("availability").doc("default");
+  await loadExisting();
+  $("loading").style.display = "none";
+  $("wizard").style.display = "block";
+  if(isOnboarded(existingDoc)){
+    $("already").style.display = "block";
+  } else {
+    $("wizcard").style.display = "block";
+    step = clampStep(existingDoc && existingDoc.onboardingStep);
+    renderSteps(); showStep(step);
+  }
+});
+
+function clampStep(s){ s = parseInt(s)||1; return Math.min(Math.max(s,1), TOTAL); }
+
+function isOnboarded(d){
+  if(!d) return false;
+  if(d.onboardingComplete === true) return true;
+  const hasSubj = Array.isArray(d.subjects) ? d.subjects.length>0 : !!String(d.subjects||"").trim();
+  return hasSubj && !!d.pricePerSession;
+}
+
+$("edit-setup").onclick = ()=>{ $("already").style.display="none"; $("wizcard").style.display="block"; step=1; renderSteps(); showStep(1); };
+
+/* ---------- load existing data into form ---------- */
+async function loadExisting(){
+  try{
+    const snap = await tutorRef.get();
+    existingDoc = snap.exists ? snap.data() : null;
+    if(!snap.exists){
+      await tutorRef.set({ email: fbAuth.currentUser.email||"", isActive:false,
+        plan:"trial", trialExpired:false, onboardingStep:1,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, {merge:true});
+      existingDoc = {};
+    }
+    const d = existingDoc;
+    $("f-name").value = d.displayName || fbAuth.currentUser.displayName || "";
+    $("f-photo").value = d.photoURL || fbAuth.currentUser.photoURL || "";
+    $("f-bio").value = d.bio || "";
+    $("f-exp").value = (d.experienceYears ?? "") === "" ? "" : d.experienceYears;
+    setSubjects(Array.isArray(d.subjects) ? d.subjects : (d.subjects ? [d.subjects] : []));
+    $("f-price").value = d.pricePerSession || "";
+    $("f-cur").value = d.currency || "INR";
+    $("f-tz").value = d.timezone || "Asia/Kolkata";
+    $("f-meet").value = d.meetingMethod || "Google Meet";
+    $("f-meetlink").value = d.meetingLink || "";
+    $("f-notice").value = d.bookingNoticeHours ?? 2;
+    $("f-cancel").value = d.cancellationPolicy || "Flexible 24h";
+    $("f-buffer").value = d.bufferMinutes ?? 0;
+    const baseSlug = slugify($("f-name").value) || "tutor";
+    $("f-slug").value = d.bookingSlug || baseSlug;
+    try{
+      const av = await availRef.get();
+      const a = av.exists ? av.data() : {};
+      state.days = new Set(a.workingDays || [0,1,2,3,4]);
+      $("f-start").value = a.startTime || "09:00";
+      $("f-end").value = a.endTime || "17:00";
+      $("f-dur").value = String(a.slotDurationMin || d.sessionDurationMin || 60);
+    }catch(e){ state.days = new Set([0,1,2,3,4]); }
+    renderDays(); updatePhotoPreview(); updateUrlPreview();
+  }catch(e){ toast("Couldn't load your data: "+e.message); }
+}
+
+/* ---------- state ---------- */
+const state = { days: new Set([0,1,2,3,4]), subjects: [] };
+
+/* ---------- stepper ---------- */
+function renderSteps(){
+  const w = $("steps"); w.innerHTML = "";
+  STEP_LABELS.forEach((lb,i)=>{
+    const n = i+1;
+    const cls = n < step ? "done" : (n === step ? "cur" : "");
+    const dot = n < step ? "✓" : n;
+    w.innerHTML += '<div class="step-it '+cls+'"><div class="dot">'+dot+'</div><div class="lb">'+lb+'</div></div>';
+  });
+  $("step-count").textContent = "Step "+step+" of "+TOTAL;
+}
+function showStep(n){
+  step = n;
+  document.querySelectorAll(".wstep").forEach(el=>{
+    el.classList.toggle("on", parseInt(el.dataset.s) === n);
+  });
+  $("btn-back").style.visibility = n===1 ? "hidden" : "visible";
+  $("btn-next").style.display = n===TOTAL ? "none" : "";
+  $("wiz-nav").style.display = (n===TOTAL || n===9) ? (n===TOTAL ? "" : "none") : "";
+  if(n===TOTAL){ $("btn-next").style.display="none"; ensurePublishBtn(); }
+  else { removePublishBtn(); }
+  if(n===7) renderPreview();
+  renderSteps();
+  window.scrollTo(0,0);
+}
+
+/* publish button lives only on step 8 */
+function ensurePublishBtn(){
+  if($("btn-publish")) return;
+  const b = document.createElement("button");
+  b.className = "btn btn-p"; b.id = "btn-publish"; b.textContent = "Publish my page 🚀";
+  b.onclick = publish;
+  $("wiz-nav").appendChild(b);
+}
+function removePublishBtn(){ const b=$("btn-publish"); if(b) b.remove(); }
+
+$("btn-back").onclick = ()=>{ if(step>1) showStep(step-1); };
+$("btn-next").onclick = async ()=>{ await nextStep(); };
+
+/* ---------- subjects tags ---------- */
+function setSubjects(arr){ state.subjects = arr.filter(s=>s && s.trim()).map(s=>s.trim()); renderTags(); }
+function renderTags(){
+  const w = $("subj-tags"); w.innerHTML = "";
+  state.subjects.forEach((s,i)=>{
+    const t = document.createElement("span"); t.className = "tag";
+    t.innerHTML = '<span></span><button type="button" aria-label="Remove">×</button>';
+    t.querySelector("span").textContent = s;
+    t.querySelector("button").onclick = ()=>{ state.subjects.splice(i,1); renderTags(); };
+    w.appendChild(t);
+  });
+}
+function addSubject(){
+  const v = $("f-subj-input").value.trim().replace(/,+$/,"");
+  if(!v) return;
+  if(state.subjects.some(s=>s.toLowerCase()===v.toLowerCase())){ toast("Already added"); return; }
+  if(state.subjects.length >= 12){ toast("Max 12 subjects"); return; }
+  state.subjects.push(v); $("f-subj-input").value = ""; renderTags();
+}
+$("subj-add").onclick = addSubject;
+$("f-subj-input").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); addSubject(); } });
+
+/* ---------- photo preview ---------- */
+function updatePhotoPreview(){
+  const url = $("f-photo").value.trim();
+  const img = $("photo-preview"), fb = $("photo-fallback");
+  const name = $("f-name").value.trim();
+  fb.textContent = (name[0]||"?").toUpperCase();
+  if(url){ img.src = url; img.classList.add("show"); fb.style.display="none";
+    img.onerror = ()=>{ img.classList.remove("show"); fb.style.display="flex"; };
+  } else { img.classList.remove("show"); fb.style.display="flex"; }
+}
+$("f-photo").addEventListener("input", updatePhotoPreview);
+$("f-name").addEventListener("input", ()=>{ updatePhotoPreview(); updateUrlPreview(); });
+
+/* ---------- availability days ---------- */
+function renderDays(){
+  const w = $("days"); w.innerHTML = "";
+  DN.forEach((d,i)=>{
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "day"+(state.days.has(i)?" on":"");
+    b.textContent = d; b.title = DFULL[i];
+    b.onclick = ()=>{ state.days.has(i) ? state.days.delete(i) : state.days.add(i); renderDays(); };
+    w.appendChild(b);
+  });
+}
+
+/* ---------- meeting method ---------- */
+$("f-meet").addEventListener("change", ()=>{
+  const custom = $("f-meet").value === "Custom link";
+  $("meet-link-label").textContent = custom ? "Your booking link / instructions *" : "Meeting link / instructions";
+  $("f-meetlink").placeholder = custom ? "e.g. https://meet.google.com/abc-defg-hij" : "e.g. Link will be shared on WhatsApp before class";
+});
+
+/* ---------- slug ---------- */
+function slugify(s){
+  return (s||"").toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,40);
+}
+function updateUrlPreview(){
+  let s = slugify($("f-slug").value) || "your-name";
+  $("url-preview").textContent = "https://slottutor.io/b/" + s;
+}
+$("f-slug").addEventListener("input", updateUrlPreview);
+$("slug-check").onclick = async ()=>{
+  const s = slugify($("f-slug").value);
+  if(!s){ toast("Enter a page address first"); return; }
+  toast("Checking…");
+  const free = await slugAvailable(s);
+  toast(free ? "✓ Available!" : "✗ Taken — try another");
+};
+async function slugAvailable(slug){
+  const q = await fbDb.collection("tutors").where("bookingSlug","==",slug).limit(2).get();
+  return !q.docs.some(d => d.id !== uid);
+}
+async function uniqueSlug(base){
+  let slug = base, n = 2;
+  while(!(await slugAvailable(slug))){ slug = base + "-" + (n++); if(n>50) break; }
+  return slug;
+}
+
+/* ---------- validation ---------- */
+function validate(n){
+  hideErr(n);
+  if(n===1){
+    const v = $("f-name").value.trim();
+    if(v.length < 2){ showErr(1,"Please enter your display name (min 2 characters)."); return false; }
+  }
+  if(n===2){
+    if(!state.subjects.length){ showErr(2,"Add at least one subject."); return false; }
+  }
+  if(n===3){
+    const p = parseFloat($("f-price").value);
+    if(!(p >= 1)){ showErr(3,"Price must be at least 1."); return false; }
+  }
+  if(n===4){
+    if(!state.days.size){ showErr(4,"Select at least one working day."); return false; }
+    const s = $("f-start").value, e = $("f-end").value;
+    if(!s || !e){ showErr(4,"Set both start and end time."); return false; }
+    if(e <= s){ showErr(4,"End time must be after start time."); return false; }
+  }
+  if(n===5){
+    if($("f-meet").value==="Custom link" && !$("f-meetlink").value.trim()){
+      showErr(5,"Please add your meeting link or instructions."); return false;
+    }
+  }
+  if(n===6){
+    const nh = parseFloat($("f-notice").value), bf = parseFloat($("f-buffer").value);
+    if(!(nh >= 0)){ showErr(6,"Notice hours can't be negative."); return false; }
+    if(!(bf >= 0)){ showErr(6,"Buffer can't be negative."); return false; }
+  }
+  return true;
+}
+
+/* ---------- per-step save (merge) ---------- */
+const TS = ()=>firebase.firestore.FieldValue.serverTimestamp();
+async function saveStep(n){
+  const tutorData = { onboardingStep: Math.min(n+1, TOTAL), updatedAt: TS() };
+  let availData = null;
+  if(n===1) Object.assign(tutorData, {
+    displayName: $("f-name").value.trim(),
+    photoURL: $("f-photo").value.trim(),
+    bio: $("f-bio").value.trim(),
+    experienceYears: $("f-exp").value === "" ? null : Math.max(0, parseInt($("f-exp").value)||0)
+  });
+  if(n===2) tutorData.subjects = [...state.subjects];
+  if(n===3) Object.assign(tutorData, {
+    pricePerSession: Math.max(1, parseFloat($("f-price").value)||1),
+    currency: $("f-cur").value, timezone: $("f-tz").value,
+    sessionDurationMin: parseInt($("f-dur").value)||60
+  });
+  if(n===4) availData = {
+    workingDays: [...state.days].sort((a,b)=>a-b),
+    startTime: $("f-start").value, endTime: $("f-end").value,
+    slotDurationMin: parseInt($("f-dur").value)||60
+  };
+  if(n===5) Object.assign(tutorData, {
+    meetingMethod: $("f-meet").value, meetingLink: $("f-meetlink").value.trim()
+  });
+  if(n===6) Object.assign(tutorData, {
+    bookingNoticeHours: Math.max(0, parseFloat($("f-notice").value)||0),
+    cancellationPolicy: $("f-cancel").value,
+    bufferMinutes: Math.max(0, parseInt($("f-buffer").value)||0)
+  });
+  await tutorRef.set(tutorData, {merge:true});
+  if(availData) await availRef.set(Object.assign(availData,{updatedAt:TS()}), {merge:true});
+}
+
+async function nextStep(){
+  if(!validate(step)) return;
+  const btn = $("btn-next"); btn.disabled = true; btn.textContent = "Saving…";
+  try{ await saveStep(step); showStep(step+1); }
+  catch(e){ toast("Save failed: "+e.message); }
+  btn.disabled = false; btn.innerHTML = "Save &amp; continue →";
+}
+
+/* ---------- preview ---------- */
+function curSym(){ return CUR_SYM[$("f-cur").value] || $("f-cur").value; }
+function renderPreview(){
+  const name = $("f-name").value.trim() || "Your Name";
+  const photo = $("f-photo").value.trim();
+  const avHtml = photo
+    ? '<img src="'+photo.replace(/"/g,"")+'" alt="" onerror="this.style.display=\'none\'">'
+    : '<div class="photo-fallback">'+((name[0]||"?").toUpperCase())+'</div>';
+  const subj = state.subjects.map(s=>'<span></span>').join("");
+  const days = [...state.days].sort((a,b)=>a-b).map(i=>DFULL[i]).join(", ") || "—";
+  const exp = $("f-exp").value !== "" ? parseInt($("f-exp").value)+" yrs experience" : "Experience not set";
+  const bio = $("f-bio").value.trim();
+  $("preview-card").innerHTML =
+    '<div class="prev-head">'+avHtml+'<div><h3></h3><div class="meta"></div></div></div>'+
+    (bio ? '<div class="prev-bio"></div>' : "")+
+    '<div class="prev-subj">'+subj+'</div>'+
+    '<div class="prev-row"><b>Price</b><span></span></div>'+
+    '<div class="prev-row"><b>Available</b><span></span></div>'+
+    '<div class="prev-row"><b>Class via</b><span></span></div>'+
+    '<div class="prev-row"><b>Cancellation</b><span></span></div>';
+  const c = $("preview-card");
+  c.querySelector("h3").textContent = name;
+  c.querySelector(".meta").textContent = exp + " · " + $("f-tz").value;
+  if(bio) c.querySelector(".prev-bio").textContent = bio;
+  c.querySelectorAll(".prev-subj span").forEach((el,i)=> el.textContent = state.subjects[i]);
+  const rows = c.querySelectorAll(".prev-row span");
+  rows[0].textContent = curSym()+parseFloat($("f-price").value||0).toLocaleString("en-IN")+" / "+$("f-dur").value+" min";
+  rows[1].textContent = days+" · "+$("f-start").value+"–"+$("f-end").value;
+  rows[2].textContent = $("f-meet").value;
+  rows[3].textContent = $("f-cancel").value;
+}
+
+/* ---------- publish ---------- */
+async function publish(){
+  hideErr(8);
+  // full re-validation
+  for(let n=1;n<=6;n++){ if(!validate(n)){ showStep(n); toast("Please fix step "+n+" first"); return; } }
+  let slug = slugify($("f-slug").value);
+  if(slug.length < 3){ showErr(8,"Page address must be at least 3 characters."); return; }
+  const btn = $("btn-publish"); btn.disabled = true; btn.textContent = "Publishing…";
+  try{
+    slug = await uniqueSlug(slug);
+    $("f-slug").value = slug; updateUrlPreview();
+    const tutorData = {
+      displayName: $("f-name").value.trim(),
+      photoURL: $("f-photo").value.trim(),
+      bio: $("f-bio").value.trim(),
+      experienceYears: $("f-exp").value === "" ? null : Math.max(0, parseInt($("f-exp").value)||0),
+      subjects: [...state.subjects],
+      pricePerSession: Math.max(1, parseFloat($("f-price").value)||1),
+      currency: $("f-cur").value, timezone: $("f-tz").value,
+      sessionDurationMin: parseInt($("f-dur").value)||60,
+      meetingMethod: $("f-meet").value, meetingLink: $("f-meetlink").value.trim(),
+      bookingNoticeHours: Math.max(0, parseFloat($("f-notice").value)||0),
+      cancellationPolicy: $("f-cancel").value,
+      bufferMinutes: Math.max(0, parseInt($("f-buffer").value)||0),
+      bookingSlug: slug, isActive: true,
+      onboardingComplete: true, onboardingStep: TOTAL,
+      updatedAt: TS()
+    };
+    await tutorRef.set(tutorData, {merge:true});
+    await availRef.set({
+      workingDays: [...state.days].sort((a,b)=>a-b),
+      startTime: $("f-start").value, endTime: $("f-end").value,
+      slotDurationMin: parseInt($("f-dur").value)||60,
+      updatedAt: TS()
+    }, {merge:true});
+    const url = "https://slottutor.io/b/" + slug;
+    $("final-url").textContent = url;
+    $("copy-link").onclick = async ()=>{
+      try{ await navigator.clipboard.writeText(url); toast("Link copied!"); }
+      catch(e){ toast("Copy this: "+url); }
+    };
+    $("wa-share").onclick = ()=>{
+      const msg = "Book a 1:1 session with me ("+$("f-name").value.trim()+"): "+url;
+      window.open("https://wa.me/?text="+encodeURIComponent(msg), "_blank");
+    };
+    document.querySelectorAll(".wstep").forEach(el=>el.classList.remove("on"));
+    $("success-step").classList.add("on");
+    $("wiz-nav").style.display = "none";
+    $("steps").style.display = "none";
+    $("step-count").textContent = "Done ✓";
+    window.scrollTo(0,0);
+  }catch(e){ showErr(8, "Publish failed: "+e.message); }
+  btn.disabled = false; btn.textContent = "Publish my page 🚀";
+}
+</script>
+</body>
+</html>

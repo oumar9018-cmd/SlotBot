@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Book a Tutor — SlotTutor</title>
+<meta name="description" content="Book a 1:1 online tutoring session. See real availability, pick your slot, get instant confirmation.">
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/svg+xml" href="./assets/logo.svg">
+<link rel="stylesheet" href="./assets/style.css">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDJc3nU26V8Has-Hug3b3emFaXPja_hg5c",
+  authDomain: "slotbot-9d27f.firebaseapp.com",
+  projectId: "slotbot-9d27f",
+  storageBucket: "slotbot-9d27f.firebasestorage.app",
+  messagingSenderId: "552109197539",
+  appId: "1:552109197539:web:ff2c1efd9d3a730e9f9dd6"
+};
+firebase.initializeApp(firebaseConfig);
+const fbDb = firebase.firestore();
+</script>
+<style>
+.tutor-hero { display: flex; gap: 20px; align-items: center; margin-bottom: 8px; }
+.tutor-hero .ph { width: 84px; height: 84px; border-radius: 26px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 800; color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent2)); box-shadow: 0 8px 22px rgba(36,129,204,.3); overflow: hidden; }
+.tutor-hero .ph img { width: 100%; height: 100%; object-fit: cover; }
+.tutor-hero h1 { font-size: 26px; letter-spacing: -.5px; }
+.tutor-hero .subj { color: var(--accent); font-weight: 700; font-size: 14px; margin-top: 2px; }
+.tutor-hero .meta { color: var(--ink2); font-size: 13px; margin-top: 4px; }
+.stepdots { display: flex; gap: 8px; margin: 22px 0; }
+.stepdot { flex: 1; height: 5px; border-radius: 3px; background: rgba(0,0,0,.08); }
+.stepdot.on { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+.datelist { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 12px; }
+.datebtn { min-width: 74px; padding: 12px 8px; border-radius: 16px; border: 1px solid rgba(0,0,0,.09); background: rgba(255,255,255,.6); cursor: pointer; text-align: center; font-family: inherit; transition: all .15s; }
+.datebtn .dw { font-size: 11px; font-weight: 700; color: var(--ink2); text-transform: uppercase; }
+.datebtn .dn { font-size: 20px; font-weight: 800; margin-top: 2px; }
+.datebtn .dm { font-size: 11px; color: var(--ink2); }
+.datebtn.on { background: linear-gradient(135deg, var(--accent), var(--accent2)); border: none; color: #fff; box-shadow: 0 6px 16px rgba(36,129,204,.35); }
+.datebtn.on .dw, .datebtn.on .dm { color: rgba(255,255,255,.85); }
+.datebtn:disabled { opacity: .35; cursor: not-allowed; }
+.slotgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; margin-top: 12px; }
+.slotbtn { padding: 13px 8px; border-radius: 14px; border: 1px solid rgba(0,0,0,.09); background: rgba(255,255,255,.65); font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all .15s; }
+.slotbtn:hover:not(:disabled) { border-color: var(--accent); transform: translateY(-2px); }
+.slotbtn.on { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none; box-shadow: 0 6px 16px rgba(36,129,204,.35); }
+.slotbtn:disabled { opacity: .35; text-decoration: line-through; cursor: not-allowed; }
+.sumrow { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(0,0,0,.06); font-size: 15px; }
+.sumrow:last-child { border: none; }
+.sumrow b { font-weight: 700; }
+.sumrow.total { font-size: 18px; }
+.sumrow.total b { background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.confbox { text-align: center; padding: 30px 20px; }
+.confbox .tick { width: 76px; height: 76px; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #34c759, #30b455); box-shadow: 0 10px 26px rgba(52,199,89,.4); }
+.confbox .tick svg { width: 38px; height: 38px; stroke: #fff; fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.refcode { display: inline-block; margin-top: 12px; padding: 10px 20px; border-radius: 12px; background: rgba(36,129,204,.08); font-family: monospace; font-size: 16px; font-weight: 700; color: var(--accent); letter-spacing: 1px; }
+</style>
+</head>
+<body>
+<nav class="nav"><div class="nav-in">
+  <a class="logo" href="./"><img src="./assets/logo.svg" alt="SlotTutor" style="width:32px;height:32px">SlotTutor</a>
+  <div class="nav-links"><a href="./tutors/">Find tutors</a><a href="./pricing.html">Pricing</a><a href="./login.html">Log in</a></div>
+</div></nav>
+
+<div class="wrap" style="max-width:720px; padding: 30px 20px 80px;">
+  <div id="loading" class="glass card" style="text-align:center; padding:50px 20px;">
+    <p style="color:var(--ink2)">Loading tutor profile…</p>
+  </div>
+
+  <div id="notfound" class="glass card" style="display:none; text-align:center; padding:50px 20px;">
+    <h2 style="margin-bottom:10px">Tutor not found</h2>
+    <p style="color:var(--ink2); margin-bottom:20px">This booking link is invalid or the tutor deactivated their page.</p>
+    <a class="btn btn-p" href="./tutors/">Browse tutors</a>
+  </div>
+
+  <div id="bookflow" style="display:none;">
+    <div class="glass card" style="padding:24px;">
+      <div class="tutor-hero">
+        <div class="ph" id="t-photo">?</div>
+        <div>
+          <h1 id="t-name">Tutor</h1>
+          <div class="subj" id="t-subjects"></div>
+          <div class="meta" id="t-meta"></div>
+        </div>
+      </div>
+      <p id="t-bio" style="color:var(--ink2); font-size:14px; margin-top:12px;"></p>
+    </div>
+
+    <div class="stepdots"><div class="stepdot on" id="sd1"></div><div class="stepdot" id="sd2"></div><div class="stepdot" id="sd3"></div><div class="stepdot" id="sd4"></div></div>
+
+    <!-- STEP 1: Pick date & time -->
+    <div id="step1">
+      <div class="secttl" style="margin-top:0">Pick a date</div>
+      <div class="glass card" style="padding:18px;"><div class="datelist" id="datelist"></div></div>
+      <div class="secttl">Pick a time <span id="tz-label" style="font-weight:400;font-size:12px;color:var(--ink2)"></span></div>
+      <div class="glass card" style="padding:18px;"><div class="slotgrid" id="slotgrid"><p style="color:var(--ink2);font-size:14px">Select a date first.</p></div></div>
+      <button class="btn btn-p btn-block" id="to-step2" disabled style="margin-top:18px;opacity:.5">Continue →</button>
+    </div>
+
+    <!-- STEP 2: Your details -->
+    <div id="step2" style="display:none;">
+      <div class="secttl" style="margin-top:0">Your details</div>
+      <div class="glass card" style="padding:22px;">
+        <div class="field"><label>Full name *</label><input id="s-name" placeholder="Your name"></div>
+        <div class="field"><label>Email *</label><input id="s-email" type="email" placeholder="you@example.com"></div>
+        <div class="field"><label>Phone (optional)</label><input id="s-phone" type="tel" placeholder="+91 …"></div>
+        <div class="field"><label>Subject *</label><select id="s-subject"></select></div>
+        <div class="field"><label>Notes for tutor (optional)</label><textarea id="s-notes" rows="3" placeholder="Topics you want to cover…"></textarea></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:18px;">
+        <button class="btn btn-ghost" id="back1" style="flex:1">← Back</button>
+        <button class="btn btn-p" id="to-step3" style="flex:2">Review booking →</button>
+      </div>
+    </div>
+
+    <!-- STEP 3: Review -->
+    <div id="step3" style="display:none;">
+      <div class="secttl" style="margin-top:0">Review your booking</div>
+      <div class="glass card" style="padding:22px;" id="summary"></div>
+      <div style="display:flex;gap:10px;margin-top:18px;">
+        <button class="btn btn-ghost" id="back2" style="flex:1">← Back</button>
+        <button class="btn btn-p" id="confirm-btn" style="flex:2">Confirm booking</button>
+      </div>
+      <p style="font-size:12px;color:var(--ink2);text-align:center;margin-top:14px;" id="pay-note"></p>
+    </div>
+
+    <!-- STEP 4: Confirmation -->
+    <div id="step4" style="display:none;">
+      <div class="glass card confbox">
+        <div class="tick"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div>
+        <h2>Booking confirmed!</h2>
+        <p style="color:var(--ink2);margin-top:8px;" id="conf-details"></p>
+        <div class="refcode" id="conf-ref"></div>
+        <p style="font-size:13px;color:var(--ink2);margin-top:16px;" id="conf-next"></p>
+        <a class="btn btn-p" href="./tutors/" style="margin-top:18px">Book another session</a>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("show"),2600);}
+const slug = new URLSearchParams(location.search).get("slug");
+let TUTOR=null, TUTOR_UID=null, AVAIL=null, SEL_DATE=null, SEL_SLOT=null;
+
+function esc(s){ return String(s||"").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+async function init(){
+  if(!slug){ showNotFound(); return; }
+  try{
+    const snap = await fbDb.collection("tutors").where("bookingSlug","==",slug).where("isActive","==",true).limit(1).get();
+    if(snap.empty){ showNotFound(); return; }
+    const doc = snap.docs[0];
+    TUTOR_UID = doc.id; TUTOR = doc.data();
+    const avSnap = await fbDb.collection("tutors").doc(TUTOR_UID).collection("availability").doc("default").get();
+    AVAIL = avSnap.exists ? avSnap.data() : {workingDays:[0,1,2,3,4], startTime:"18:00", endTime:"21:00", slotDurationMin:60};
+    renderTutor(); buildDates();
+    $("loading").style.display="none"; $("bookflow").style.display="block";
+    document.title = TUTOR.displayName + " — Book Online Tutoring | SlotTutor";
+  }catch(e){ toast("Failed to load: "+e.message); }
+}
+function showNotFound(){ $("loading").style.display="none"; $("notfound").style.display="block"; }
+
+function renderTutor(){
+  const t = TUTOR;
+  $("t-photo").innerHTML = (t.photoURL && /^https?:\/\//.test(t.photoURL))
+    ? '<img src="'+esc(t.photoURL)+'" alt="">' : esc((t.displayName||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase());
+  $("t-name").textContent = t.displayName || "Tutor";
+  const subs = Array.isArray(t.subjects) ? t.subjects.join(", ") : (t.subjects||"");
+  $("t-subjects").textContent = subs;
+  const sym = t.currency==="USD" ? "$" : "₹";
+  $("t-meta").textContent = sym + (t.pricePerSession||0) + " / " + (AVAIL.slotDurationMin||60) + " min" + (t.experience ? " · " + t.experience + " yrs exp" : "");
+  $("t-bio").textContent = t.bio || "";
+  $("tz-label").textContent = "(Tutor timezone: " + (t.timezone||"Asia/Kolkata") + ")";
+  $("pay-note").textContent = "Payment of " + sym + (t.pricePerSession||0) + " will be collected by the tutor directly.";
+  const sel = $("s-subject"); sel.innerHTML="";
+  (Array.isArray(t.subjects)?t.subjects:[t.subjects]).filter(Boolean).forEach(s=>{
+    const o=document.createElement("option"); o.value=s; o.textContent=s; sel.appendChild(o);
+  });
+}
+
+function buildDates(){
+  const wrap = $("datelist"); wrap.innerHTML="";
+  const days = AVAIL.workingDays||[0,1,2,3,4];
+  const now = new Date();
+  let firstSet = false;
+  for(let i=0;i<14;i++){
+    const d = new Date(now); d.setDate(d.getDate()+i);
+    const dow = (d.getDay()+6)%7; // Mon=0
+    const ok = days.includes(dow);
+    const b = document.createElement("button");
+    b.className="datebtn"; b.disabled=!ok;
+    b.innerHTML='<div class="dw">'+d.toLocaleDateString("en-US",{weekday:"short"})+'</div><div class="dn">'+d.getDate()+'</div><div class="dm">'+d.toLocaleDateString("en-US",{month:"short"})+'</div>';
+    if(ok){ b.onclick=()=>selectDate(d,b); if(!firstSet){ firstSet=true; setTimeout(()=>b.click(),100); } }
+    wrap.appendChild(b);
+  }
+}
+async function selectDate(d, btn){
+  document.querySelectorAll(".datebtn").forEach(x=>x.classList.remove("on"));
+  btn.classList.add("on"); SEL_DATE=d; SEL_SLOT=null;
+  $("to-step2").disabled=true; $("to-step2").style.opacity=".5";
+  await buildSlots(d);
+}
+function timeToMin(t){ const [h,m]=t.split(":").map(Number); return h*60+m; }
+async function buildSlots(d){
+  const grid=$("slotgrid"); grid.innerHTML='<p style="color:var(--ink2);font-size:14px">Loading slots…</p>';
+  const dur = AVAIL.slotDurationMin||60;
+  const start = timeToMin(AVAIL.startTime||"18:00"), end = timeToMin(AVAIL.endTime||"21:00");
+  // Fetch existing bookings for this tutor+date
+  const dayStart = new Date(d); dayStart.setHours(0,0,0,0);
+  const dayEnd = new Date(d); dayEnd.setHours(23,59,59,999);
+  let booked = [];
+  try{
+    const snap = await fbDb.collection("bookings")
+      .where("tutorId","==",TUTOR_UID)
+      .where("startTime",">=",firebase.firestore.Timestamp.fromDate(dayStart))
+      .where("startTime","<=",firebase.firestore.Timestamp.fromDate(dayEnd)).get();
+    snap.docs.forEach(doc=>{ const b=doc.data(); if(["pending","paid","confirmed"].includes(b.status)) booked.push(b); });
+  }catch(e){ console.warn(e.message); }
+  grid.innerHTML="";
+  const now = new Date();
+  let any=false;
+  for(let m=start; m+dur<=end; m+=dur){
+    const s = new Date(d); s.setHours(Math.floor(m/60), m%60, 0, 0);
+    const e = new Date(s.getTime()+dur*60000);
+    if(s < now) continue; // no past slots
+    const overlap = booked.some(b=>{
+      const bs=b.startTime.toDate(), be=b.endTime.toDate();
+      return !(e<=bs || s>=be);
+    });
+    const btn=document.createElement("button");
+    btn.className="slotbtn"; btn.disabled=overlap;
+    btn.textContent=s.toLocaleTimeString("en-IN",{hour:"numeric",minute:"2-digit"});
+    if(!overlap){ btn.onclick=()=>{ document.querySelectorAll(".slotbtn").forEach(x=>x.classList.remove("on")); btn.classList.add("on"); SEL_SLOT={start:s,end:e}; $("to-step2").disabled=false; $("to-step2").style.opacity="1"; }; any=true; }
+    grid.appendChild(btn);
+  }
+  if(!any) grid.innerHTML='<p style="color:var(--ink2);font-size:14px">No slots available on this date. Try another day.</p>';
+}
+
+function goStep(n){
+  ["step1","step2","step3","step4"].forEach((s,i)=>{ $(s).style.display = (i+1===n)?"block":"none"; $("sd"+(i+1)).classList.toggle("on", i+1<=n); });
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+$("to-step2").onclick=()=>goStep(2);
+$("back1").onclick=()=>goStep(1);
+$("back2").onclick=()=>goStep(2);
+$("to-step3").onclick=()=>{
+  const name=$("s-name").value.trim(), email=$("s-email").value.trim();
+  if(!name){ toast("Please enter your name"); return; }
+  if(!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ toast("Please enter a valid email"); return; }
+  const t=TUTOR, sym=t.currency==="USD"?"$":"₹";
+  const s=SEL_SLOT.start, e=SEL_SLOT.end;
+  const localStr = s.toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"long"})+", "+s.toLocaleTimeString("en-IN",{hour:"numeric",minute:"2-digit"})+" – "+e.toLocaleTimeString("en-IN",{hour:"numeric",minute:"2-digit"});
+  $("summary").innerHTML =
+    '<div class="sumrow"><span>Tutor</span><b>'+esc(t.displayName)+'</b></div>'+
+    '<div class="sumrow"><span>Subject</span><b>'+esc($("s-subject").value)+'</b></div>'+
+    '<div class="sumrow"><span>Date & time</span><b>'+esc(localStr)+'</b></div>'+
+    '<div class="sumrow"><span>Duration</span><b>'+(AVAIL.slotDurationMin||60)+' minutes</b></div>'+
+    '<div class="sumrow"><span>Student</span><b>'+esc(name)+'</b></div>'+
+    '<div class="sumrow total"><span>Total</span><b>'+sym+(t.pricePerSession||0)+'</b></div>'+
+    '<p style="font-size:13px;color:var(--ink2);margin-top:12px;">Cancellation: '+(t.cancelPolicy?esc(t.cancelPolicy):"Contact tutor for cancellation policy")+'</p>';
+  goStep(3);
+};
+
+$("confirm-btn").onclick=async()=>{
+  const btn=$("confirm-btn"); btn.disabled=true; btn.textContent="Booking…";
+  const name=$("s-name").value.trim(), email=$("s-email").value.trim();
+  try{
+    const ref = await fbDb.runTransaction(async (tx)=>{
+      // Re-check overlap inside transaction (atomic)
+      const dayStart=new Date(SEL_SLOT.start); dayStart.setHours(0,0,0,0);
+      const dayEnd=new Date(SEL_SLOT.start); dayEnd.setHours(23,59,59,999);
+      const q = await fbDb.collection("bookings")
+        .where("tutorId","==",TUTOR_UID)
+        .where("startTime",">=",firebase.firestore.Timestamp.fromDate(dayStart))
+        .where("startTime","<=",firebase.firestore.Timestamp.fromDate(dayEnd)).get();
+      const clash = q.docs.some(doc=>{
+        const b=doc.data(); if(!["pending","paid","confirmed"].includes(b.status)) return false;
+        const bs=b.startTime.toDate(), be=b.endTime.toDate();
+        return !(SEL_SLOT.end<=bs || SEL_SLOT.start>=be);
+      });
+      if(clash) throw new Error("SLOT_TAKEN");
+      if(SEL_SLOT.start < new Date()) throw new Error("PAST_SLOT");
+      const newRef = fbDb.collection("bookings").doc();
+      tx.set(newRef, {
+        tutorId: TUTOR_UID,
+        tutorName: TUTOR.displayName,
+        studentName: name, studentEmail: email, studentPhone: $("s-phone").value.trim(),
+        subject: $("s-subject").value, notes: $("s-notes").value.trim(),
+        startTime: firebase.firestore.Timestamp.fromDate(SEL_SLOT.start),
+        endTime: firebase.firestore.Timestamp.fromDate(SEL_SLOT.end),
+        price: TUTOR.pricePerSession||0, currency: TUTOR.currency||"INR",
+        status: "pending", paymentStatus: "unpaid",
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      return newRef;
+    });
+    const code = ref.id.slice(0,8).toUpperCase();
+    $("conf-ref").textContent = "Ref: "+code;
+    $("conf-details").textContent = SEL_SLOT.start.toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"long"})+" at "+SEL_SLOT.start.toLocaleTimeString("en-IN",{hour:"numeric",minute:"2-digit"})+" with "+TUTOR.displayName;
+    $("conf-next").textContent = "The tutor will confirm shortly. " + (TUTOR.meetingMethod ? "Meeting via "+TUTOR.meetingMethod+"." : "") + " A confirmation has been sent to "+email+".";
+    goStep(4);
+  }catch(e){
+    btn.disabled=false; btn.textContent="Confirm booking";
+    if(e.message==="SLOT_TAKEN"){ toast("This slot was just booked. Please pick another."); goStep(1); }
+    else if(e.message==="PAST_SLOT"){ toast("Cannot book a past time slot."); goStep(1); }
+    else toast("Booking failed: "+e.message);
+  }
+};
+
+init();
+</script>
+</body>
+</html>
