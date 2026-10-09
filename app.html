@@ -6,7 +6,7 @@
 <title>Dashboard — SlotBot</title>
 <meta name="description" content="Manage your tutoring business: bookings, availability, earnings and settings.">
 <meta name="robots" content="noindex">
-<link rel="stylesheet" href="/assets/style.css">
+<link rel="stylesheet" href="./assets/style.css">
 </head>
 <body>
 <div class="app-shell">
@@ -164,7 +164,7 @@ $("save-set").onclick=()=>{DB.tutor.name=$("s-name").value;DB.tutor.price=+$("s-
   $("greet").textContent=(h<12?"Good morning":h<17?"Good afternoon":"Good evening")+", "+DB.tutor.name.split(" ")[0];
   render();toast("Settings saved");};
 $("deact").onclick=()=>{if(confirm("Deactivate your booking page?"))toast("Booking page deactivated");};
-$("logout").onclick=()=>{location.href="/login.html";};
+$("logout").onclick=()=>{location.href="./login.html";};
 render(); renderDays();
 </script>
 </body>

@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://slotbot.github.io/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
-  <url><loc>https://slotbot.github.io/pricing.html</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://slotbot.github.io/login.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
-  <url><loc>https://slotbot.github.io/app.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
-  <url><loc>https://slotbot.github.io/tutors/</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://slotbot.github.io/tutors/maths.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://slotbot.github.io/tutors/english.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://slotbot.github.io/tutors/physics.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://oumar9018-cmd.github.io/SlotBot/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://oumar9018-cmd.github.io/SlotBot/pricing.html</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://oumar9018-cmd.github.io/SlotBot/login.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://oumar9018-cmd.github.io/SlotBot/app.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://oumar9018-cmd.github.io/SlotBot/tutors/</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://oumar9018-cmd.github.io/SlotBot/tutors/maths.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://oumar9018-cmd.github.io/SlotBot/tutors/english.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://oumar9018-cmd.github.io/SlotBot/tutors/physics.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
 </urlset>
