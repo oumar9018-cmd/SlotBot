@@ -6,6 +6,7 @@
 <title>Log in — SlotTutor</title>
 <meta name="description" content="Log in to SlotTutor with your Google account.">
 <meta name="robots" content="noindex">
+<link rel="icon" type="image/svg+xml" href="./assets/logo.svg">
 <link rel="stylesheet" href="./assets/style.css">
 <!-- Firebase (compat) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -31,7 +32,7 @@ try {
 <body>
 <div class="login-wrap">
   <div class="glass login-card">
-    <a class="logo" href="./"><svg viewBox="0 0 24 24" fill="none" stroke="#2481cc" stroke-width="2" width="34" height="34"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></a>
+    <a class="logo" href="./"><img src="./assets/logo.svg" alt="SlotTutor" style="width:44px;height:44px"></a>
     <h1>Welcome back</h1>
     <p>Log in to manage your bookings, availability and earnings.</p>
     <button class="gbtn" id="glogin">
@@ -69,7 +70,9 @@ document.getElementById("glogin").addEventListener("click", async ()=>{
         timezone: "Asia/Kolkata",
         bookingSlug: (user.displayName||"tutor").toLowerCase().replace(/[^a-z0-9]+/g,"-"),
         isActive: true,
-        plan: "free",
+        plan: "trial",
+        trialStart: firebase.firestore.FieldValue.serverTimestamp(),
+        trialExpired: false,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
