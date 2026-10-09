@@ -276,7 +276,7 @@ function initialsOf(name){
   return (name||"T").trim().split(/\s+/).map(w=>w[0]).join("").slice(0,2).toUpperCase() || "T";
 }
 function avatarHTML(name, photoURL, size){
-  if(photoURL) return '<img src="'+photoURL+'" alt="">';
+  if(photoURL && /^https?:\/\/[^\s"'<>]+$/.test(photoURL)) return '<img src="'+photoURL.replace(/"/g,'&quot;')+'" alt="">';
   return initialsOf(name);
 }
 
@@ -441,7 +441,12 @@ $("save-avail").onclick=async()=>{
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       }, {merge:true});
       toast("Availability saved to cloud");
-    }catch(e){ toast("Save failed: "+e.message); }
+    }catch(e){
+      const msg = e.code==="permission-denied"
+        ? "Permission denied — Firestore rules need setup (see Firebase Console)"
+        : "Save failed: "+e.message;
+      toast(msg);
+    }
   } else toast("Availability saved — slots regenerating");
   render();
 };
@@ -484,7 +489,12 @@ $("save-set").onclick=async()=>{
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
       toast("Settings saved to cloud");
-    }catch(e){ toast("Save failed: "+e.message); }
+    }catch(e){
+      const msg = e.code==="permission-denied"
+        ? "Permission denied — Firestore rules need setup (see Firebase Console)"
+        : "Save failed: "+e.message;
+      toast(msg);
+    }
   } else toast("Settings saved");
   if($("p-name")) $("p-name").value = DB.tutor.name;
   if($("p-name-label")) $("p-name-label").textContent = DB.tutor.name || "Tutor";

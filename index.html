@@ -38,6 +38,19 @@
  "url":"https://oumar9018-cmd.github.io/SlotBot/",
  "potentialAction":{"@type":"SearchAction","target":"https://oumar9018-cmd.github.io/SlotBot/tutors/?q={search_term_string}","query-input":"required name=search_term_string"}}
 </script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script>
+try{
+  firebase.initializeApp({
+    apiKey: "AIzaSyDJc3nU26V8Has-Hug3b3emFaXPja_hg5c",
+    authDomain: "slotbot-9d27f.firebaseapp.com",
+    projectId: "slotbot-9d27f",
+    appId: "1:552109197539:web:ff2c1efd9d3a730e9f9dd6"
+  });
+  firebase.auth().onAuthStateChanged(u=>{ if(u) location.replace("./app.html"); });
+}catch(e){}
+</script>
 </head>
 <body>
 <nav class="nav"><div class="nav-in">
