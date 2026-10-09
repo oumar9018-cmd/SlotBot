@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /app.html
+Disallow: /login.html
+
+Sitemap: https://slotbot.github.io/sitemap.xml

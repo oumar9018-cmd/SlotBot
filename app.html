@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — SlotBot</title>
+<meta name="description" content="Manage your tutoring business: bookings, availability, earnings and settings.">
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar">
+    <a class="logo" href="/"><svg viewBox="0 0 24 24" fill="none" stroke="#2481cc" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>SlotBot</a>
+    <button class="snav on" data-pg="dash"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>Dashboard</button>
+    <button class="snav" data-pg="bookings"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Bookings</button>
+    <button class="snav" data-pg="avail"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Availability</button>
+    <button class="snav" data-pg="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3 1a7 7 0 0 0-2-1.2L14.2 3h-4l-.4 2.7a7 7 0 0 0-2 1.2l-2.3-1-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 2 1.2l.4 2.7h4l.4-2.7a7 7 0 0 0 2-1.2l2.3 1 2-3.4-2-1.5c.1-.4.1-.8.1-1.2Z"/></svg>Settings</button>
+    <div class="snav-foot">
+      <button class="snav" id="logout"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>Log out</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <button class="hamb" id="hamb" aria-label="Menu"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+
+    <!-- DASHBOARD -->
+    <div class="page on" id="pg-dash">
+      <h2 id="greet">Good evening</h2>
+      <p class="psub" id="gsub">Here's what's happening with your classes.</p>
+      <div class="stats">
+        <div class="glass stat"><div class="v" id="st-earn">₹0</div><div class="l">Total earnings</div></div>
+        <div class="glass stat"><div class="v" id="st-book">0</div><div class="l">Upcoming bookings</div></div>
+        <div class="glass stat"><div class="v" id="st-fill">0%</div><div class="l">Slot fill rate</div></div>
+      </div>
+      <div class="secttl">Upcoming sessions</div>
+      <div class="glass card" id="dash-list"></div>
+      <div class="secttl">Your booking link</div>
+      <div class="glass card" style="padding:18px 22px">
+        <div class="linkrow" style="margin-top:0">
+          <div class="linktxt" id="blink">https://slotbot.io/b/priya-maths</div>
+          <button class="btn btn-p btn-sm" id="copy1">Copy</button>
+        </div>
+        <button class="btn btn-ghost btn-block" id="share1" style="margin-top:12px">Share booking link</button>
+      </div>
+    </div>
+
+    <!-- BOOKINGS -->
+    <div class="page" id="pg-bookings">
+      <h2>Bookings</h2><p class="psub">All your sessions — past and upcoming.</p>
+      <div class="glass card" id="bk-list"></div>
+    </div>
+
+    <!-- AVAILABILITY -->
+    <div class="page" id="pg-avail">
+      <h2>Availability</h2><p class="psub">Set when students can book you. Slots generate automatically.</p>
+      <div class="secttl" style="margin-top:0">Working days</div>
+      <div class="glass card" style="padding:18px 22px"><div class="days" id="days"></div></div>
+      <div class="secttl">Daily hours</div>
+      <div class="glass card" style="padding:18px 22px">
+        <div class="timerow">
+          <div class="field" style="margin:0"><label>Start time</label><input type="time" id="t-start" value="18:00"></div>
+          <div class="field" style="margin:0"><label>End time</label><input type="time" id="t-end" value="21:00"></div>
+        </div>
+      </div>
+      <div class="secttl">Session length</div>
+      <div class="glass card" style="padding:18px 22px">
+        <div class="field" style="margin:0"><label>Minutes per session</label>
+          <select id="t-dur"><option value="30">30 minutes</option><option value="45">45 minutes</option><option value="60" selected>60 minutes</option><option value="90">90 minutes</option></select>
+        </div>
+      </div>
+      <button class="btn btn-p btn-block" id="save-avail" style="margin-top:20px;max-width:420px">Save availability</button>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="pg-settings">
+      <h2>Settings</h2><p class="psub">Your public profile and preferences.</p>
+      <div class="glass card" style="padding:22px">
+        <div class="field"><label>Display name</label><input id="s-name" value="Priya Sharma"></div>
+        <div class="field"><label>Subjects (comma separated)</label><input id="s-subj" value="Maths, Physics"></div>
+        <div class="field"><label>Price per session (₹)</label><input id="s-price" type="number" value="499" min="1"></div>
+        <div class="field"><label>Timezone</label>
+          <select id="s-tz"><option>Asia/Kolkata</option><option>Asia/Dubai</option><option>America/New_York</option><option>Europe/London</option><option>Australia/Sydney</option></select>
+        </div>
+        <button class="btn btn-p" id="save-set">Save changes</button>
+      </div>
+      <div class="secttl">Danger zone</div>
+      <div class="glass card" style="padding:22px">
+        <p style="font-size:14px;color:var(--ink2);margin-bottom:14px">Deactivating hides your booking page. Existing bookings are unaffected.</p>
+        <button class="btn-danger-sm" id="deact">Deactivate booking page</button>
+      </div>
+    </div>
+  </main>
+</div>
+<div id="toast"></div>
+
+<script>
+/* Demo data layer — replaced by backend API later */
+const DB = {
+  tutor: { name: "Priya Sharma", subjects: "Maths, Physics", price: 499, tz: "Asia/Kolkata", link: "https://slotbot.io/b/priya-maths" },
+  bookings: [
+    { id: 1, student: "Aarav Mehta", when: "Tomorrow, 6:00 PM – 7:00 PM", status: "paid" },
+    { id: 2, student: "Diya Kapoor", when: "Tomorrow, 7:00 PM – 8:00 PM", status: "paid" },
+    { id: 3, student: "Kabir Singh", when: "Fri, 6:30 PM – 7:30 PM", status: "paid" },
+    { id: 4, student: "Anaya Rao", when: "Mon, 5:00 PM – 6:00 PM", status: "pending" }
+  ],
+  days: [0,1,2,3,4]
+};
+const $ = id => document.getElementById(id);
+function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("show"),2200);}
+const personSvg = '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>';
+const calSvg = '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
+
+/* nav */
+document.querySelectorAll(".snav[data-pg]").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll(".snav").forEach(x=>x.classList.remove("on"));
+  document.querySelectorAll(".page").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on"); $("pg-"+b.dataset.pg).classList.add("on");
+  $("sidebar").classList.remove("open"); window.scrollTo(0,0);
+}));
+$("hamb").onclick = ()=>$("sidebar").classList.toggle("open");
+
+/* greeting */
+const h = new Date().getHours();
+$("greet").textContent = (h<12?"Good morning":h<17?"Good afternoon":"Good evening") + ", " + DB.tutor.name.split(" ")[0];
+
+/* render bookings */
+function bkRow(b, cancellable){
+  const d=document.createElement("div"); d.className="bkrow";
+  d.innerHTML='<div class="bk-ic">'+personSvg+'</div><div class="bk-info"><div class="bk-name"></div><div class="bk-when"></div></div>';
+  d.querySelector(".bk-name").textContent=b.student;
+  d.querySelector(".bk-when").textContent=b.when;
+  const pill=document.createElement(b.status==="paid"&&cancellable?"button":"div");
+  if(b.status==="paid"&&cancellable){pill.className="btn-danger-sm";pill.textContent="Cancel";
+    pill.onclick=()=>{if(confirm("Cancel this booking? Student will be refunded.")){DB.bookings=DB.bookings.filter(x=>x.id!==b.id);render();toast("Booking cancelled, refund issued");}};}
+  else{pill.className="pill "+(b.status==="paid"?"ok":"warn");pill.textContent=b.status==="paid"?"Paid":"Pending";}
+  d.appendChild(pill); return d;
+}
+function render(){
+  const up=DB.bookings.filter(b=>b.status==="paid");
+  $("st-earn").textContent="₹"+(up.length*DB.tutor.price).toLocaleString("en-IN");
+  $("st-book").textContent=up.length;
+  $("st-fill").textContent=Math.min(96,up.length*18)+"%";
+  const dl=$("dash-list"); dl.innerHTML="";
+  if(!up.length)dl.innerHTML='<div class="empty">'+calSvg+'<br>No upcoming sessions.<br>Share your link to get bookings!</div>';
+  up.slice(0,3).forEach(b=>dl.appendChild(bkRow(b,false)));
+  const bl=$("bk-list"); bl.innerHTML="";
+  if(!DB.bookings.length)bl.innerHTML='<div class="empty">'+calSvg+'<br>No bookings yet.</div>';
+  DB.bookings.forEach(b=>bl.appendChild(bkRow(b,true)));
+  $("blink").textContent=DB.tutor.link;
+}
+/* days */
+const DN=["M","T","W","T","F","S","S"],DF=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+function renderDays(){const w=$("days");w.innerHTML="";DN.forEach((d,i)=>{const b=document.createElement("button");
+  b.className="day"+(DB.days.includes(i)?" on":"");b.textContent=d;b.title=DF[i];
+  b.onclick=()=>{DB.days.includes(i)?DB.days=DB.days.filter(x=>x!==i):DB.days.push(i);renderDays();};w.appendChild(b);});}
+/* actions */
+$("copy1").onclick=async()=>{try{await navigator.clipboard.writeText(DB.tutor.link);toast("Link copied");}catch(e){toast("Copy this: "+DB.tutor.link);}};
+$("share1").onclick=()=>{if(navigator.share)navigator.share({title:"Book with "+DB.tutor.name,url:DB.tutor.link}).catch(()=>{});
+  else{window.open("https://wa.me/?text="+encodeURIComponent("Book a session: "+DB.tutor.link),"_blank");}};
+$("save-avail").onclick=()=>{toast("Availability saved — slots regenerating");};
+$("save-set").onclick=()=>{DB.tutor.name=$("s-name").value;DB.tutor.price=+$("s-price").value||499;
+  DB.tutor.link="https://slotbot.io/b/"+DB.tutor.name.toLowerCase().replace(/[^a-z]+/g,"-");
+  $("greet").textContent=(h<12?"Good morning":h<17?"Good afternoon":"Good evening")+", "+DB.tutor.name.split(" ")[0];
+  render();toast("Settings saved");};
+$("deact").onclick=()=>{if(confirm("Deactivate your booking page?"))toast("Booking page deactivated");};
+$("logout").onclick=()=>{location.href="/login.html";};
+render(); renderDays();
+</script>
+</body>
+</html>
