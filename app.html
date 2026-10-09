@@ -7,6 +7,27 @@
 <meta name="description" content="Manage your tutoring business: bookings, availability, earnings and settings.">
 <meta name="robots" content="noindex">
 <link rel="stylesheet" href="./assets/style.css">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDJc3nU26V8Has-Hug3b3emFaXPja_hg5c",
+  authDomain: "slotbot-9d27f.firebaseapp.com",
+  projectId: "slotbot-9d27f",
+  storageBucket: "slotbot-9d27f.firebasestorage.app",
+  messagingSenderId: "552109197539",
+  appId: "1:552109197539:web:ff2c1efd9d3a730e9f9dd6"
+};
+firebase.initializeApp(firebaseConfig);
+const fbAuth = firebase.auth();
+const fbDb = firebase.firestore();
+// Redirect to login if not authenticated
+fbAuth.onAuthStateChanged(user => {
+  if (!user) location.href = "./login.html";
+  else loadTutorData(user.uid);
+});
+</script>
 </head>
 <body>
 <div class="app-shell">
@@ -130,17 +151,50 @@
 <div id="toast"></div>
 
 <script>
-/* Demo data layer — replaced by backend API later */
-const DB = {
-  tutor: { name: "Priya Sharma", subjects: "Maths, Physics", price: 499, tz: "Asia/Kolkata", link: "https://slottutor.io/b/priya-maths" },
-  bookings: [
-    { id: 1, student: "Aarav Mehta", when: "Tomorrow, 6:00 PM – 7:00 PM", status: "paid" },
-    { id: 2, student: "Diya Kapoor", when: "Tomorrow, 7:00 PM – 8:00 PM", status: "paid" },
-    { id: 3, student: "Kabir Singh", when: "Fri, 6:30 PM – 7:30 PM", status: "paid" },
-    { id: 4, student: "Anaya Rao", when: "Mon, 5:00 PM – 6:00 PM", status: "pending" }
-  ],
+/* Firebase data layer — loads real tutor data from Firestore */
+let DB = {
+  tutor: { name: "Tutor", subjects: "", price: 499, tz: "Asia/Kolkata", link: "" },
+  bookings: [],
   days: [0,1,2,3,4]
 };
+let currentUid = null;
+
+async function loadTutorData(uid){
+  currentUid = uid;
+  try {
+    const doc = await fbDb.collection("tutors").doc(uid).get();
+    if(doc.exists){
+      const d = doc.data();
+      DB.tutor.name = d.displayName || "Tutor";
+      DB.tutor.subjects = Array.isArray(d.subjects) ? d.subjects.join(", ") : (d.subjects || "");
+      DB.tutor.price = d.pricePerSession || 499;
+      DB.tutor.tz = d.timezone || "Asia/Kolkata";
+      DB.tutor.link = "https://slottutor.io/b/" + (d.bookingSlug || uid.slice(0,8));
+      const avDoc = await fbDb.collection("tutors").doc(uid).collection("availability").doc("default").get();
+      if(avDoc.exists){
+        const av = avDoc.data();
+        DB.days = av.workingDays || [0,1,2,3,4];
+        if($("t-start")) $("t-start").value = av.startTime || "18:00";
+        if($("t-end")) $("t-end").value = av.endTime || "21:00";
+        if($("t-dur")) $("t-dur").value = String(av.slotDurationMin || 60);
+      }
+      const bkSnap = await fbDb.collection("bookings").where("tutorId","==",uid).get();
+      DB.bookings = bkSnap.docs.map(doc=>({ id: doc.id, student: doc.data().studentName||"Student", when: formatWhen(doc.data().startTime), status: doc.data().status||"pending" }));
+    }
+    if($("s-name")) $("s-name").value = DB.tutor.name;
+    if($("s-subj")) $("s-subj").value = DB.tutor.subjects;
+    if($("s-price")) $("s-price").value = DB.tutor.price;
+  } catch(e){ console.warn("Firestore load failed:", e.message); }
+  render(); renderDays();
+  const h = new Date().getHours();
+  $("greet").textContent = (h<12?"Good morning":h<17?"Good afternoon":"Good evening") + ", " + DB.tutor.name.split(" ")[0];
+}
+function formatWhen(ts){
+  if(!ts || !ts.toDate) return "Upcoming";
+  const d = ts.toDate();
+  return d.toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short"}) + ", " +
+         d.toLocaleTimeString("en-IN",{hour:"numeric",minute:"2-digit"});
+}
 const $ = id => document.getElementById(id);
 function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("show"),2200);}
 const personSvg = '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>';
@@ -201,14 +255,46 @@ function renderDays(){const w=$("days");w.innerHTML="";DN.forEach((d,i)=>{const 
 $("copy1").onclick=async()=>{try{await navigator.clipboard.writeText(DB.tutor.link);toast("Link copied");}catch(e){toast("Copy this: "+DB.tutor.link);}};
 $("share1").onclick=()=>{if(navigator.share)navigator.share({title:"Book with "+DB.tutor.name,url:DB.tutor.link}).catch(()=>{});
   else{window.open("https://wa.me/?text="+encodeURIComponent("Book a session: "+DB.tutor.link),"_blank");}};
-$("save-avail").onclick=()=>{toast("Availability saved — slots regenerating");};
-$("save-set").onclick=()=>{DB.tutor.name=$("s-name").value;DB.tutor.price=+$("s-price").value||499;
-  DB.tutor.link="https://slottutor.io/b/"+DB.tutor.name.toLowerCase().replace(/[^a-z]+/g,"-");
-  $("greet").textContent=(h<12?"Good morning":h<17?"Good afternoon":"Good evening")+", "+DB.tutor.name.split(" ")[0];
-  render();toast("Settings saved");};
+$("save-avail").onclick=async()=>{
+  DB.days.sort();
+  if(currentUid){
+    try{
+      await fbDb.collection("tutors").doc(currentUid).collection("availability").doc("default").set({
+        workingDays: DB.days,
+        startTime: $("t-start").value,
+        endTime: $("t-end").value,
+        slotDurationMin: parseInt($("t-dur").value)||60,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, {merge:true});
+      toast("Availability saved to cloud");
+    }catch(e){ toast("Save failed: "+e.message); }
+  } else toast("Availability saved — slots regenerating");
+};
+$("save-set").onclick=async()=>{
+  DB.tutor.name=$("s-name").value; DB.tutor.price=+$("s-price").value||499;
+  DB.tutor.subjects=$("s-subj").value;
+  const slug=DB.tutor.name.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+  DB.tutor.link="https://slottutor.io/b/"+slug;
+  if(currentUid){
+    try{
+      await fbDb.collection("tutors").doc(currentUid).update({
+        displayName: DB.tutor.name,
+        subjects: DB.tutor.subjects.split(",").map(s=>s.trim()).filter(Boolean),
+        pricePerSession: DB.tutor.price,
+        timezone: $("s-tz").value,
+        bookingSlug: slug,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      toast("Settings saved to cloud");
+    }catch(e){ toast("Save failed: "+e.message); }
+  } else toast("Settings saved");
+  const hh=new Date().getHours();
+  $("greet").textContent=(hh<12?"Good morning":hh<17?"Good afternoon":"Good evening")+", "+DB.tutor.name.split(" ")[0];
+  render();
+};
 $("deact").onclick=()=>{if(confirm("Deactivate your booking page?"))toast("Booking page deactivated");};
-$("logout").onclick=()=>{location.href="./login.html";};
-render(); renderDays();
+$("logout").onclick=async()=>{ try{ await fbAuth.signOut(); }catch(e){} location.href="./login.html"; };
+// render() is called by loadTutorData after Firestore loads
 </script>
 </body>
 </html>
