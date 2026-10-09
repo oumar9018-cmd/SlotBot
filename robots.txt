@@ -3,4 +3,4 @@ Allow: /
 Disallow: /app.html
 Disallow: /login.html
 
-Sitemap: https://slotbot.github.io/sitemap.xml
+Sitemap: https://oumar9018-cmd.github.io/SlotBot/sitemap.xml

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard — SlotBot</title>
+<title>Dashboard — SlotTutor</title>
 <meta name="description" content="Manage your tutoring business: bookings, availability, earnings and settings.">
 <meta name="robots" content="noindex">
 <link rel="stylesheet" href="./assets/style.css">
@@ -11,7 +11,7 @@
 <body>
 <div class="app-shell">
   <aside class="sidebar" id="sidebar">
-    <a class="logo" href="./"><svg viewBox="0 0 24 24" fill="none" stroke="#2481cc" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>SlotBot</a>
+    <a class="logo" href="./"><svg viewBox="0 0 24 24" fill="none" stroke="#2481cc" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>SlotTutor</a>
     <button class="snav on" data-pg="dash"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>Dashboard</button>
     <button class="snav" data-pg="bookings"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Bookings</button>
     <button class="snav" data-pg="avail"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Availability</button>
@@ -29,16 +29,51 @@
       <h2 id="greet">Good evening</h2>
       <p class="psub" id="gsub">Here's what's happening with your classes.</p>
       <div class="stats">
-        <div class="glass stat"><div class="v" id="st-earn">₹0</div><div class="l">Total earnings</div></div>
-        <div class="glass stat"><div class="v" id="st-book">0</div><div class="l">Upcoming bookings</div></div>
-        <div class="glass stat"><div class="v" id="st-fill">0%</div><div class="l">Slot fill rate</div></div>
+        <div class="glass stat">
+          <div class="stat-top">
+            <div class="stat-ic"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+            <span class="stat-trend up">+12%</span>
+          </div>
+          <div class="v" id="st-earn">₹0</div><div class="l">Total earnings</div>
+        </div>
+        <div class="glass stat">
+          <div class="stat-top">
+            <div class="stat-ic"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></div>
+            <span class="stat-trend up">+3</span>
+          </div>
+          <div class="v" id="st-book">0</div><div class="l">Upcoming bookings</div>
+        </div>
+        <div class="glass stat">
+          <div class="stat-top">
+            <div class="stat-ic"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></div>
+            <span class="stat-trend up">+8%</span>
+          </div>
+          <div class="v" id="st-fill">0%</div><div class="l">Slot fill rate</div>
+        </div>
       </div>
-      <div class="secttl">Upcoming sessions</div>
+
+      <div class="secttl">Quick actions <a href="#" onclick="return false">View all</a></div>
+      <div class="qa-grid">
+        <button class="glass qa-card" id="qa-link">
+          <div class="qic"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg></div>
+          <b>Share link</b><span>Send to students</span>
+        </button>
+        <button class="glass qa-card" id="qa-avail">
+          <div class="qic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+          <b>Set hours</b><span>Update availability</span>
+        </button>
+        <button class="glass qa-card" id="qa-earn">
+          <div class="qic"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+          <b>Earnings</b><span>View payouts</span>
+        </button>
+      </div>
+
+      <div class="secttl">Upcoming sessions <a href="#" id="see-all-bk">See all</a></div>
       <div class="glass card" id="dash-list"></div>
       <div class="secttl">Your booking link</div>
       <div class="glass card" style="padding:18px 22px">
         <div class="linkrow" style="margin-top:0">
-          <div class="linktxt" id="blink">https://slotbot.io/b/priya-maths</div>
+          <div class="linktxt" id="blink">https://slottutor.io/b/priya-maths</div>
           <button class="btn btn-p btn-sm" id="copy1">Copy</button>
         </div>
         <button class="btn btn-ghost btn-block" id="share1" style="margin-top:12px">Share booking link</button>
@@ -97,7 +132,7 @@
 <script>
 /* Demo data layer — replaced by backend API later */
 const DB = {
-  tutor: { name: "Priya Sharma", subjects: "Maths, Physics", price: 499, tz: "Asia/Kolkata", link: "https://slotbot.io/b/priya-maths" },
+  tutor: { name: "Priya Sharma", subjects: "Maths, Physics", price: 499, tz: "Asia/Kolkata", link: "https://slottutor.io/b/priya-maths" },
   bookings: [
     { id: 1, student: "Aarav Mehta", when: "Tomorrow, 6:00 PM – 7:00 PM", status: "paid" },
     { id: 2, student: "Diya Kapoor", when: "Tomorrow, 7:00 PM – 8:00 PM", status: "paid" },
@@ -110,6 +145,13 @@ const $ = id => document.getElementById(id);
 function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("show"),2200);}
 const personSvg = '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>';
 const calSvg = '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
+const calSvgSm = '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
+
+/* quick actions */
+$("qa-link").onclick=()=>{document.querySelector('[data-pg="dash"]').scrollIntoView();$("blink").scrollIntoView({behavior:"smooth",block:"center"});toast("Your booking link is below");};
+$("qa-avail").onclick=()=>{document.querySelector('[data-pg="avail"]').click();};
+$("qa-earn").onclick=()=>{toast("Earnings: "+$("st-earn").textContent+" this month");};
+$("see-all-bk").onclick=(e)=>{e.preventDefault();document.querySelector('[data-pg="bookings"]').click();};
 
 /* nav */
 document.querySelectorAll(".snav[data-pg]").forEach(b=>b.addEventListener("click",()=>{
@@ -127,9 +169,10 @@ $("greet").textContent = (h<12?"Good morning":h<17?"Good afternoon":"Good evenin
 /* render bookings */
 function bkRow(b, cancellable){
   const d=document.createElement("div"); d.className="bkrow";
-  d.innerHTML='<div class="bk-ic">'+personSvg+'</div><div class="bk-info"><div class="bk-name"></div><div class="bk-when"></div></div>';
+  const initials=b.student.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+  d.innerHTML='<div class="bk-ic">'+initials+'</div><div class="bk-info"><div class="bk-name"></div><div class="bk-when">'+calSvgSm+'<span></span></div></div>';
   d.querySelector(".bk-name").textContent=b.student;
-  d.querySelector(".bk-when").textContent=b.when;
+  d.querySelector(".bk-when span").textContent=b.when;
   const pill=document.createElement(b.status==="paid"&&cancellable?"button":"div");
   if(b.status==="paid"&&cancellable){pill.className="btn-danger-sm";pill.textContent="Cancel";
     pill.onclick=()=>{if(confirm("Cancel this booking? Student will be refunded.")){DB.bookings=DB.bookings.filter(x=>x.id!==b.id);render();toast("Booking cancelled, refund issued");}};}
@@ -160,7 +203,7 @@ $("share1").onclick=()=>{if(navigator.share)navigator.share({title:"Book with "+
   else{window.open("https://wa.me/?text="+encodeURIComponent("Book a session: "+DB.tutor.link),"_blank");}};
 $("save-avail").onclick=()=>{toast("Availability saved — slots regenerating");};
 $("save-set").onclick=()=>{DB.tutor.name=$("s-name").value;DB.tutor.price=+$("s-price").value||499;
-  DB.tutor.link="https://slotbot.io/b/"+DB.tutor.name.toLowerCase().replace(/[^a-z]+/g,"-");
+  DB.tutor.link="https://slottutor.io/b/"+DB.tutor.name.toLowerCase().replace(/[^a-z]+/g,"-");
   $("greet").textContent=(h<12?"Good morning":h<17?"Good afternoon":"Good evening")+", "+DB.tutor.name.split(" ")[0];
   render();toast("Settings saved");};
 $("deact").onclick=()=>{if(confirm("Deactivate your booking page?"))toast("Booking page deactivated");};
