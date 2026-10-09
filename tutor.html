@@ -160,9 +160,20 @@ async function init(){
     renderTutor(); buildDates();
     $("loading").style.display="none"; $("bookflow").style.display="block";
     document.title = TUTOR.displayName + " — Book Online Tutoring | SlotTutor";
-  }catch(e){ toast("Failed to load: "+e.message); }
+  }catch(e){
+    $("loading").style.display="none";
+    if(e.code==="permission-denied"){
+      showNotFound("This booking page isn't available right now. Please try again later.");
+    } else {
+      showNotFound();
+    }
+  }
 }
-function showNotFound(){ $("loading").style.display="none"; $("notfound").style.display="block"; }
+function showNotFound(msg){
+  $("loading").style.display="none";
+  if(msg){ $("notfound").querySelector("p").textContent = msg; }
+  $("notfound").style.display="block";
+}
 
 function renderTutor(){
   const t = TUTOR;
