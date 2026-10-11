@@ -199,6 +199,18 @@ async def test_keys():
     else:
         try:
             async with httpx.AsyncClient(timeout=15) as client:
+                # First: list available models for this key
+                mr = await client.get(
+                    "https://api.groq.com/openai/v1/models",
+                    headers={"Authorization": f"Bearer {groq_key}"},
+                )
+                if mr.status_code == 200:
+                    models = [m.get("id", "?") for m in mr.json().get("data", [])]
+                    result["Groq_Available_Models"] = sorted(models)
+                else:
+                    result["Groq_Available_Models"] = f"list failed: {mr.status_code}"
+
+                # Then: test chat completion with configured model
                 r = await client.post(
                     "https://api.groq.com/openai/v1/chat/completions",
                     headers={"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"},
