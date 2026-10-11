@@ -214,7 +214,7 @@ async def test_keys():
                 r = await client.post(
                     "https://api.groq.com/openai/v1/chat/completions",
                     headers={"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"},
-                    json={"model": "llama-3.3-70b-versatile",
+                    json={"model": "openai/gpt-oss-20b",
                           "messages": [{"role": "user", "content": "Say hi"}],
                           "max_tokens": 5},
                 )
