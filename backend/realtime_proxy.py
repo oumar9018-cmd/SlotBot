@@ -38,9 +38,9 @@ log = logging.getLogger("englishtest.proxy")
 
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 DEEPGRAM_API_KEY = os.environ.get("DEEPGRAM_API_KEY", "")
-GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama3-8b-8192")
-GROQ_MODEL_FALLBACK = os.environ.get("GROQ_MODEL_FALLBACK", "llama3-8b-8192")
-GROQ_SCORING_MODEL = os.environ.get("GROQ_SCORING_MODEL", "llama3-8b-8192")
+GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
+GROQ_MODEL_FALLBACK = os.environ.get("GROQ_MODEL_FALLBACK", "mixtral-8x7b-32768")
+GROQ_SCORING_MODEL = os.environ.get("GROQ_SCORING_MODEL", "llama-3.3-70b-versatile")
 
 DG_STT_URL = (
     "wss://api.deepgram.com/v1/listen"

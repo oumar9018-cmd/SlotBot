@@ -22,8 +22,8 @@ import httpx
 log = logging.getLogger("englishtest.scoring")
 
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
-GROQ_SCORING_MODEL = os.environ.get("GROQ_SCORING_MODEL", "llama3-8b-8192")
-GROQ_FALLBACK_MODEL = os.environ.get("GROQ_MODEL_FALLBACK", "llama3-8b-8192")
+GROQ_SCORING_MODEL = os.environ.get("GROQ_SCORING_MODEL", "llama-3.3-70b-versatile")
+GROQ_FALLBACK_MODEL = os.environ.get("GROQ_MODEL_FALLBACK", "mixtral-8x7b-32768")
 GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 RUBRIC = """You are a senior English speaking-test evaluator scoring a PRACTICE strict English speaking test transcript.
