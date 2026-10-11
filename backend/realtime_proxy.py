@@ -14,7 +14,7 @@ Frontend protocol (over this WebSocket):
   server -> client : {"type":"error","message":"..."}
 
 Backend flow:
-  1. Mic audio chunks -> Deepgram STT WebSocket (nova-2, endpointing 300ms)
+  1. Mic audio chunks -> Deepgram STT WebSocket (nova-2, endpointing 3000ms)
   2. Final utterance transcript -> Groq chat completions (Groq, OpenAI-compatible REST)
   3. Examiner reply text -> Deepgram TTS (aura-asteria-en, linear16 24kHz)
   4. TTS audio streamed back to frontend in chunks; barge-in cancels mid-stream
@@ -45,7 +45,7 @@ GROQ_SCORING_MODEL = os.environ.get("GROQ_SCORING_MODEL", "openai/gpt-oss-20b")
 DG_STT_URL = (
     "wss://api.deepgram.com/v1/listen"
     "?model=nova-2&language=en&smart_format=true"
-    "&interim_results=true&endpointing=300"
+    "&interim_results=true&endpointing=3000"
     "&encoding=linear16&sample_rate=16000&channels=1"
 )
 DG_TTS_URL = (
