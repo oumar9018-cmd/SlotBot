@@ -22,7 +22,7 @@ import httpx
 log = logging.getLogger("englishtest.scoring")
 
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
-GROQ_SCORING_MODEL = os.environ.get("GROQ_SCORING_MODEL", "llama-3.1-8b-instant")
+GROQ_SCORING_MODEL = os.environ.get("GROQ_SCORING_MODEL", "llama3-8b-8192")
 GROQ_FALLBACK_MODEL = os.environ.get("GROQ_MODEL_FALLBACK", "llama3-8b-8192")
 GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions"
 
