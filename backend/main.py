@@ -507,7 +507,7 @@ async def stars_invoice(req: StarsInvoiceReq):
 
 
 WELCOME_TEXT = (
-    "🔥 Welcome to VoiceGrill — the world's STRICTEST AI interview coach!\n\n"
+    "🔥 Welcome to MockGrill — the world's STRICTEST AI interview coach!\n\n"
     "Grilly the examiner will grill you like a real visa officer: "
     "interrupts rambling, catches contradictions, scores you 0-100 with zero mercy.\n\n"
     "✅ First 3-question mini interview FREE\n"
@@ -685,7 +685,7 @@ DAILY_GRILLY_QUESTIONS = [
 
 DAILY_GRILLY_KEYBOARD = {
     "inline_keyboard": [[{
-        "text": "🎤 Practice Properly — Open VoiceGrill",
+        "text": "🎤 Practice Properly — Open MockGrill",
         "web_app": {"url": "https://oumar9018-cmd.github.io/SlotBot/"},
     }]]
 }
