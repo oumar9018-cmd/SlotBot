@@ -198,6 +198,89 @@ def update_session_scored(session_id: str, score: int, verdict: str,
     })
 
 
+# ---------- DS-160 attack vectors (Feature 1: Dynamic Attacker) ----------
+
+def get_last_attack_vector(user_id: str) -> str | None:
+    """Return the attack vector used in the user's previous session (or None)."""
+    uid = str(user_id)
+    if not is_db_available():
+        return (_mem_users.get(uid) or {}).get("last_attack_vector")
+    try:
+        doc = get_db().collection("users").document(uid).get()
+        if not doc.exists:
+            return None
+        return (doc.to_dict() or {}).get("last_attack_vector")
+    except Exception:
+        return None
+
+
+def set_last_attack_vector(user_id: str, vector: str):
+    """Remember which attack vector was used so the next session picks a different one."""
+    uid = str(user_id)
+    if not is_db_available():
+        _mem_users.setdefault(uid, {})["last_attack_vector"] = vector
+        return
+    try:
+        get_db().collection("users").document(uid).set(
+            {"last_attack_vector": vector}, merge=True)
+    except Exception:
+        pass
+
+
+# ---------- session analytics: nervousness, facts, over-explaining ----------
+
+def update_session_analytics(session_id: str, fields: dict):
+    """Best-effort analytics update (nervousness_score, filler_count,
+    word_count, facts_mentioned, over_explain_count). Never raises."""
+    try:
+        if not is_db_available():
+            if session_id in _mem_sessions:
+                _mem_sessions[session_id].update(fields)
+            return
+        get_db().collection("sessions").document(session_id).update(fields)
+    except Exception as e:
+        log.warning("update_session_analytics failed: %s", str(e)[:100])
+
+
+def mark_session_denied(session_id: str, reason: str):
+    """Instant cut-off: the officer ended the interview (over-explaining)."""
+    fields = {"denied": True, "denied_reason": reason, "ended_at": _now()}
+    try:
+        if not is_db_available():
+            if session_id in _mem_sessions:
+                _mem_sessions[session_id].update(fields)
+            return
+        get_db().collection("sessions").document(session_id).update(fields)
+    except Exception as e:
+        log.warning("mark_session_denied failed: %s", str(e)[:100])
+
+
+def get_daily_push_targets(limit: int = 100) -> list[dict]:
+    """Users for the daily Grilly push: trial used but never paid (no Stars purchase).
+    Returns [{telegram_id, first_name}]. Best-effort, capped at limit."""
+    targets = []
+    try:
+        if not is_db_available():
+            for uid, u in _mem_users.items():
+                if u.get("free_trial_used") and not u.get("paid"):
+                    targets.append({"telegram_id": str(uid),
+                                    "first_name": u.get("first_name", "")})
+                    if len(targets) >= limit:
+                        break
+            return targets
+        q = (get_db().collection("users")
+             .where("free_trial_used", "==", True)
+             .where("paid", "==", False)
+             .limit(limit).stream())
+        for doc in q:
+            d = doc.to_dict() or {}
+            targets.append({"telegram_id": doc.id,
+                            "first_name": d.get("first_name", "")})
+    except Exception as e:
+        log.warning("get_daily_push_targets failed: %s", str(e)[:100])
+    return targets
+
+
 # ---------- stars invoices (pending, created before checkout) ----------
 
 _mem_invoices = {}
@@ -285,9 +368,7 @@ def use_interview_credit(user_id: str) -> bool:
     return True
 
 
-# ---------- referrals ----------
-
-def claim_referral(user_id: str, referrer_id: str) -> dict:
+# ---------- referrals ----------def claim_referral(user_id: str, referrer_id: str) -> dict:
     """Claim a referral bonus: the new user gets +1 interview credit AND the
     referrer gets +1 credit plus referral_count/referral_earned incremented.
     One claim per user ever (idempotent guard).

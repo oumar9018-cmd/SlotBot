@@ -371,6 +371,26 @@ async def session_end(req: SessionEndReq):
     sess = db.get_session(req.session_id)
     if not sess:
         raise HTTPException(404, "Session not found")
+
+    # Feature 4: instant cut-off — the officer ended the interview early.
+    if sess.get("denied"):
+        reason = sess.get("denied_reason", "Over-explaining / Vague Answers")
+        log.info("session %s was denied: %s", req.session_id, reason)
+        return {
+            "session_id": req.session_id,
+            "score": 0,
+            "total": 0,
+            "verdict": "DENIED",
+            "denied_reason": reason,
+            "weaknesses": [reason],
+            "feedback": ("The officer stopped the interview. " + reason + ". "
+                         "Real officers don't listen to stories — answer directly, "
+                         "with facts, in under 20 seconds."),
+            "nervousness_score": int(sess.get("nervousness_score", 0) or 0),
+            "nervousness_level": "High" if int(sess.get("nervousness_score", 0) or 0) > 60 else "Medium",
+            "over_explain_count": int(sess.get("over_explain_count", 0) or 0),
+        }
+
     if sess.get("score") is not None:
         # Already scored — idempotent
         return {
@@ -385,7 +405,11 @@ async def session_end(req: SessionEndReq):
     if not transcript:
         raise HTTPException(409, "No transcript captured — session had no audio")
 
-    result = await scoring.score_transcript(transcript, sess.get("test_type", "general"))
+    # Feature 2: pass the filler-word nervousness score into scoring
+    nervousness = int(sess.get("nervousness_score", 0) or 0)
+    result = await scoring.score_transcript(
+        transcript, sess.get("test_type", "general"),
+        nervousness_score=nervousness)
     db.update_session_scored(
         req.session_id,
         score=result["total"],
@@ -396,7 +420,8 @@ async def session_end(req: SessionEndReq):
     )
     if sess.get("plan") == "free_trial":
         db.mark_trial_used(sess["user_id"])
-    log.info("session %s scored: %s (%s)", req.session_id, result["total"], result["verdict"])
+    log.info("session %s scored: %s (%s) nervousness=%d", req.session_id,
+             result["total"], result["verdict"], nervousness)
     return {"session_id": req.session_id, **result}
 
 
@@ -619,6 +644,93 @@ async def affiliate_stats(code: str):
     if not stats:
         raise HTTPException(404, "Affiliate not found")
     return stats
+
+
+# ---------- Feature 5: Daily Grilly Push (retention loop) ----------
+# Cron (Render cron job or external scheduler) hits this endpoint once a day.
+# It messages users who used their free trial but never bought Stars.
+
+DAILY_GRILLY_QUESTIONS = [
+    "Why should I approve your visa? Convince me in 20 seconds.",
+    "Who is paying for your trip? Give me exact numbers.",
+    "Why this university and not a cheaper one?",
+    "What will you do after your course ends? Be specific.",
+    "Show me proof your sponsor actually has this money.",
+    "You have 3 backlogs. Why should I trust your academics?",
+    "Why didn't you apply to universities in your own country?",
+    "What does your father do? How much does he earn monthly?",
+    "If I reject you today, what changes before you reapply?",
+    "Name 3 professors in your department. Right now.",
+    "How will you survive financially without working illegally?",
+    "Your English is shaky. How will you attend lectures?",
+    "Why this course? It has nothing to do with your bachelor's.",
+    "Who will take care of your family while you're away?",
+    "Give me one reason you're not an immigration risk.",
+    "What is your exact plan for the first 30 days after landing?",
+    "Your bank statement is 2 months old. Explain.",
+    "Why should I believe you'll return home after your studies?",
+    "What happens if you fail a semester? Who pays then?",
+    "Describe your course syllabus. No vague answers.",
+    "How many universities did you apply to? Why only this one?",
+    "Your sponsor's income doesn't match the fees. Explain.",
+    "What ties do you have to your home country? List them.",
+    "Why is your passport almost empty? No travel history?",
+    "Tell me your daily schedule as a student. Be precise.",
+    "What will you do if your visa is rejected today?",
+    "How did you hear about this university? Who told you?",
+    "Your answers are too rehearsed. Say something real.",
+    "What is the biggest weakness in your application?",
+    "Convince me you're not using studies as an immigration cover.",
+]
+
+DAILY_GRILLY_KEYBOARD = {
+    "inline_keyboard": [[{
+        "text": "🎤 Practice Properly — Open VoiceGrill",
+        "web_app": {"url": "https://oumar9018-cmd.github.io/SlotBot/"},
+    }]]
+}
+
+
+class DailyGrillyReq(BaseModel):
+    dry_run: bool = False
+    limit: int = 100
+
+
+@app.post("/notify/daily-grilly")
+async def notify_daily_grilly(req: DailyGrillyReq):
+    """Daily retention push: message trial users who never bought Stars with a
+    brutal practice question. Called by an external cron once per day."""
+    from datetime import date
+    targets = db.get_daily_push_targets(limit=max(1, min(req.limit, 500)))
+    if req.dry_run:
+        return {"ok": True, "dry_run": True, "targets": len(targets),
+                "sample": targets[:3]}
+
+    # Rotate the question daily — deterministic so a retry same-day is idempotent
+    q = DAILY_GRILLY_QUESTIONS[date.today().timetuple().tm_yday % len(DAILY_GRILLY_QUESTIONS)]
+    sent, failed = 0, 0
+    for t in targets:
+        chat_id = t.get("telegram_id")
+        name = (t.get("first_name") or "candidate").split()[0]
+        text = (
+            f"🔥 Grilly is watching, {name}.\n\n"
+            f"Today's brutal question:\n\"{q}\"\n\n"
+            "Reply with a VOICE NOTE and I'll roast your answer in one line. "
+            "Or tap below and practice properly — before the real officer does this to you."
+        )
+        try:
+            await tg_api("sendMessage", {
+                "chat_id": chat_id,
+                "text": text,
+                "reply_markup": DAILY_GRILLY_KEYBOARD,
+            })
+            sent += 1
+        except Exception as e:
+            log.warning("daily-grilly failed for %s: %s", chat_id, str(e)[:120])
+            failed += 1
+    log.info("daily-grilly: sent=%d failed=%d question=%s", sent, failed, q[:40])
+    return {"ok": True, "sent": sent, "failed": failed,
+            "question": q, "date": date.today().isoformat()}
 
 
 @app.websocket("/ws/voice/{session_id}")

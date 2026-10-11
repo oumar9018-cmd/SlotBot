@@ -28,6 +28,8 @@ import asyncio
 import json
 import logging
 import os
+import random
+import re
 import time
 
 from fastapi import WebSocket, WebSocketDisconnect
@@ -88,8 +90,123 @@ TEST_TYPE_HINTS = {
     "general": "General speaking test — probe personal background and everyday topics in depth.",
 }
 
+# ---------- Feature 1: Dynamic DS-160 Attacker ----------
+# Each session, the officer picks ONE vector to aggressively probe.
+# The last-used vector is excluded (stored per user) so the candidate
+# can never predict where the attack comes from.
+ATTACK_VECTORS = {
+    "university": (
+        "the candidate's UNIVERSITY choice. Attack it relentlessly: why THIS school and not "
+        "a better/worse one? Is it a visa-mill? What do you even know about the campus? "
+        "Ask 2-3 sharp follow-ups on the university alone."
+    ),
+    "sponsor": (
+        "the candidate's SPONSOR and funding source. Who exactly is paying? How did they earn "
+        "that money? Show me the proof. Attack any vagueness about the sponsor's income, "
+        "job, or relationship to the candidate. 2-3 follow-ups minimum."
+    ),
+    "course": (
+        "the candidate's COURSE / field of study. Why this field? What will you actually DO "
+        "with this degree? Is this just a cover to immigrate? Demand specifics about "
+        "subjects, professors, career plans. 2-3 follow-ups."
+    ),
+    "funding": (
+        "the candidate's FINANCIAL proof. Exact amounts, bank statements, loans, who arranged "
+        "the money and how. If numbers don't add up, pounce immediately. 2-3 follow-ups "
+        "on money alone."
+    ),
+    "past_rejection": (
+        "any PAST VISA REJECTION or weak travel history. What changed since the refusal? "
+        "Why should I believe you now? Attack inconsistencies between then and now. "
+        "2-3 follow-ups if a rejection is mentioned or suspected."
+    ),
+}
 
-def build_system_prompt(test_type: str, background_summary: str | None) -> str:
+
+def pick_attack_vector(user_id: str) -> str:
+    """Pick a random attack vector, excluding the one used last session."""
+    try:
+        last = db.get_last_attack_vector(user_id)
+    except Exception:
+        last = None
+    pool = [v for v in ATTACK_VECTORS if v != last] or list(ATTACK_VECTORS)
+    chosen = random.choice(pool)
+    try:
+        db.set_last_attack_vector(user_id, chosen)
+    except Exception:
+        pass
+    log.info("attack vector for user %s: %s (last was %s)", user_id, chosen, last)
+    return chosen
+
+
+# ---------- Feature 2: Nervousness & Hesitation Penalty ----------
+# Filler words counted per user utterance; ratio -> 0-100 nervousness score.
+FILLER_WORDS = {
+    "um", "uh", "umm", "uhh", "like", "you know", "actually",
+    "basically", "hmm", "er", "ah", "ahh", "well",
+}
+_FILLER_RE = re.compile(
+    r"\b(" + "|".join(sorted(FILLER_WORDS, key=len, reverse=True)) + r")\b",
+    re.IGNORECASE,
+)
+
+
+def count_fillers(text: str) -> int:
+    """Count filler-word occurrences in a transcript chunk."""
+    return len(_FILLER_RE.findall(text or ""))
+
+
+def nervousness_from_counts(filler_count: int, word_count: int) -> int:
+    """Filler ratio -> 0-100. ~2% is normal speech; 6%+ reads as very nervous."""
+    if word_count <= 0:
+        return 0
+    ratio = filler_count / word_count
+    return max(0, min(100, int(ratio * 1000)))
+
+
+# ---------- Feature 3: "Lie Detector" Cross-Questioning ----------
+# Specific numbers / amounts / company names the candidate mentions are
+# extracted and held in session state; the officer cross-checks them later.
+_FACT_PATTERNS = [
+    r"\$\s?[\d,]+(?:\.\d+)?",                                  # $40,000
+    r"\b\d[\d,]*\s*(?:lakhs?|crores?)\b",                      # 20 lakh
+    r"\b\d+\s*backlogs?\b",                                    # 3 backlogs
+    r"\b\d+(?:\.\d+)?\s*(?:cgpa|gpa|percent|%)\b",              # 8.5 CGPA
+    r"\b(?:works?|worked|working|employed)\s+(?:at|for|with)\s+([A-Z][\w&.\-]*(?:\s+[A-Z][\w&.\-]*){0,2})",  # works at TCS
+]
+
+
+def extract_facts(text: str) -> list[str]:
+    """Pull concrete facts (amounts, numbers, company names) from an utterance."""
+    facts: list[str] = []
+    for pat in _FACT_PATTERNS:
+        try:
+            for m in re.finditer(pat, text or "", re.IGNORECASE):
+                fact = (m.group(1) if m.lastindex else m.group(0)).strip()
+                if fact and len(fact) <= 60:
+                    facts.append(fact)
+        except re.error:
+            continue
+    # de-dupe, keep order
+    seen: set[str] = set()
+    out: list[str] = []
+    for f in facts:
+        key = f.lower()
+        if key not in seen:
+            seen.add(key)
+            out.append(f)
+    return out[:8]
+
+
+# ---------- Feature 4: Instant Cut-Off ----------
+# Real officers don't listen to stories. Answers running past this many
+# seconds of audio get aggressively cut off; 3 cut-offs = instant denial.
+OVEREXPLAIN_SECONDS = 20
+OVEREXPLAIN_LIMIT = 3
+
+
+def build_system_prompt(test_type: str, background_summary: str | None,
+                        attack_vector: str | None = None) -> str:
     prompt = PERSONA_INSTRUCTIONS
     prompt += "\n\nTEST FOCUS: " + TEST_TYPE_HINTS.get(test_type, TEST_TYPE_HINTS["general"])
     if background_summary:
@@ -109,9 +226,23 @@ def build_system_prompt(test_type: str, background_summary: str | None) -> str:
         "an earlier one, pounce: \"Thirty seconds ago you said X. Now you say Y. Which is it?\""
         "\n4. STYLE: Cold, clipped, zero pleasantries. 1-2 sentences max per reply. "
         "Never encouraging during the interview. Never explain your reasoning."
+        "\n5. LIE DETECTOR: If the candidate mentions ANY specific number, amount, company "
+        "name, or concrete fact (e.g. '$40,000 savings', '3 backlogs', 'works at TCS'), "
+        "REMEMBER it. Two or three questions later, ambush them: 'Wait — you said $40,000 "
+        "earlier. Give me the exact breakdown of how your sponsor arranged that.' "
+        "Catch them if the story shifts even slightly."
+        "\n6. CUT-OFF RULE: If a candidate rambles (you will be told when an answer ran too "
+        "long), cut them off mid-flow: 'Stop. I don't need a story. Get to the point.' "
+        "Then ask your next question. Never apologize for interrupting."
         "\n\nKeep every reply SHORT (1-2 sentences). You are speaking, not writing essays. "
         "Never output stage directions or bracketed notes — only the words you say aloud."
     )
+    # Feature 1: this session's dedicated attack vector
+    if attack_vector and attack_vector in ATTACK_VECTORS:
+        prompt += (
+            "\n\nTHIS SESSION'S ATTACK VECTOR: " + ATTACK_VECTORS[attack_vector] +
+            " Make this the centerpiece of your interrogation."
+        )
     return prompt
 
 
@@ -208,6 +339,7 @@ async def voice_proxy(ws: WebSocket, session_id: str):
     max_dur = int(sess.get("max_duration_sec", 120))
     test_type = sess.get("test_type", "general")
     background = sess.get("background_summary")
+    user_id = str(sess.get("user_id", "temp"))
 
     await ws.accept()
     await ws.send_json({"type": "status", "state": "connecting"})
@@ -217,9 +349,17 @@ async def voice_proxy(ws: WebSocket, session_id: str):
         await ws.close()
         return
 
-    system_prompt = build_system_prompt(test_type, background)
+    # Feature 1: pick this session's attack vector (excludes last session's)
+    attack_vector = pick_attack_vector(user_id)
+    system_prompt = build_system_prompt(test_type, background, attack_vector)
     transcript: list[dict] = list(sess.get("transcript", []))
     history: list[dict] = []  # groq chat history, capped at 20 entries
+    # Feature 2/3/4 session analytics
+    filler_count = 0
+    word_count = 0
+    facts_mentioned: list[str] = []
+    over_explain_count = 0
+    turn_audio_start: float | None = None  # Feature 4: answer-duration tracking
     start_ts = time.time()
     closed = asyncio.Event()
     barge = asyncio.Event()       # set on barge-in; checked during TTS streaming
@@ -246,10 +386,17 @@ async def voice_proxy(ws: WebSocket, session_id: str):
     log.info("Deepgram STT connected for session %s", session_id)
 
     def flush_utterance(buf: list):
+        nonlocal turn_audio_start
         text = " ".join(buf).strip()
         buf.clear()
+        # Feature 4: how long did the candidate talk? (>20s = over-explaining)
+        duration = (time.time() - turn_audio_start) if turn_audio_start else 0.0
+        turn_audio_start = None
         if text:
-            user_turns.put_nowait(("user", text))
+            if duration > OVEREXPLAIN_SECONDS:
+                user_turns.put_nowait(("overexplain", (text, duration)))
+            else:
+                user_turns.put_nowait(("user", text))
 
     # ---- Deepgram -> thinker queue ----
     async def dg_listener():
@@ -285,7 +432,7 @@ async def voice_proxy(ws: WebSocket, session_id: str):
 
     # ---- frontend -> Deepgram (+ control) ----
     async def client_reader():
-        nonlocal warned_webm, last_audio_ts, seq
+        nonlocal warned_webm, last_audio_ts, seq, turn_audio_start
         try:
             while not closed.is_set():
                 msg = await ws.receive()
@@ -302,6 +449,9 @@ async def voice_proxy(ws: WebSocket, session_id: str):
                         await dg.send(data)
                     except Exception:
                         break
+                    # Feature 4: mark when the candidate starts talking
+                    if turn_audio_start is None:
+                        turn_audio_start = time.time()
                     last_audio_ts = time.time()
                 elif "text" in msg and msg["text"]:
                     try:
@@ -341,7 +491,7 @@ async def voice_proxy(ws: WebSocket, session_id: str):
 
     # ---- user turn -> Groq -> TTS -> frontend ----
     async def thinker():
-        nonlocal seq
+        nonlocal seq, filler_count, word_count, over_explain_count
         try:
             while not closed.is_set():
                 kind, payload = await user_turns.get()
@@ -357,7 +507,65 @@ async def voice_proxy(ws: WebSocket, session_id: str):
                     await safe_send({"type": "status", "state": "heard"})
                     transcript.append({"role": "user", "text": payload})
                     history.append({"role": "user", "content": payload})
+                    # Feature 2: hesitation tracking
+                    filler_count += count_fillers(payload)
+                    word_count += len(payload.split())
+                    # Feature 3: remember concrete facts for cross-questioning
+                    for f in extract_facts(payload):
+                        if f.lower() not in {x.lower() for x in facts_mentioned}:
+                            facts_mentioned.append(f)
                     sys_extra = ""
+                    # Feature 3: feed remembered facts into the officer's context
+                    if facts_mentioned:
+                        sys_extra += (
+                            "\n\n[FACTS THE CANDIDATE MENTIONED EARLIER — ambush one soon: "
+                            + "; ".join(facts_mentioned[-5:]) + "]"
+                        )
+                elif kind == "overexplain":
+                    # Feature 4: the candidate rambled past the limit.
+                    text, duration = payload
+                    over_explain_count += 1
+                    transcript.append({"role": "user", "text": text})
+                    history.append({"role": "user", "content": text})
+                    filler_count += count_fillers(text)
+                    word_count += len(text.split())
+                    for f in extract_facts(text):
+                        if f.lower() not in {x.lower() for x in facts_mentioned}:
+                            facts_mentioned.append(f)
+                    log.info("session %s: over-explain #%d (%.1fs)",
+                             session_id, over_explain_count, duration)
+                    if over_explain_count >= OVEREXPLAIN_LIMIT:
+                        # INSTANT CUT-OFF: 3 strikes — interview over, visa denied.
+                        reason = "Over-explaining / Vague Answers"
+                        try:
+                            db.mark_session_denied(session_id, reason)
+                            db.update_session_analytics(session_id, {
+                                "nervousness_score": nervousness_from_counts(
+                                    filler_count, word_count),
+                                "filler_count": filler_count,
+                                "word_count": word_count,
+                                "facts_mentioned": facts_mentioned,
+                                "over_explain_count": over_explain_count,
+                            })
+                        except Exception:
+                            pass
+                        await safe_send({"type": "visa_denied", "reason": reason,
+                                         "over_explain_count": over_explain_count})
+                        await safe_send({"type": "session_ended"})
+                        await safe_send({"type": "status", "state": "ended"})
+                        closed.set()
+                        continue
+                    await safe_send({"type": "transcript_user", "text": text})
+                    await safe_send({"type": "status", "state": "heard"})
+                    await safe_send({"type": "overexplain_cutoff",
+                                     "count": over_explain_count,
+                                     "limit": OVEREXPLAIN_LIMIT})
+                    sys_extra = (
+                        f"\n\n[The candidate just rambled for {duration:.0f} seconds "
+                        f"(cut-off #{over_explain_count} of {OVEREXPLAIN_LIMIT}). "
+                        "CUT THEM OFF aggressively: 'Stop. I don't need a story. "
+                        "Get to the point.' Then ask your next question sharply.]"
+                    )
                 elif kind == "opening":
                     sys_extra = ("\n\n[The candidate just connected. Deliver your opening line now — "
                                  "demand their full name, sternly. Keep it short.]")
@@ -439,6 +647,15 @@ async def voice_proxy(ws: WebSocket, session_id: str):
             # doesn't race the socket-close flush
             try:
                 db.append_transcript(session_id, transcript)
+                db.update_session_analytics(session_id, {
+                    "nervousness_score": nervousness_from_counts(
+                        filler_count, word_count),
+                    "filler_count": filler_count,
+                    "word_count": word_count,
+                    "facts_mentioned": facts_mentioned,
+                    "over_explain_count": over_explain_count,
+                    "attack_vector": attack_vector,
+                })
             except Exception as e:
                 log.exception("timeup transcript flush failed: %s", e)
             await safe_send({"type": "timeup"})
@@ -462,10 +679,20 @@ async def voice_proxy(ws: WebSocket, session_id: str):
     for t in tasks:
         t.cancel()
 
-    # flush transcript
+    # flush transcript + analytics
+    nervousness = nervousness_from_counts(filler_count, word_count)
     try:
         db.append_transcript(session_id, transcript)
         db.mark_session_ended(session_id, duration_sec=int(time.time() - start_ts))
+        # Features 2/3/4: persist analytics for scoring + results UI
+        db.update_session_analytics(session_id, {
+            "nervousness_score": nervousness,
+            "filler_count": filler_count,
+            "word_count": word_count,
+            "facts_mentioned": facts_mentioned,
+            "over_explain_count": over_explain_count,
+            "attack_vector": attack_vector,
+        })
     except Exception as e:
         log.exception("transcript flush failed: %s", e)
     try:

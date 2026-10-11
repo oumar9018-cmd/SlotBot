@@ -71,8 +71,14 @@ def _clamp_result(r: dict) -> dict:
     return r
 
 
-async def score_transcript(transcript: list[dict], test_type: str = "general") -> dict:
-    """Score a session transcript. Returns the rubric JSON dict."""
+async def score_transcript(transcript: list[dict], test_type: str = "general",
+                         nervousness_score: int = 0) -> dict:
+    """Score a session transcript. Returns the rubric JSON dict.
+
+    nervousness_score (0-100, from filler-word analysis): >60 triggers an
+    aggressive 15-point composure deduction — hesitant candidates read as
+    suspicious to real officers.
+    """
     if not GROQ_API_KEY:
         raise RuntimeError("GROQ_API_KEY not configured")
 
@@ -123,4 +129,26 @@ async def score_transcript(transcript: list[dict], test_type: str = "general") -
     except json.JSONDecodeError:
         log.error("Scoring returned non-JSON: %s", raw[:300])
         raise RuntimeError("Scoring engine returned invalid output")
-    return _clamp_result(result)
+    result = _clamp_result(result)
+
+    # Feature 2: Nervousness penalty — aggressive, like a real officer.
+    nervousness_score = max(0, min(100, int(nervousness_score or 0)))
+    result["nervousness_score"] = nervousness_score
+    result["nervousness_level"] = (
+        "High" if nervousness_score > 60
+        else "Medium" if nervousness_score > 30
+        else "Low"
+    )
+    if nervousness_score > 60:
+        result["total"] = max(0, result["total"] - 15)
+        t = result["total"]
+        result["verdict"] = "PASS" if t >= 75 else ("NEEDS_WORK" if t >= 60 else "FAIL")
+        penalty_note = (" Your constant hesitation makes your profile look suspicious — "
+                        "officers read filler words as hiding something. (-15 nervousness penalty)")
+        result["feedback"] = (result.get("feedback", "") + penalty_note)[:1500]
+        if "Constant hesitation / filler words" not in result["weaknesses"]:
+            result["weaknesses"] = (["Constant hesitation / filler words"]
+                                    + result["weaknesses"])[:5]
+        log.info("nervousness penalty applied: score=%d nervousness=%d",
+                 result["total"], nervousness_score)
+    return result
