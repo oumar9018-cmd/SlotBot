@@ -1,0 +1,1 @@
+import{r as c}from"./react-dom-a-CLRV2aXt.js";var r={},t={exports:{}};function e(){if(!(typeof __REACT_DEVTOOLS_GLOBAL_HOOK__>"u"||typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE!="function"))try{__REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE(e)}catch(_){console.error(_)}}e(),t.exports=c;var O=t.exports,o=O;r.createRoot=o.createRoot,r.hydrateRoot=o.hydrateRoot;export{r as c};
