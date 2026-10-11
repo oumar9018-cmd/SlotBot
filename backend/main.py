@@ -15,6 +15,7 @@ Endpoints:
 import os
 import time
 import logging
+import uuid
 from datetime import datetime, timezone
 
 import httpx
@@ -34,8 +35,35 @@ DEEPGRAM_API_KEY = os.environ.get("DEEPGRAM_API_KEY", "")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_WEBHOOK_SECRET = os.environ.get("TELEGRAM_WEBHOOK_SECRET", "")  # optional
 
-# Pricing: full 15-min speaking test + report — Telegram Stars (XTR), 1-click native
-FULL_TEST_PRICE_STARS = 750
+# Pricing: pay-per-use interview credit bundles — Telegram Stars (XTR), 1-click native
+FULL_TEST_PRICE_STARS = 750  # legacy single full-test price (kept for backward compat)
+
+BUNDLES = {
+    "reality": {
+        "id": "reality",
+        "name": "Reality Check",
+        "stars": 50,
+        "interviews": 1,
+        "title": "Reality Check — 1 Mock Interview",
+        "description": "1 full strict mock interview + brutal feedback report",
+    },
+    "serious": {
+        "id": "serious",
+        "name": "Serious Candidate",
+        "stars": 200,
+        "interviews": 5,
+        "title": "Serious Candidate — 5 Mock Interviews",
+        "description": "5 full strict mock interviews + feedback reports",
+    },
+    "panic": {
+        "id": "panic",
+        "name": "Panic Mode",
+        "stars": 500,
+        "interviews": 15,
+        "title": "Panic Mode — 15 Mock Interviews",
+        "description": "15 full strict mock interviews + feedback reports. Interview in 3 days? This is for you.",
+    },
+}
 
 # Time limits (seconds)
 FREE_TRIAL_MAX_SEC = 120   # 2 min hard cutoff
@@ -50,6 +78,24 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+async def check_required_env():
+    """Log warnings for missing env vars so misconfiguration shows up in Render logs."""
+    missing = []
+    for name in ("TELEGRAM_BOT_TOKEN", "GROQ_API_KEY", "DEEPGRAM_API_KEY"):
+        if not os.environ.get(name):
+            missing.append(name)
+            log.warning("MISSING env var %s — related features will fail", name)
+    if not os.environ.get("FIREBASE_CRED_PATH"):
+        log.info("FIREBASE_CRED_PATH not set — using in-memory Firestore fallback")
+    if not os.environ.get("TELEGRAM_WEBHOOK_SECRET"):
+        log.info("TELEGRAM_WEBHOOK_SECRET not set — webhook secret check disabled")
+    if missing:
+        log.warning("Backend starting with missing env vars: %s", ", ".join(missing))
+    else:
+        log.info("All required env vars present")
 
 
 # ---------- Models ----------
@@ -78,6 +124,7 @@ class SessionEndReq(BaseModel):
 class StarsInvoiceReq(BaseModel):
     user_id: str
     affiliate_code: str | None = None
+    bundle_id: str | None = None  # reality | serious | panic — None = legacy 750 flow
 
 
 # ---------- Helpers ----------
@@ -383,31 +430,77 @@ async def session_feedback_audio(req: FeedbackAudioReq):
 
 @app.post("/payment/stars-invoice")
 async def stars_invoice(req: StarsInvoiceReq):
-    """Create a Telegram Stars invoice link for the full speaking test.
-    1-click native purchase inside Telegram — no forms, no KYC."""
+    """Create a Telegram Stars invoice link.
+    Bundle flow (bundle_id set): pay-per-use interview credit bundles.
+    Legacy flow (bundle_id None): 750-Star full test (backward compat)."""
     user = db.get_user(req.user_id)
     if not user:
         user = db.create_user(req.user_id, affiliate_code=req.affiliate_code)
-    if user.get("paid"):
-        raise HTTPException(409, "User already paid")
 
-    payload_token = f"{req.user_id}:full:{int(time.time())}"
-    db.record_stars_invoice(payload_token, req.user_id, req.affiliate_code)
+    bundle = BUNDLES.get(req.bundle_id) if req.bundle_id else None
+    if req.bundle_id and not bundle:
+        raise HTTPException(400, f"Unknown bundle_id: {req.bundle_id}")
+    if bundle:
+        stars = bundle["stars"]
+        title = bundle["title"]
+        description = bundle["description"]
+        label = bundle["name"]
+        payload_token = f"{req.user_id}:{bundle['id']}:{uuid.uuid4().hex[:12]}"
+    else:
+        if user.get("paid"):
+            raise HTTPException(409, "User already paid")
+        stars = FULL_TEST_PRICE_STARS
+        title = "Full Speaking Test + Report"
+        description = "15-minute strict speaking test with detailed 0-100 score report"
+        label = "Full Test"
+        payload_token = f"{req.user_id}:full:{int(time.time())}"
 
-    data = await tg_api("createInvoiceLink", {
-        "title": "Full Speaking Test + Report",
-        "description": "15-minute strict speaking test with detailed 0-100 score report",
-        "payload": payload_token,
-        # NOTE: provider_token intentionally omitted — required for Telegram Stars (XTR)
-        "currency": "XTR",
-        "prices": [{"label": "Full Test", "amount": FULL_TEST_PRICE_STARS}],
-    })
-    return {"invoice_url": data["result"], "payload": payload_token}
+    db.record_stars_invoice(payload_token, req.user_id, req.affiliate_code,
+                            bundle_id=bundle["id"] if bundle else None)
+
+    if not TELEGRAM_BOT_TOKEN:
+        log.error("stars-invoice called but TELEGRAM_BOT_TOKEN is missing/empty")
+        raise HTTPException(
+            500, "Payment not configured: TELEGRAM_BOT_TOKEN missing on server")
+    try:
+        data = await tg_api("createInvoiceLink", {
+            "title": title,
+            "description": description,
+            "payload": payload_token,
+            # NOTE: provider_token intentionally omitted — required for Telegram Stars (XTR)
+            "currency": "XTR",
+            "prices": [{"label": label, "amount": stars}],
+        })
+    except HTTPException:
+        raise
+    except Exception as e:
+        log.exception("createInvoiceLink failed unexpectedly")
+        raise HTTPException(502, f"Telegram payment error: {str(e)[:200]}")
+    return {"invoice_url": data["result"], "payload": payload_token,
+            "stars": stars, "bundle_id": bundle["id"] if bundle else None,
+            "interviews": bundle["interviews"] if bundle else 0}
+
+
+WELCOME_TEXT = (
+    "🔥 Welcome to VoiceGrill — the world's STRICTEST AI interview coach!\n\n"
+    "Grilly the examiner will grill you like a real visa officer: "
+    "interrupts rambling, catches contradictions, scores you 0-100 with zero mercy.\n\n"
+    "✅ First 3-question mini interview FREE\n"
+    "✅ Then 1 full trial interview (3 days)\n\n"
+    "Tap below to start getting grilled! 👇"
+)
+
+WELCOME_KEYBOARD = {
+    "inline_keyboard": [[{
+        "text": "🎤 Start Free Test",
+        "web_app": {"url": "https://oumar9018-cmd.github.io/SlotBot/"},
+    }]]
+}
 
 
 @app.post("/payment/telegram-webhook")
 async def telegram_webhook(request: Request):
-    """Handle Telegram payment updates: pre_checkout_query + successful_payment."""
+    """Handle Telegram updates: /start welcome + pre_checkout_query + successful_payment."""
     if TELEGRAM_WEBHOOK_SECRET:
         got = request.headers.get("X-Telegram-Bot-Api-Secret-Token", "")
         if got != TELEGRAM_WEBHOOK_SECRET:
@@ -425,6 +518,22 @@ async def telegram_webhook(request: Request):
         return {"ok": True}
 
     msg = update.get("message") or {}
+
+    # /start welcome message — must never break payment handling below
+    text = (msg.get("text") or "").strip()
+    if text.startswith("/start"):
+        chat_id = (msg.get("chat") or {}).get("id")
+        try:
+            await tg_api("sendMessage", {
+                "chat_id": chat_id,
+                "text": WELCOME_TEXT,
+                "reply_markup": WELCOME_KEYBOARD,
+            })
+            log.info("sent /start welcome to chat %s", chat_id)
+        except Exception:
+            log.exception("failed to send /start welcome to chat %s", chat_id)
+        return {"ok": True}
+
     sp = msg.get("successful_payment")
     if sp:
         charge_id = sp.get("telegram_payment_charge_id", "")
@@ -449,11 +558,33 @@ async def telegram_webhook(request: Request):
             affiliate_code=affiliate_code,
         )
         db.mark_paid(user_id)
+        # Bundle flow: credit interview interviews to the user's account.
+        bundle_id = (inv or {}).get("bundle_id")
+        bundle = BUNDLES.get(bundle_id) if bundle_id else None
+        if bundle:
+            db.add_interview_credits(user_id, bundle["interviews"])
+            log.info("user %s credited %d interviews (bundle %s)",
+                     user_id, bundle["interviews"], bundle_id)
         if payload_token:
             db.mark_invoice_used(payload_token)
         log.info("user %s paid %s Stars (charge %s)",
                  user_id, sp.get("total_amount"), charge_id)
     return {"ok": True}
+
+
+@app.get("/payment/credits/{user_id}")
+async def payment_credits(user_id: str):
+    """Return the user's remaining interview credits (single source of truth)."""
+    return {
+        "user_id": user_id,
+        "interview_credits": db.get_interview_credits(user_id),
+    }
+
+
+@app.get("/payment/bundles")
+async def payment_bundles():
+    """Public bundle catalog for the Mini App store."""
+    return {"bundles": list(BUNDLES.values())}
 
 
 @app.get("/affiliate/stats/{code}")
