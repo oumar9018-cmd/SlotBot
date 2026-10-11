@@ -7,6 +7,7 @@ Frontend protocol (over this WebSocket):
   client -> server : {"type": "user_done"}            (frontend stop-talk hint; flushes pending utterance)
   server -> client : binary PCM16 24kHz mono audio chunks (examiner voice)
   server -> client : {"type":"status","state":"..."}  (connected/connecting/listening/thinking/speaking/ended)
+  server -> client : {"type":"transcript_user","text":"..."}   (echo of flushed user utterance — instant "Heard you ✓")
   server -> client : {"type":"transcript_examiner","text":"..."}  (compat: current frontend build)
   server -> client : {"type":"interrupted"}            (compat: current frontend build)
   server -> client : {"type":"timeup"}                (hard cutoff hit)
@@ -14,7 +15,7 @@ Frontend protocol (over this WebSocket):
   server -> client : {"type":"error","message":"..."}
 
 Backend flow:
-  1. Mic audio chunks -> Deepgram STT WebSocket (nova-2, endpointing 3000ms)
+  1. Mic audio chunks -> Deepgram STT WebSocket (nova-3, endpointing 2000ms)
   2. Final utterance transcript -> Groq chat completions (Groq, OpenAI-compatible REST)
   3. Examiner reply text -> Deepgram TTS STRICT voice (aura-asteria-en, linear16 24kHz)
   4. TTS audio streamed back to frontend in chunks; barge-in cancels mid-stream
@@ -45,9 +46,17 @@ GROQ_SCORING_MODEL = os.environ.get("GROQ_SCORING_MODEL", "openai/gpt-oss-20b")
 
 DG_STT_URL = (
     "wss://api.deepgram.com/v1/listen"
-    "?model=nova-2&language=en&smart_format=true"
-    "&interim_results=true&endpointing=3000"
+    "?model=nova-3&language=en&smart_format=true"
+    "&interim_results=true&endpointing=2000"
     "&encoding=linear16&sample_rate=16000&channels=1"
+    "&punctuate=true&profanity_filter=false&diarize=false"
+    # Keyword boosting for Indian first names (format: word:intensifier 0-10).
+    # Farzan gets max boost — it was the reported mis-hear ("harzan").
+    "&keywords=Farzan:4&keywords=Arjun:4&keywords=Priya:4&keywords=Rahul:4"
+    "&keywords=Sneha:4&keywords=Vikram:4&keywords=Ananya:4&keywords=Rohan:4"
+    "&keywords=Amit:4&keywords=Kiran:4&keywords=Divya:4&keywords=Sanjay:4"
+    "&keywords=Meera:4&keywords=Kabir:4&keywords=Ishaan:4&keywords=Neha:4"
+    "&keywords=Aditya:4&keywords=Pooja:4&keywords=Suresh:4&keywords=Kavya:4"
 )
 DG_TTS_STRICT_URL = (
     "https://api.deepgram.com/v1/speak"
@@ -61,7 +70,7 @@ DG_TTS_FRIENDLY_URL = (
 DG_TTS_URL = DG_TTS_STRICT_URL
 GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions"
 
-TTS_CHUNK = 8192  # ~0.17s of 24kHz 16-bit mono per chunk
+TTS_CHUNK = 16384  # ~0.34s of 24kHz 16-bit mono per chunk
 WEBM_MAGIC = b"\x1aE\xdf\xa3"  # EBML header — detects wrong audio container
 
 # Load persona once at import
@@ -112,7 +121,7 @@ async def groq_reply(history: list[dict], system_prompt: str) -> str:
     last_err = "unknown"
     for model in (GROQ_MODEL, GROQ_MODEL_FALLBACK):
         try:
-            async with httpx.AsyncClient(timeout=30) as client:
+            async with httpx.AsyncClient(timeout=20) as client:
                 r = await client.post(
                     GROQ_CHAT_URL,
                     headers={
@@ -248,7 +257,7 @@ async def voice_proxy(ws: WebSocket, session_id: str):
         try:
             while not closed.is_set():
                 try:
-                    raw = await asyncio.wait_for(dg.recv(), timeout=1.0)
+                    raw = await asyncio.wait_for(dg.recv(), timeout=0.3)
                 except asyncio.TimeoutError:
                     if flush_req.is_set():
                         flush_req.clear()
@@ -342,6 +351,10 @@ async def voice_proxy(ws: WebSocket, session_id: str):
                 my_seq = seq
 
                 if kind == "user":
+                    # UX win: echo the heard transcript + distinct "heard" state
+                    # IMMEDIATELY, before Groq starts — kills the long "thinking" confusion.
+                    await safe_send({"type": "transcript_user", "text": payload})
+                    await safe_send({"type": "status", "state": "heard"})
                     transcript.append({"role": "user", "text": payload})
                     history.append({"role": "user", "content": payload})
                     sys_extra = ""
@@ -386,14 +399,18 @@ async def voice_proxy(ws: WebSocket, session_id: str):
                 barge.clear()
                 await safe_send({"type": "status", "state": "speaking"})
                 await safe_send({"type": "transcript_examiner", "text": reply})
-                for i in range(0, len(audio), TTS_CHUNK):
+                # Initial burst: first 2 chunks sent back-to-back (no yield) so the
+                # frontend has ~0.7s of audio buffered before any scheduling pause;
+                # yields only after the buffer is seeded to smooth network jitter.
+                for chunk_idx, i in enumerate(range(0, len(audio), TTS_CHUNK)):
                     if barge.is_set() or my_seq != seq or closed.is_set():
                         break
                     try:
                         await ws.send_bytes(audio[i:i + TTS_CHUNK])
                     except Exception:
                         break
-                    await asyncio.sleep(0)  # yield between chunks
+                    if chunk_idx >= 1:
+                        await asyncio.sleep(0)  # yield between chunks after burst
                 await safe_send({"type": "status", "state": "listening"})
         except asyncio.CancelledError:
             pass
