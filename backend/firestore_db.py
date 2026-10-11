@@ -24,10 +24,27 @@ from datetime import datetime, timezone
 log = logging.getLogger("englishtest.db")
 
 _db = None
+_db_available = None  # None=unknown, True=ok, False=fallback mode
+_mem_users = {}
+_mem_sessions = {}
 
 
 def _now():
     return datetime.now(timezone.utc)
+
+
+def is_db_available() -> bool:
+    """True if Firestore is configured and reachable. Uses in-memory fallback otherwise."""
+    global _db_available
+    if _db_available is not None:
+        return _db_available
+    try:
+        get_db()
+        _db_available = True
+    except Exception as e:
+        log.warning("Firestore unavailable, using in-memory fallback: %s", str(e)[:100])
+        _db_available = False
+    return _db_available
 
 
 def get_db():
@@ -52,6 +69,8 @@ def get_db():
 # ---------- users ----------
 
 def get_user(user_id: str) -> dict | None:
+    if not is_db_available():
+        return _mem_users.get(str(user_id))
     doc = get_db().collection("users").document(str(user_id)).get()
     return doc.to_dict() if doc.exists else None
 
@@ -68,12 +87,19 @@ def create_user(user_id: str, affiliate_code: str | None = None,
         "created_at": _now(),
         "paid_at": None,
     }
+    if not is_db_available():
+        _mem_users[str(user_id)] = data
+        return data
     get_db().collection("users").document(str(user_id)).set(data)
     return data
 
 
 def update_user(user_id: str, fields: dict):
     """Update user profile fields (best-effort)."""
+    if not is_db_available():
+        if str(user_id) in _mem_users:
+            _mem_users[str(user_id)].update(fields)
+        return
     try:
         get_db().collection("users").document(str(user_id)).update(fields)
     except Exception:
@@ -81,11 +107,19 @@ def update_user(user_id: str, fields: dict):
 
 
 def mark_trial_used(user_id: str):
+    if not is_db_available():
+        if str(user_id) in _mem_users:
+            _mem_users[str(user_id)]["free_trial_used"] = True
+        return
     get_db().collection("users").document(str(user_id)).update(
         {"free_trial_used": True})
 
 
 def mark_paid(user_id: str):
+    if not is_db_available():
+        if str(user_id) in _mem_users:
+            _mem_users[str(user_id)]["paid"] = True
+        return
     get_db().collection("users").document(str(user_id)).update(
         {"paid": True, "paid_at": _now()})
 
@@ -96,7 +130,7 @@ def create_session(user_id: str, test_type: str, plan: str,
                    max_duration_sec: int, affiliate_code: str | None = None,
                    background_summary: str | None = None) -> str:
     sid = uuid.uuid4().hex[:16]
-    get_db().collection("sessions").document(sid).set({
+    data = {
         "user_id": str(user_id),
         "test_type": test_type,
         "plan": plan,
@@ -112,28 +146,49 @@ def create_session(user_id: str, test_type: str, plan: str,
         "background_summary": (background_summary or "")[:2000],
         "created_at": _now(),
         "ended_at": None,
-    })
+    }
+    if not is_db_available():
+        _mem_sessions[sid] = data
+        return sid
+    get_db().collection("sessions").document(sid).set(data)
     return sid
 
 
 def get_session(session_id: str) -> dict | None:
+    if not is_db_available():
+        return _mem_sessions.get(session_id)
     doc = get_db().collection("sessions").document(session_id).get()
     return doc.to_dict() if doc.exists else None
 
 
 def append_transcript(session_id: str, transcript: list[dict]):
     # Replace with the full accumulated transcript (proxy owns ordering)
+    if not is_db_available():
+        if session_id in _mem_sessions:
+            _mem_sessions[session_id]["transcript"] = transcript
+        return
     get_db().collection("sessions").document(session_id).update(
         {"transcript": transcript})
 
 
 def mark_session_ended(session_id: str, duration_sec: int):
+    if not is_db_available():
+        if session_id in _mem_sessions:
+            _mem_sessions[session_id].update({"ended_at": _now(), "duration_sec": duration_sec})
+        return
     get_db().collection("sessions").document(session_id).update(
         {"ended_at": _now(), "duration_sec": duration_sec})
 
 
 def update_session_scored(session_id: str, score: int, verdict: str,
                           breakdown: dict, weaknesses: list, feedback: str):
+    if not is_db_available():
+        if session_id in _mem_sessions:
+            _mem_sessions[session_id].update({
+                "score": score, "verdict": verdict, "breakdown": breakdown,
+                "weaknesses": weaknesses, "feedback": feedback,
+            })
+        return
     get_db().collection("sessions").document(session_id).update({
         "score": score,
         "verdict": verdict,
