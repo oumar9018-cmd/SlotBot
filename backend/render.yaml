@@ -1,0 +1,16 @@
+# Render.com 1-click deploy for Strict English Voice Test backend
+services:
+  - type: web
+    name: voicegrill-api
+    runtime: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: FIREBASE_CRED_PATH
+        value: /etc/secrets/firebase.json
