@@ -353,6 +353,34 @@ async def session_end(req: SessionEndReq):
     return {"session_id": req.session_id, **result}
 
 
+class FeedbackAudioReq(BaseModel):
+    session_id: str
+
+
+@app.post("/session/feedback-audio")
+async def session_feedback_audio(req: FeedbackAudioReq):
+    """Synthesize the session verdict + feedback with the FRIENDLY 'Visa Coach'
+    voice (aura-luna-en). Returns raw PCM16 24kHz mono audio bytes.
+    The interview uses the strict officer voice; feedback uses the warm coach."""
+    from fastapi.responses import Response
+    from realtime_proxy import deepgram_tts
+    sess = db.get_session(req.session_id)
+    if not sess:
+        raise HTTPException(404, "Session not found")
+    if sess.get("score") is None:
+        raise HTTPException(409, "Session not scored yet")
+    verdict = sess.get("verdict", "")
+    feedback = sess.get("feedback", "")
+    score = sess.get("score", 0)
+    script = (
+        f"Your score is {score} out of 100. Verdict: {verdict}. "
+        f"Here is my honest coaching feedback. {feedback} "
+        "This was a practice simulation, not an official assessment."
+    )
+    audio = await deepgram_tts(script, voice_mode="friendly")
+    return Response(content=audio, media_type="audio/pcm")
+
+
 @app.post("/payment/stars-invoice")
 async def stars_invoice(req: StarsInvoiceReq):
     """Create a Telegram Stars invoice link for the full speaking test.
