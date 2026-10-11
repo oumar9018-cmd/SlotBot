@@ -507,12 +507,16 @@ async def stars_invoice(req: StarsInvoiceReq):
 
 
 WELCOME_TEXT = (
-    "🔥 Welcome to MockGrill — the world's STRICTEST AI interview coach!\n\n"
-    "Grilly the examiner will grill you like a real visa officer: "
-    "interrupts rambling, catches contradictions, scores you 0-100 with zero mercy.\n\n"
-    "✅ First 3-question mini interview FREE\n"
-    "✅ Then 1 full trial interview (3 days)\n\n"
-    "Tap below to start getting grilled! 👇"
+    "🎤 Welcome to MockGrill — #1 AI Mock Interview Practice Bot!\n\n"
+    "Practice for:\n"
+    "🇺🇸 US Visa Interview (F1, B1/B2, H1B)\n"
+    "❌ 214(b) Rejection Prevention\n"
+    "💼 Job Interview Mock Test\n"
+    "🎓 University Admission Interview\n\n"
+    "Grilly the strict AI examiner will grill you, interrupt rambling, "
+    "catch lies, and score you 0-100 with zero mercy.\n\n"
+    "🎁 FIRST MOCK INTERVIEW FREE!\n\n"
+    "Tap below to start! 👇"
 )
 
 WELCOME_KEYBOARD = {
