@@ -154,6 +154,24 @@ async def connect_deepgram_stt():
 async def voice_proxy(ws: WebSocket, session_id: str):
     sess = db.get_session(session_id)
     if not sess:
+        # Session not found (e.g. in-memory cleared after restart).
+        # Create a temporary session so voice still works instead of closing.
+        log.warning("voice_proxy: session %s not found, creating temp session", session_id)
+        try:
+            sid = db.create_session(
+                user_id="temp",
+                test_type="general",
+                plan="free_trial",
+                max_duration_sec=120,
+            )
+            # Use the newly created session id for this connection
+            sess = db.get_session(sid)
+            session_id = sid
+        except Exception as e:
+            log.error("voice_proxy: failed to create temp session: %s", e)
+            await ws.close(code=4404, reason="unknown session")
+            return
+    if not sess:
         await ws.close(code=4404, reason="unknown session")
         return
     max_dur = int(sess.get("max_duration_sec", 120))
