@@ -587,6 +587,32 @@ async def payment_bundles():
     return {"bundles": list(BUNDLES.values())}
 
 
+class ReferralClaimReq(BaseModel):
+    user_id: str
+    referrer_id: str
+
+
+@app.post("/referral/claim")
+async def referral_claim(req: ReferralClaimReq):
+    """Claim a referral bonus: +1 free interview for the new user AND +1 for
+    the referrer. One claim per user ever; self-referral rejected."""
+    if not req.user_id or not req.referrer_id:
+        raise HTTPException(400, "user_id and referrer_id are required")
+    if req.user_id == req.referrer_id:
+        raise HTTPException(400, "self_referral")
+    try:
+        res = db.claim_referral(req.user_id, req.referrer_id)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return {"ok": True, **res}
+
+
+@app.get("/referral/stats/{user_id}")
+async def referral_stats(user_id: str):
+    """Referral stats for the invite UI: friends joined + free interviews earned."""
+    return db.get_referral_stats(user_id)
+
+
 @app.get("/affiliate/stats/{code}")
 async def affiliate_stats(code: str):
     stats = db.get_affiliate_stats(code)
