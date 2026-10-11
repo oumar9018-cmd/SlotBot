@@ -285,6 +285,84 @@ def use_interview_credit(user_id: str) -> bool:
     return True
 
 
+# ---------- referrals ----------
+
+def claim_referral(user_id: str, referrer_id: str) -> dict:
+    """Claim a referral bonus: the new user gets +1 interview credit AND the
+    referrer gets +1 credit plus referral_count/referral_earned incremented.
+    One claim per user ever (idempotent guard).
+    Raises ValueError("self_referral" | "already_claimed" | "referrer_not_found").
+    """
+    uid, rid = str(user_id), str(referrer_id)
+    if uid == rid:
+        raise ValueError("self_referral")
+    if not is_db_available():
+        u = _mem_users.get(uid) or {}
+        if u.get("referral_claimed"):
+            raise ValueError("already_claimed")
+        r = _mem_users.get(rid)
+        if not r:
+            raise ValueError("referrer_not_found")
+        u["interview_credits"] = int(u.get("interview_credits", 0)) + 1
+        u["referred_by"] = rid
+        u["referral_claimed"] = True
+        _mem_users[uid] = u
+        r["interview_credits"] = int(r.get("interview_credits", 0)) + 1
+        r["referral_count"] = int(r.get("referral_count", 0)) + 1
+        r["referral_earned"] = int(r.get("referral_earned", 0)) + 1
+        _mem_users[rid] = r
+        return {"user_id": uid, "referrer_id": rid,
+                "user_credits": u["interview_credits"],
+                "referrer_credits": r["interview_credits"],
+                "referral_count": r["referral_count"]}
+    db = get_db()
+    uref = db.collection("users").document(uid)
+    udoc = uref.get()
+    udata = (udoc.to_dict() or {}) if udoc.exists else {}
+    if udata.get("referral_claimed"):
+        raise ValueError("already_claimed")
+    rref = db.collection("users").document(rid)
+    rdoc = rref.get()
+    if not rdoc.exists:
+        raise ValueError("referrer_not_found")
+    rdata = rdoc.to_dict() or {}
+    # Credit the new user (+1 interview), mark claimed
+    u_credits = int(udata.get("interview_credits", 0) or 0) + 1
+    uref.set({
+        "interview_credits": u_credits,
+        "referred_by": rid,
+        "referral_claimed": True,
+    }, merge=True)
+    # Credit the referrer (+1 interview, bump counters)
+    r_credits = int(rdata.get("interview_credits", 0) or 0) + 1
+    r_count = int(rdata.get("referral_count", 0) or 0) + 1
+    r_earned = int(rdata.get("referral_earned", 0) or 0) + 1
+    rref.set({
+        "interview_credits": r_credits,
+        "referral_count": r_count,
+        "referral_earned": r_earned,
+    }, merge=True)
+    return {"user_id": uid, "referrer_id": rid,
+            "user_credits": u_credits,
+            "referrer_credits": r_credits,
+            "referral_count": r_count}
+
+
+def get_referral_stats(user_id: str) -> dict:
+    """Referral stats for the invite UI: friends joined + free interviews earned."""
+    uid = str(user_id)
+    if not is_db_available():
+        u = _mem_users.get(uid) or {}
+        return {"user_id": uid,
+                "referral_count": int(u.get("referral_count", 0) or 0),
+                "referral_earned": int(u.get("referral_earned", 0) or 0)}
+    doc = get_db().collection("users").document(uid).get()
+    d = (doc.to_dict() or {}) if doc.exists else {}
+    return {"user_id": uid,
+            "referral_count": int(d.get("referral_count", 0) or 0),
+            "referral_earned": int(d.get("referral_earned", 0) or 0)}
+
+
 # ---------- payments (Telegram Stars) ----------
 
 def get_payment(payment_id: str) -> dict | None:
