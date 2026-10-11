@@ -8,7 +8,9 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
-      - key: OPENAI_API_KEY
+      - key: XAI_API_KEY
+        sync: false
+      - key: DEEPGRAM_API_KEY
         sync: false
       - key: TELEGRAM_BOT_TOKEN
         sync: false

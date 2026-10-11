@@ -1,14 +1,16 @@
 """
 Strict English Voice Test — Backend (FastAPI)
-AI-powered strict English speaking test. Stern examiner persona via OpenAI Realtime API.
+AI-powered strict English speaking test. Stern examiner persona via Grok (xAI)
+for dialogue, Deepgram for speech-to-text and text-to-speech.
 
 Endpoints:
-  POST /session/start              — mint ephemeral token, create session record
+  POST /api/auth/telegram           — verify Telegram initData (HMAC-SHA256), get/create user
+  POST /session/start              — create session record (no token minting; WS is server-driven)
   POST /session/end                — score transcript, save, return verdict
   POST /payment/stars-invoice      — create Telegram Stars invoice link (750 Stars)
   POST /payment/telegram-webhook   — pre_checkout approval + successful_payment handler
   GET  /affiliate/stats/{code}
-  WS   /ws/voice/{session_id}      (realtime_proxy)
+  WS   /ws/voice/{session_id}      (realtime_proxy: Deepgram STT -> Grok -> Deepgram TTS)
 """
 import os
 import time
@@ -22,13 +24,13 @@ from pydantic import BaseModel, Field
 
 import firestore_db as db
 import scoring
-from realtime_proxy import voice_proxy, PERSONA_INSTRUCTIONS
+from realtime_proxy import voice_proxy
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("englishtest")
 
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
-OPENAI_REALTIME_MODEL = os.environ.get("OPENAI_REALTIME_MODEL", "gpt-4o-realtime-preview-2024-12-17")
+XAI_API_KEY = os.environ.get("XAI_API_KEY", "")
+DEEPGRAM_API_KEY = os.environ.get("DEEPGRAM_API_KEY", "")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_WEBHOOK_SECRET = os.environ.get("TELEGRAM_WEBHOOK_SECRET", "")  # optional
 
@@ -63,8 +65,8 @@ class SessionStartReq(BaseModel):
 
 class SessionStartResp(BaseModel):
     session_id: str
-    ephemeral_token: str
-    expires_in_sec: int
+    ephemeral_token: str = ""  # legacy field, unused — voice WS is fully server-driven
+    expires_in_sec: int = 0
     max_duration_sec: int
     ws_url_path: str
 
@@ -79,12 +81,6 @@ class StarsInvoiceReq(BaseModel):
 
 
 # ---------- Helpers ----------
-
-TEST_TYPE_HINTS = {
-    "academic": "Academic speaking test — probe study plans, academic background, and future goals.",
-    "business": "Business speaking test — probe work experience, professional background, and career plans.",
-    "general": "General speaking test — probe personal background and everyday topics in depth.",
-}
 
 
 async def tg_api(method: str, payload: dict) -> dict:
@@ -104,47 +100,6 @@ async def tg_api(method: str, payload: dict) -> dict:
         log.error("Telegram API %s not ok: %s", method, str(data)[:300])
         raise HTTPException(502, "Telegram API error")
     return data
-
-
-async def mint_realtime_token(test_type: str, background_summary: str | None) -> dict:
-    """Create an OpenAI Realtime session, return ephemeral client secret.
-    The API key NEVER leaves the backend."""
-    if not OPENAI_API_KEY:
-        raise HTTPException(500, "OPENAI_API_KEY not configured")
-
-    instructions = PERSONA_INSTRUCTIONS
-    instructions += "\n\nTEST FOCUS: " + TEST_TYPE_HINTS.get(test_type, TEST_TYPE_HINTS["general"])
-    if background_summary:
-        instructions += (
-            "\n\nAPPLICANT BACKGROUND FORM SUMMARY (use for contradiction traps):\n"
-            + background_summary.strip()
-        )
-
-    payload = {
-        "model": OPENAI_REALTIME_MODEL,
-        "voice": "onyx",  # deep, stern — fits the examiner persona
-        "instructions": instructions,
-        "input_audio_format": "pcm16",
-        "output_audio_format": "pcm16",
-        "input_audio_transcription": {"model": "whisper-1"},
-        "turn_detection": {"type": "server_vad"},
-        "max_response_output_tokens": 300,  # short, clipped examiner replies
-    }
-    async with httpx.AsyncClient(timeout=20) as client:
-        r = await client.post(
-            "https://api.openai.com/v1/realtime/sessions",
-            headers={
-                "Authorization": f"Bearer {OPENAI_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json=payload,
-        )
-    if r.status_code != 200:
-        log.error("Realtime session mint failed: %s %s", r.status_code, r.text[:300])
-        raise HTTPException(502, "Voice engine unavailable, try again")
-    data = r.json()
-    secret = data.get("client_secret", {})
-    return {"token": secret.get("value", ""), "expires_in": secret.get("expires_in", 60)}
 
 
 # ---------- Telegram Auth (HMAC-SHA256 verification) ----------
@@ -291,22 +246,19 @@ async def session_start(req: SessionStartReq):
             raise HTTPException(402, "Payment required for full session")
         max_dur = PAID_MAX_SEC
 
-    tok = await mint_realtime_token(req.test_type, req.background_summary)
-    if not tok["token"]:
-        raise HTTPException(502, "Could not mint voice token")
-
     session_id = db.create_session(
         user_id=req.user_id,
         test_type=req.test_type,
         plan=req.plan,
         max_duration_sec=max_dur,
         affiliate_code=req.affiliate_code or user.get("affiliate_code"),
+        background_summary=req.background_summary,
     )
     log.info("session %s started for user %s plan=%s", session_id, req.user_id, req.plan)
     return SessionStartResp(
         session_id=session_id,
-        ephemeral_token=tok["token"],
-        expires_in_sec=tok["expires_in"],
+        ephemeral_token="",
+        expires_in_sec=0,
         max_duration_sec=max_dur,
         ws_url_path=f"/ws/voice/{session_id}",
     )

@@ -93,7 +93,8 @@ def mark_paid(user_id: str):
 # ---------- sessions ----------
 
 def create_session(user_id: str, test_type: str, plan: str,
-                   max_duration_sec: int, affiliate_code: str | None = None) -> str:
+                   max_duration_sec: int, affiliate_code: str | None = None,
+                   background_summary: str | None = None) -> str:
     sid = uuid.uuid4().hex[:16]
     get_db().collection("sessions").document(sid).set({
         "user_id": str(user_id),
@@ -108,6 +109,7 @@ def create_session(user_id: str, test_type: str, plan: str,
         "feedback": "",
         "duration_sec": None,
         "affiliate_code": affiliate_code,
+        "background_summary": (background_summary or "")[:2000],
         "created_at": _now(),
         "ended_at": None,
     })

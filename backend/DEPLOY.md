@@ -64,10 +64,26 @@ curl -X POST "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook" \
 
 ## 4. Deploy the server
 
+### Option C — Render (recommended for this project, free tier)
+1. Push the repo (contains `backend/render.yaml`) to GitHub.
+2. [render.com](https://render.com) → **Sign up with GitHub** → Dashboard → **New +** → **Web Service** → select the repo. `render.yaml` fills in Root Directory (`backend`), build and start commands automatically.
+3. **Environment Variables** — add:
+   - `TELEGRAM_BOT_TOKEN` (the @Cripercore_bot token the user re-provided 2026-10-11)
+   - `XAI_API_KEY` (Grok) and `DEEPGRAM_API_KEY` — without them `/session/end` returns 500 and the voice test cannot run.
+4. **Secret Files** — add a file named `firebase.json` at path `/etc/secrets/firebase.json` (matches `FIREBASE_CRED_PATH` in `render.yaml`). Contents = the Firebase **service account JSON**: Firebase Console → Project `slotbot-9d27f` → Project Settings → Service accounts → **Generate new private key** → download the JSON → paste its contents into the Render secret file.
+5. **Deploy** → 2–3 min → note the public URL (e.g. `https://voicegrill-api.onrender.com`).
+6. **Set the Telegram payment webhook** (else Stars payments succeed at Telegram but users are never marked paid): run the `setWebhook` curl from section 2 against your Render URL. If you set `TELEGRAM_WEBHOOK_SECRET`, put the same string in Render env vars.
+7. Tell the Mini App where the backend is: rebuild the frontend with `VITE_API_URL=https://YOUR_DOMAIN` (Vite build-time env var) and push.
+
+**Render free-tier notes (user-facing expectations):**
+- The service **sleeps after 15 min of inactivity** → first request wakes it (~30–60s cold start). The Mini App's auth retry (4 attempts) absorbs this, but tell users the first tap after a pause may be slow.
+- Free tier = 750 instance-hours/month: one web service fits comfortably.
+- **OpenAI funded account is the real blocker:** platform.openai.com → add a payment method → buy prepaid credits. Without credits, the Realtime API returns 401 and `/session/start` returns 502 "Voice engine unavailable". Budget ~$0.15 per 2-min free trial, ~$1.00 per 15-min paid session (see cost table in section 7).
+
 ### Option A — Railway (fastest)
 1. Push `backend/` to a GitHub repo.
 2. Railway → New Project → Deploy from GitHub.
-3. Add env vars (from `.env.example`): `OPENAI_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET` (optional).
+3. Add env vars (from `.env.example`): `XAI_API_KEY`, `DEEPGRAM_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET` (optional).
 4. Add the service-account JSON as a Railway **volume/file** at `/secrets/firebase-service-account.json`, set `FIREBASE_CRED_PATH` to that path. (Alternative: base64 the JSON into an env var and decode at boot — modify `firestore_db.py` if you prefer.)
 5. Start command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
 6. Copy the public URL → `https://YOUR_DOMAIN`.

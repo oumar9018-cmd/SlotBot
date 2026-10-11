@@ -1,5 +1,5 @@
 """
-Transcript scoring via GPT-4o, following the PERSONA.md rubric exactly.
+Transcript scoring via Grok (xAI), following the PERSONA.md rubric exactly.
 
 Rubric (total 100):
   clarity     /25  — answer clarity & specificity
@@ -17,12 +17,14 @@ import json
 import logging
 import os
 
-from openai import AsyncOpenAI
+import httpx
 
 log = logging.getLogger("englishtest.scoring")
 
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
-SCORING_MODEL = os.environ.get("OPENAI_SCORING_MODEL", "gpt-4o")
+XAI_API_KEY = os.environ.get("XAI_API_KEY", "")
+XAI_SCORING_MODEL = os.environ.get("XAI_SCORING_MODEL", "grok-3")
+XAI_FALLBACK_MODEL = os.environ.get("XAI_MODEL_FALLBACK", "grok-2-1212")
+XAI_CHAT_URL = "https://api.x.ai/v1/chat/completions"
 
 RUBRIC = """You are a senior English speaking-test evaluator scoring a PRACTICE strict English speaking test transcript.
 
@@ -71,26 +73,53 @@ def _clamp_result(r: dict) -> dict:
 
 async def score_transcript(transcript: list[dict], test_type: str = "general") -> dict:
     """Score a session transcript. Returns the rubric JSON dict."""
-    if not OPENAI_API_KEY:
-        raise RuntimeError("OPENAI_API_KEY not configured")
+    if not XAI_API_KEY:
+        raise RuntimeError("XAI_API_KEY not configured")
 
-    client = AsyncOpenAI(api_key=OPENAI_API_KEY)
     convo = _format_transcript(transcript)
-
-    resp = await client.chat.completions.create(
-        model=SCORING_MODEL,
-        messages=[
+    payload = {
+        "messages": [
             {"role": "system", "content": RUBRIC},
             {"role": "user", "content":
              f"Test type: {test_type}\n\nTRANSCRIPT:\n{convo}\n\nScore it."},
         ],
-        temperature=0.2,
-        response_format={"type": "json_object"},
-        max_tokens=1200,
-    )
-    raw = resp.choices[0].message.content or "{}"
+        "temperature": 0.2,
+        "response_format": {"type": "json_object"},
+        "max_tokens": 1200,
+    }
+
+    raw = "{}"
+    last_err = "unknown"
+    for model in (XAI_SCORING_MODEL, XAI_FALLBACK_MODEL):
+        try:
+            async with httpx.AsyncClient(timeout=60) as client:
+                r = await client.post(
+                    XAI_CHAT_URL,
+                    headers={
+                        "Authorization": f"Bearer {XAI_API_KEY}",
+                        "Content-Type": "application/json",
+                    },
+                    json={"model": model, **payload},
+                )
+            if r.status_code == 200:
+                raw = r.json()["choices"][0]["message"]["content"] or "{}"
+                break
+            last_err = f"HTTP {r.status_code}: {r.text[:200]}"
+            log.warning("Grok scoring model %s failed: %s", model, last_err)
+        except Exception as e:
+            last_err = str(e)[:200]
+            log.warning("Grok scoring model %s error: %s", model, last_err)
+    else:
+        raise RuntimeError(f"Scoring engine unavailable ({last_err})")
+
+    # strip accidental markdown fences before parsing
+    cleaned = raw.strip()
+    if cleaned.startswith("```"):
+        cleaned = cleaned.strip("`").strip()
+        if cleaned.lower().startswith("json"):
+            cleaned = cleaned[4:].strip()
     try:
-        result = json.loads(raw)
+        result = json.loads(cleaned)
     except json.JSONDecodeError:
         log.error("Scoring returned non-JSON: %s", raw[:300])
         raise RuntimeError("Scoring engine returned invalid output")
