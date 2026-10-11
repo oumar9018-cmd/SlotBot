@@ -200,41 +200,103 @@ def update_session_scored(session_id: str, score: int, verdict: str,
 
 # ---------- stars invoices (pending, created before checkout) ----------
 
+_mem_invoices = {}
+_mem_payments = {}
+
+
 def record_stars_invoice(payload_token: str, user_id: str,
-                         affiliate_code: str | None = None):
-    get_db().collection("stars_invoices").document(payload_token).set({
+                         affiliate_code: str | None = None,
+                         bundle_id: str | None = None):
+    data = {
         "payload": payload_token,
         "user_id": str(user_id),
         "affiliate_code": affiliate_code,
+        "bundle_id": bundle_id,
         "used": False,
         "created_at": _now(),
         "used_at": None,
-    })
+    }
+    if not is_db_available():
+        _mem_invoices[payload_token] = data
+        return
+    get_db().collection("stars_invoices").document(payload_token).set(data)
 
 
 def get_stars_invoice(payload_token: str) -> dict | None:
+    if not is_db_available():
+        return _mem_invoices.get(payload_token)
     doc = get_db().collection("stars_invoices").document(payload_token).get()
     return doc.to_dict() if doc.exists else None
 
 
 def mark_invoice_used(payload_token: str):
+    if not is_db_available():
+        if payload_token in _mem_invoices:
+            _mem_invoices[payload_token]["used"] = True
+            _mem_invoices[payload_token]["used_at"] = _now()
+        return
     get_db().collection("stars_invoices").document(payload_token).update(
         {"used": True, "used_at": _now()})
+
+
+# ---------- interview credits (pay-per-use bundles) ----------
+
+def add_interview_credits(user_id: str, n: int) -> int:
+    """Add n interview credits. Returns the new total."""
+    uid = str(user_id)
+    if not is_db_available():
+        cur = (_mem_users.get(uid) or {}).get("interview_credits", 0)
+        new_total = cur + int(n)
+        _mem_users.setdefault(uid, {})["interview_credits"] = new_total
+        return new_total
+    ref = get_db().collection("users").document(uid)
+    doc = ref.get()
+    cur = (doc.to_dict() or {}).get("interview_credits", 0) if doc.exists else 0
+    new_total = int(cur) + int(n)
+    ref.set({"interview_credits": new_total}, merge=True)
+    return new_total
+
+
+def get_interview_credits(user_id: str) -> int:
+    uid = str(user_id)
+    if not is_db_available():
+        return int((_mem_users.get(uid) or {}).get("interview_credits", 0))
+    doc = get_db().collection("users").document(uid).get()
+    if not doc.exists:
+        return 0
+    return int((doc.to_dict() or {}).get("interview_credits", 0) or 0)
+
+
+def use_interview_credit(user_id: str) -> bool:
+    """Consume one credit. Returns True if a credit was available."""
+    uid = str(user_id)
+    if not is_db_available():
+        cur = int((_mem_users.get(uid) or {}).get("interview_credits", 0))
+        if cur <= 0:
+            return False
+        _mem_users[uid]["interview_credits"] = cur - 1
+        return True
+    ref = get_db().collection("users").document(uid)
+    doc = ref.get()
+    cur = int((doc.to_dict() or {}).get("interview_credits", 0) or 0) if doc.exists else 0
+    if cur <= 0:
+        return False
+    ref.set({"interview_credits": cur - 1}, merge=True)
+    return True
 
 
 # ---------- payments (Telegram Stars) ----------
 
 def get_payment(payment_id: str) -> dict | None:
     """Idempotency check — returns existing payment record if any."""
+    if not is_db_available():
+        return _mem_payments.get(payment_id)
     doc = get_db().collection("payments").document(payment_id).get()
     return doc.to_dict() if doc.exists else None
 
 
 def record_payment(payment_id: str, user_id: str, amount_stars: int,
                    status: str, affiliate_code: str | None = None):
-    db = get_db()
-    ref = db.collection("payments").document(payment_id)
-    snap = ref.get()
     data = {
         "payment_id": payment_id,
         "user_id": str(user_id),
@@ -243,6 +305,12 @@ def record_payment(payment_id: str, user_id: str, amount_stars: int,
         "affiliate_code": affiliate_code,
         "created_at": _now(),
     }
+    if not is_db_available():
+        _mem_payments[payment_id] = data
+        return
+    db = get_db()
+    ref = db.collection("payments").document(payment_id)
+    snap = ref.get()
     if snap.exists:
         ref.update(data)
     else:
