@@ -1,5 +1,5 @@
 """
-Transcript scoring via Grok (xAI), following the PERSONA.md rubric exactly.
+Transcript scoring via Groq (xAI), following the PERSONA.md rubric exactly.
 
 Rubric (total 100):
   clarity     /25  — answer clarity & specificity
@@ -21,10 +21,10 @@ import httpx
 
 log = logging.getLogger("englishtest.scoring")
 
-XAI_API_KEY = os.environ.get("XAI_API_KEY", "")
-XAI_SCORING_MODEL = os.environ.get("XAI_SCORING_MODEL", "grok-3")
-XAI_FALLBACK_MODEL = os.environ.get("XAI_MODEL_FALLBACK", "grok-2-1212")
-XAI_CHAT_URL = "https://api.x.ai/v1/chat/completions"
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
+GROQ_SCORING_MODEL = os.environ.get("GROQ_SCORING_MODEL", "llama-3.1-8b-instant")
+GROQ_FALLBACK_MODEL = os.environ.get("GROQ_MODEL_FALLBACK", "llama3-8b-8192")
+GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 RUBRIC = """You are a senior English speaking-test evaluator scoring a PRACTICE strict English speaking test transcript.
 
@@ -73,8 +73,8 @@ def _clamp_result(r: dict) -> dict:
 
 async def score_transcript(transcript: list[dict], test_type: str = "general") -> dict:
     """Score a session transcript. Returns the rubric JSON dict."""
-    if not XAI_API_KEY:
-        raise RuntimeError("XAI_API_KEY not configured")
+    if not GROQ_API_KEY:
+        raise RuntimeError("GROQ_API_KEY not configured")
 
     convo = _format_transcript(transcript)
     payload = {
@@ -90,13 +90,13 @@ async def score_transcript(transcript: list[dict], test_type: str = "general") -
 
     raw = "{}"
     last_err = "unknown"
-    for model in (XAI_SCORING_MODEL, XAI_FALLBACK_MODEL):
+    for model in (GROQ_SCORING_MODEL, GROQ_FALLBACK_MODEL):
         try:
             async with httpx.AsyncClient(timeout=60) as client:
                 r = await client.post(
-                    XAI_CHAT_URL,
+                    GROQ_CHAT_URL,
                     headers={
-                        "Authorization": f"Bearer {XAI_API_KEY}",
+                        "Authorization": f"Bearer {GROQ_API_KEY}",
                         "Content-Type": "application/json",
                     },
                     json={"model": model, **payload},
@@ -105,10 +105,10 @@ async def score_transcript(transcript: list[dict], test_type: str = "general") -
                 raw = r.json()["choices"][0]["message"]["content"] or "{}"
                 break
             last_err = f"HTTP {r.status_code}: {r.text[:200]}"
-            log.warning("Grok scoring model %s failed: %s", model, last_err)
+            log.warning("Groq scoring model %s failed: %s", model, last_err)
         except Exception as e:
             last_err = str(e)[:200]
-            log.warning("Grok scoring model %s error: %s", model, last_err)
+            log.warning("Groq scoring model %s error: %s", model, last_err)
     else:
         raise RuntimeError(f"Scoring engine unavailable ({last_err})")
 

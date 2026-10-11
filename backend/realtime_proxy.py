@@ -1,5 +1,5 @@
 """
-Turn-based voice pipeline: Mini App <-> FastAPI <-> Deepgram STT <-> Grok (xAI) <-> Deepgram TTS.
+Turn-based voice pipeline: Mini App <-> FastAPI <-> Deepgram STT <-> Groq (Groq) <-> Deepgram TTS.
 
 Frontend protocol (over this WebSocket):
   client -> server : binary PCM16 16kHz mono audio chunks (mic)
@@ -15,7 +15,7 @@ Frontend protocol (over this WebSocket):
 
 Backend flow:
   1. Mic audio chunks -> Deepgram STT WebSocket (nova-2, endpointing 300ms)
-  2. Final utterance transcript -> Grok chat completions (xAI, OpenAI-compatible REST)
+  2. Final utterance transcript -> Groq chat completions (Groq, OpenAI-compatible REST)
   3. Examiner reply text -> Deepgram TTS (aura-asteria-en, linear16 24kHz)
   4. TTS audio streamed back to frontend in chunks; barge-in cancels mid-stream
 
@@ -36,11 +36,11 @@ import firestore_db as db
 
 log = logging.getLogger("englishtest.proxy")
 
-XAI_API_KEY = os.environ.get("XAI_API_KEY", "")
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 DEEPGRAM_API_KEY = os.environ.get("DEEPGRAM_API_KEY", "")
-XAI_MODEL = os.environ.get("XAI_MODEL", "grok-3")
-XAI_MODEL_FALLBACK = os.environ.get("XAI_MODEL_FALLBACK", "grok-2-1212")
-XAI_SCORING_MODEL = os.environ.get("XAI_SCORING_MODEL", "grok-3")
+GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.1-8b-instant")
+GROQ_MODEL_FALLBACK = os.environ.get("GROQ_MODEL_FALLBACK", "llama3-8b-8192")
+GROQ_SCORING_MODEL = os.environ.get("GROQ_SCORING_MODEL", "llama-3.1-8b-instant")
 
 DG_STT_URL = (
     "wss://api.deepgram.com/v1/listen"
@@ -52,7 +52,7 @@ DG_TTS_URL = (
     "https://api.deepgram.com/v1/speak"
     "?model=aura-asteria-en&encoding=linear16&sample_rate=24000"
 )
-XAI_CHAT_URL = "https://api.x.ai/v1/chat/completions"
+GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 TTS_CHUNK = 8192  # ~0.17s of 24kHz 16-bit mono per chunk
 WEBM_MAGIC = b"\x1aE\xdf\xa3"  # EBML header — detects wrong audio container
@@ -88,17 +88,17 @@ def build_system_prompt(test_type: str, background_summary: str | None) -> str:
     return prompt
 
 
-async def grok_reply(history: list[dict], system_prompt: str) -> str:
-    """Call Grok chat completions (xAI, OpenAI-compatible). Falls back to older model."""
+async def groq_reply(history: list[dict], system_prompt: str) -> str:
+    """Call Groq chat completions (OpenAI-compatible). Falls back to older model."""
     messages = [{"role": "system", "content": system_prompt}] + history
     last_err = "unknown"
-    for model in (XAI_MODEL, XAI_MODEL_FALLBACK):
+    for model in (GROQ_MODEL, GROQ_MODEL_FALLBACK):
         try:
             async with httpx.AsyncClient(timeout=30) as client:
                 r = await client.post(
-                    XAI_CHAT_URL,
+                    GROQ_CHAT_URL,
                     headers={
-                        "Authorization": f"Bearer {XAI_API_KEY}",
+                        "Authorization": f"Bearer {GROQ_API_KEY}",
                         "Content-Type": "application/json",
                     },
                     json={
@@ -111,11 +111,11 @@ async def grok_reply(history: list[dict], system_prompt: str) -> str:
             if r.status_code == 200:
                 return (r.json()["choices"][0]["message"]["content"] or "").strip()
             last_err = f"HTTP {r.status_code}: {r.text[:200]}"
-            log.warning("Grok model %s failed: %s", model, last_err)
+            log.warning("Groq model %s failed: %s", model, last_err)
         except Exception as e:
             last_err = str(e)[:200]
-            log.warning("Grok model %s error: %s", model, last_err)
-    raise RuntimeError(f"Grok unavailable ({last_err})")
+            log.warning("Groq model %s error: %s", model, last_err)
+    raise RuntimeError(f"Groq unavailable ({last_err})")
 
 
 async def deepgram_tts(text: str) -> bytes:
@@ -163,14 +163,14 @@ async def voice_proxy(ws: WebSocket, session_id: str):
     await ws.accept()
     await ws.send_json({"type": "status", "state": "connecting"})
 
-    if not XAI_API_KEY or not DEEPGRAM_API_KEY:
+    if not GROQ_API_KEY or not DEEPGRAM_API_KEY:
         await ws.send_json({"type": "error", "message": "Voice engine not configured"})
         await ws.close()
         return
 
     system_prompt = build_system_prompt(test_type, background)
     transcript: list[dict] = list(sess.get("transcript", []))
-    history: list[dict] = []  # grok chat history, capped at 20 entries
+    history: list[dict] = []  # groq chat history, capped at 20 entries
     start_ts = time.time()
     closed = asyncio.Event()
     barge = asyncio.Event()       # set on barge-in; checked during TTS streaming
@@ -290,7 +290,7 @@ async def voice_proxy(ws: WebSocket, session_id: str):
         except asyncio.CancelledError:
             pass
 
-    # ---- user turn -> Grok -> TTS -> frontend ----
+    # ---- user turn -> Groq -> TTS -> frontend ----
     async def thinker():
         nonlocal seq
         try:
@@ -313,10 +313,10 @@ async def voice_proxy(ws: WebSocket, session_id: str):
 
                 await safe_send({"type": "status", "state": "thinking"})
                 try:
-                    reply = await grok_reply(history if kind == "user" else list(history),
+                    reply = await groq_reply(history if kind == "user" else list(history),
                                              system_prompt + sys_extra)
                 except Exception as e:
-                    log.error("Grok failed for %s: %s", session_id, e)
+                    log.error("Groq failed for %s: %s", session_id, e)
                     await safe_send({"type": "error",
                                      "message": "Examiner lost train of thought — keep going"})
                     await safe_send({"type": "status", "state": "listening"})

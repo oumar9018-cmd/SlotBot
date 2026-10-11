@@ -29,7 +29,7 @@ from realtime_proxy import voice_proxy
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("englishtest")
 
-XAI_API_KEY = os.environ.get("XAI_API_KEY", "")
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 DEEPGRAM_API_KEY = os.environ.get("DEEPGRAM_API_KEY", "")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_WEBHOOK_SECRET = os.environ.get("TELEGRAM_WEBHOOK_SECRET", "")  # optional
@@ -183,6 +183,49 @@ class TelegramAuthResp(BaseModel):
 @app.get("/health")
 async def health():
     return {"ok": True, "ts": datetime.now(timezone.utc).isoformat()}
+
+
+@app.get("/test-keys")
+async def test_keys():
+    """Diagnostic: test Groq and Deepgram API keys. Returns status for each."""
+    import httpx
+    groq_key = os.environ.get("GROQ_API_KEY", "")
+    dg_key = os.environ.get("DEEPGRAM_API_KEY", "")
+    result = {}
+
+    # Test Groq
+    if not groq_key:
+        result["Groq_Status"] = "MISSING_KEY"
+    else:
+        try:
+            async with httpx.AsyncClient(timeout=15) as client:
+                r = await client.post(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"},
+                    json={"model": "llama-3.1-8b-instant",
+                          "messages": [{"role": "user", "content": "Say hi"}],
+                          "max_tokens": 5},
+                )
+            result["Groq_Status"] = "200 OK" if r.status_code == 200 else f"{r.status_code} {r.text[:100]}"
+        except Exception as e:
+            result["Groq_Status"] = f"ERROR: {str(e)[:100]}"
+
+    # Test Deepgram (TTS endpoint with minimal text)
+    if not dg_key:
+        result["Deepgram_Status"] = "MISSING_KEY"
+    else:
+        try:
+            async with httpx.AsyncClient(timeout=15) as client:
+                r = await client.post(
+                    "https://api.deepgram.com/v1/speak?model=aura-asteria-en",
+                    headers={"Authorization": f"Token {dg_key}", "Content-Type": "application/json"},
+                    json={"text": "hi"},
+                )
+            result["Deepgram_Status"] = "200 OK" if r.status_code == 200 else f"{r.status_code} {r.text[:100]}"
+        except Exception as e:
+            result["Deepgram_Status"] = f"ERROR: {str(e)[:100]}"
+
+    return result
 
 
 @app.post("/api/auth/telegram", response_model=TelegramAuthResp)
