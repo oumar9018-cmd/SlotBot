@@ -774,3 +774,38 @@ async def ws_voice(ws: WebSocket, session_id: str):
     await voice_proxy(ws, session_id)
 
 
+
+
+# ---------- TEMPORARY admin endpoints (added 2026-10-12 ~20:25 IST) ----------
+# Purpose: grant 10 test credits to user 1664819949 (@TheCaddi) for the voice
+# rebuild v1 test, AFTER the Render service account fix is deployed.
+# DELETE THIS WHOLE BLOCK and redeploy once the user confirms credits on device.
+# Safety: the grant REFUSES (503) when Firestore is not really connected, so a
+# silent in-memory "grant" (the 2026-10-12 ~20:10 IST failure) cannot repeat.
+
+class GrantCreditsReq(BaseModel):
+    user_id: str = Field(..., description="Telegram numeric user id")
+    credits: int = Field(..., ge=1, le=50, description="Credits to grant (1-50)")
+
+
+@app.get("/admin/db-status")
+async def admin_db_status():
+    """TEMPORARY: report whether the backend is on real Firestore or in-memory fallback."""
+    return {"firestore_connected": db.is_db_available()}
+
+
+@app.post("/admin/grant-test-credits")
+async def admin_grant_test_credits(req: GrantCreditsReq):
+    """TEMPORARY: grant interview credits and verify the write by re-reading."""
+    if not db.is_db_available():
+        raise HTTPException(503, "firestore_not_connected — grant refused, credits would not persist")
+    new_total = db.add_interview_credits(req.user_id, req.credits)
+    verified = db.get_interview_credits(req.user_id)
+    return {
+        "ok": True,
+        "user_id": str(req.user_id),
+        "granted": req.credits,
+        "total": new_total,
+        "verified_total": verified,
+        "persisted": verified == new_total,
+    }
