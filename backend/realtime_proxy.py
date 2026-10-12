@@ -49,7 +49,7 @@ GROQ_SCORING_MODEL = os.environ.get("GROQ_SCORING_MODEL", "openai/gpt-oss-20b")
 DG_STT_URL = (
     "wss://api.deepgram.com/v1/listen"
     "?model=nova-3&language=en&smart_format=true"
-    "&interim_results=true&endpointing=2000"
+    "&interim_results=true&endpointing=4000"
     "&encoding=linear16&sample_rate=16000&channels=1"
     "&punctuate=true&profanity_filter=false&diarize=false"
     # NOTE: keyterm/keywords removed 2026-10-12 — nova-3 rejects them with
@@ -569,6 +569,10 @@ async def voice_proxy(ws: WebSocket, session_id: str):
                     break
                 seq += 1
                 my_seq = seq
+                # CRITICAL FIX: barge must only cancel the CURRENT turn's TTS.
+                # Clear it at turn start, or one interrupt wedges the session
+                # silent forever ("sometimes no response").
+                barge.clear()
 
                 if kind == "not_heard":
                     # FIX 2026-10-12: STT heard nothing — tell user to speak up
@@ -675,6 +679,7 @@ async def voice_proxy(ws: WebSocket, session_id: str):
 
                 reply = (reply or "").strip()
                 if not reply or my_seq != seq or closed.is_set():
+                    await safe_send({"type": "status", "state": "listening"})
                     continue  # interrupted while thinking, or empty
 
                 transcript.append({"role": "examiner", "text": reply})
