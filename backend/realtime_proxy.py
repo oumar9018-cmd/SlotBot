@@ -459,7 +459,12 @@ async def voice_proxy(ws: WebSocket, session_id: str):
                     except json.JSONDecodeError:
                         continue
                     t = ctl.get("type")
-                    if t == "interrupt":
+                    if t == "ping":
+                        # Keepalive: client pings every ~20s to keep Render's proxy
+                        # from killing idle connections. Respond so the client
+                        # knows the path is alive.
+                        await safe_send({"type": "pong"})
+                    elif t == "interrupt":
                         # barge-in: invalidate current turn, stop TTS streaming
                         seq += 1
                         barge.set()
