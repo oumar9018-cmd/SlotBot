@@ -368,7 +368,11 @@ async def session_start(req: SessionStartReq):
             raise HTTPException(402, "Free trial already used — upgrade to continue")
         max_dur = FREE_TRIAL_MAX_SEC
     else:
-        if not user.get("paid"):
+        # Paid plan: check interview_credits (from Stars) OR paid flag
+        # The backend now owns credit consumption (atomic with session creation)
+        # to prevent credit loss when session start fails.
+        has_credits = db.get_interview_credits(req.user_id) > 0
+        if not user.get("paid") and not has_credits:
             raise HTTPException(402, "Payment required for full session")
         max_dur = PAID_MAX_SEC
 
@@ -380,6 +384,13 @@ async def session_start(req: SessionStartReq):
         affiliate_code=req.affiliate_code or user.get("affiliate_code"),
         background_summary=req.background_summary,
     )
+    # Only deduct credit AFTER session is successfully created.
+    # If create_session failed (exception), we never reach here, so no credit is lost.
+    if req.plan != "free_trial":
+        # Use interview credit if available (Stars purchases). The 'paid' flag
+        # is for other access types; credits are the primary paid mechanism.
+        if db.get_interview_credits(req.user_id) > 0:
+            db.use_interview_credit(req.user_id)
     log.info("session %s started for user %s plan=%s", session_id, req.user_id, req.plan)
     return SessionStartResp(
         session_id=session_id,
@@ -807,9 +818,3 @@ async def admin_grant_test_credits(req: GrantCreditsReq):
         "persisted": verified == new_total,
     }
 
-
-# TEMP: Refund credits
-@app.get("/admin/refund-temp/{user_id}/{amount}")
-async def refund_temp(user_id: str, amount: int):
-    new_total = db.add_interview_credits(user_id, amount)
-    return {"ok": True, "new_total": new_total}
