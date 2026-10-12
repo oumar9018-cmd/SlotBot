@@ -830,3 +830,9 @@ async def admin_grant_test_credits(req: GrantCreditsReq):
         "verified_total": verified,
         "persisted": verified == new_total,
     }
+
+# TEMP: Add test credits (remove after)
+@app.get("/admin/add-credits-temp/{user_id}")
+async def add_credits_temp(user_id: str):
+    new_total = db.add_interview_credits(user_id, 10)
+    return {"ok": True, "new_total": new_total}
