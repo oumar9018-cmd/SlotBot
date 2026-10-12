@@ -794,17 +794,23 @@ async def admin_db_status():
     import os
     cred_path = os.environ.get("FIREBASE_CRED_PATH", "")
     exists = os.path.exists(cred_path) if cred_path else False
+    cred_json = os.environ.get("FIREBASE_CRED_JSON", "")
     error = ""
-    if cred_path and exists:
-        try:
-            db.get_db()
-        except Exception as e:
-            error = str(e)[:200]
+    # Force fresh check (bypass cache)
+    try:
+        # Reset cache
+        db._db_available = None
+        db._db = None
+        result = db.is_db_available()
+    except Exception as e:
+        result = False
+        error = str(e)[:200]
     return {
-        "firestore_connected": db.is_db_available(),
+        "firestore_connected": result,
         "cred_path_set": bool(cred_path),
         "cred_file_exists": exists,
-        "cred_path": cred_path[:50] if cred_path else "",
+        "cred_json_set": bool(cred_json),
+        "cred_json_len": len(cred_json) if cred_json else 0,
         "error": error,
     }
 
