@@ -99,7 +99,8 @@ export default function Setup() {
       })
       if (!s?.session_id) throw new Error('Backend returned no session id')
       set({ sessionId: s.session_id, maxSeconds: s.max_seconds || 120, plan: sessionPlan, transcript: [] })
-      markTrialUsed()
+      // BUGFIX: only burn trial on non-paid sessions
+      if (sessionPlan !== 'paid') markTrialUsed()
       // Latency: pre-connect the voice WebSocket NOW so TestRoom doesn't pay
       // the handshake + Deepgram STT connect cost on mount.
       preconnectVoice(s.session_id)

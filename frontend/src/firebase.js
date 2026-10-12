@@ -483,6 +483,7 @@ export function peekInterview() {
  * DEPRECATED: Backend now consumes credits atomically. Use peekInterview() instead.
  */
 export async function consumeInterview() {
+  throw new Error('DEPRECATED: backend consumes credits atomically. Use peekInterview().')
   if (!_user || _user.demo) return { ok: true, used: 'demo' }
   // 1. Free 3-question mini hook
   if (!_user.free_mini_used) {
