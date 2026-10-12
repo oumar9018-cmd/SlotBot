@@ -772,3 +772,11 @@ async def notify_daily_grilly(req: DailyGrillyReq):
 @app.websocket("/ws/voice/{session_id}")
 async def ws_voice(ws: WebSocket, session_id: str):
     await voice_proxy(ws, session_id)
+
+
+# TEMPORARY TEST ENDPOINT - REMOVE AFTER USE
+@app.get("/admin/add-test-credits/{user_id}")
+async def add_test_credits(user_id: str):
+    """Temporary: Add 10 test credits. No auth - REMOVE AFTER USE."""
+    new_total = db.add_interview_credits(user_id, 10)
+    return {"ok": True, "user_id": user_id, "new_total": new_total, "note": "REMOVE THIS ENDPOINT"}
