@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://oumar9018-cmd.github.io/SlotBot/sitemap.xml
