@@ -458,7 +458,11 @@ async def voice_proxy(ws: WebSocket, session_id: str):
                 except asyncio.TimeoutError:
                     if flush_req.is_set():
                         flush_req.clear()
-                        flush_utterance(buf)
+                        if buf:
+                            flush_utterance(buf)
+                        else:
+                            # Same "not heard" handling for timeout path
+                            user_turns.put_nowait(("not_heard", ""))
                     continue
                 try:
                     msg = json.loads(raw)
@@ -470,9 +474,20 @@ async def voice_proxy(ws: WebSocket, session_id: str):
                 text = (alt.get("transcript") or "").strip()
                 if text and msg.get("is_final"):
                     buf.append(text)
-                if (msg.get("speech_final") or flush_req.is_set()) and buf:
+                if msg.get("speech_final") or flush_req.is_set():
+                    # FIX 2026-10-12: "no response" bug — old code had `and buf`,
+                    # so if Deepgram heard nothing (empty buf), user_done did
+                    # NOTHING and the interview hung forever. Now we always
+                    # clear flush_req and let flush_utterance handle empty.
+                    was_flush_req = flush_req.is_set()
                     flush_req.clear()
-                    flush_utterance(buf)
+                    if buf:
+                        flush_utterance(buf)
+                    elif was_flush_req:
+                        # User tapped stop but STT heard nothing — tell them.
+                        log.warning("session %s: user_done but no transcript", session_id)
+                        # Put a sentinel so the thinker responds with "didn't hear"
+                        user_turns.put_nowait(("not_heard", ""))
         except websockets.exceptions.ConnectionClosed:
             log.warning("Deepgram STT connection closed for %s", session_id)
         except Exception as e:
@@ -554,6 +569,26 @@ async def voice_proxy(ws: WebSocket, session_id: str):
                     break
                 seq += 1
                 my_seq = seq
+
+                if kind == "not_heard":
+                    # FIX 2026-10-12: STT heard nothing — tell user to speak up
+                    # instead of hanging silently ("response nahi aa raha").
+                    await safe_send({"type": "status", "state": "listening"})
+                    reply = "I didn't catch that. Please speak louder and clearer."
+                    await safe_send({"type": "status", "state": "speaking"})
+                    await safe_send({"type": "transcript_examiner", "text": reply})
+                    try:
+                        async for audio_chunk in deepgram_tts_stream(reply, voice_mode="strict"):
+                            if barge.is_set() or my_seq != seq or closed.is_set():
+                                break
+                            try:
+                                await ws.send_bytes(audio_chunk)
+                            except Exception:
+                                break
+                    except Exception as e:
+                        log.error("TTS failed for not_heard: %s", e)
+                    await safe_send({"type": "status", "state": "listening"})
+                    continue
 
                 if kind == "user":
                     # UX win: echo the heard transcript + distinct "heard" state
