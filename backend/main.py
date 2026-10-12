@@ -392,10 +392,11 @@ async def session_end(req: SessionEndReq):
         }
 
     if sess.get("score") is not None:
-        # Already scored — idempotent
+        # Already scored — idempotent (must include "total": frontend reads res.total)
         return {
             "session_id": req.session_id,
             "score": sess["score"],
+            "total": sess["score"],
             "verdict": sess["verdict"],
             "weaknesses": sess.get("weaknesses", []),
             "feedback": sess.get("feedback", ""),
@@ -698,10 +699,17 @@ DAILY_GRILLY_KEYBOARD = {
 class DailyGrillyReq(BaseModel):
     dry_run: bool = False
     limit: int = 100
+    secret: str | None = None
 
 
 @app.post("/notify/daily-grilly")
 async def notify_daily_grilly(req: DailyGrillyReq):
+    """Daily retention push — requires CRON_SECRET env var to match req.secret.
+    Prevents anyone from triggering mass Telegram messages."""
+    import os
+    expected = os.environ.get("CRON_SECRET", "")
+    if not expected or req.secret != expected:
+        raise HTTPException(403, "Invalid or missing cron secret")
     """Daily retention push: message trial users who never bought Stars with a
     brutal practice question. Called by an external cron once per day."""
     from datetime import date
