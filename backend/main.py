@@ -788,31 +788,7 @@ class GrantCreditsReq(BaseModel):
     credits: int = Field(..., ge=1, le=50, description="Credits to grant (1-50)")
 
 
-@app.get("/admin/db-status")
-async def admin_db_status():
-    """TEMPORARY: report whether the backend is on real Firestore or in-memory fallback."""
-    import os
-    cred_path = os.environ.get("FIREBASE_CRED_PATH", "")
-    exists = os.path.exists(cred_path) if cred_path else False
-    cred_json = os.environ.get("FIREBASE_CRED_JSON", "")
-    error = ""
-    # Force fresh check (bypass cache)
-    try:
-        # Reset cache
-        db._db_available = None
-        db._db = None
-        result = db.is_db_available()
-    except Exception as e:
-        result = False
-        error = str(e)[:200]
-    return {
-        "firestore_connected": result,
-        "cred_path_set": bool(cred_path),
-        "cred_file_exists": exists,
-        "cred_json_set": bool(cred_json),
-        "cred_json_len": len(cred_json) if cred_json else 0,
-        "error": error,
-    }
+
 
 
 @app.post("/admin/grant-test-credits")
@@ -830,9 +806,3 @@ async def admin_grant_test_credits(req: GrantCreditsReq):
         "verified_total": verified,
         "persisted": verified == new_total,
     }
-
-# TEMP: Add test credits (remove after)
-@app.get("/admin/add-credits-temp/{user_id}")
-async def add_credits_temp(user_id: str):
-    new_total = db.add_interview_credits(user_id, 10)
-    return {"ok": True, "new_total": new_total}
