@@ -363,34 +363,39 @@ async def session_start(req: SessionStartReq):
     if not user:
         user = db.create_user(req.user_id, affiliate_code=req.affiliate_code)
 
+    consumed_credit = False
     if req.plan == "free_trial":
         if user.get("free_trial_used"):
             raise HTTPException(402, "Free trial already used — upgrade to continue")
         max_dur = FREE_TRIAL_MAX_SEC
     else:
-        # Paid plan: check interview_credits (from Stars) OR paid flag
-        # The backend now owns credit consumption (atomic with session creation)
-        # to prevent credit loss when session start fails.
-        has_credits = db.get_interview_credits(req.user_id) > 0
-        if not user.get("paid") and not has_credits:
-            raise HTTPException(402, "Payment required for full session")
+        # Paid plan: 'paid' flag = unlimited access, otherwise consume one
+        # interview credit atomically. use_interview_credit is transactional:
+        # True = a credit was taken, False = none available.
+        if not user.get("paid"):
+            if not db.use_interview_credit(req.user_id):
+                raise HTTPException(402, "Payment required for full session")
+            consumed_credit = True
         max_dur = PAID_MAX_SEC
 
-    session_id = db.create_session(
-        user_id=req.user_id,
-        test_type=req.test_type,
-        plan=req.plan,
-        max_duration_sec=max_dur,
-        affiliate_code=req.affiliate_code or user.get("affiliate_code"),
-        background_summary=req.background_summary,
-    )
-    # Only deduct credit AFTER session is successfully created.
-    # If create_session failed (exception), we never reach here, so no credit is lost.
-    if req.plan != "free_trial":
-        # Use interview credit if available (Stars purchases). The 'paid' flag
-        # is for other access types; credits are the primary paid mechanism.
-        if db.get_interview_credits(req.user_id) > 0:
-            db.use_interview_credit(req.user_id)
+    try:
+        session_id = db.create_session(
+            user_id=req.user_id,
+            test_type=req.test_type,
+            plan=req.plan,
+            max_duration_sec=max_dur,
+            affiliate_code=req.affiliate_code or user.get("affiliate_code"),
+            background_summary=req.background_summary,
+        )
+    except Exception:
+        # Session creation failed after we consumed a credit — refund it so a
+        # failed start never burns a credit.
+        if consumed_credit:
+            try:
+                db.add_interview_credits(req.user_id, 1)
+            except Exception:
+                log.exception("credit refund failed for user %s", req.user_id)
+        raise
     log.info("session %s started for user %s plan=%s", session_id, req.user_id, req.plan)
     return SessionStartResp(
         session_id=session_id,
@@ -437,15 +442,55 @@ async def session_end(req: SessionEndReq):
             "feedback": sess.get("feedback", ""),
         }
 
+    # Race guard: only one concurrent /session/end may run the (expensive)
+    # Groq scoring. Others wait for the winner or get the cached result.
+    claim = db.claim_scoring(req.session_id)
+    if claim == "scored":
+        sess = db.get_session(req.session_id)
+        return {
+            "session_id": req.session_id,
+            "score": sess["score"],
+            "total": sess["score"],
+            "verdict": sess["verdict"],
+            "weaknesses": sess.get("weaknesses", []),
+            "feedback": sess.get("feedback", ""),
+        }
+    if claim == "in_progress":
+        # Another request is scoring right now — poll briefly for its result
+        # instead of firing a duplicate Groq call.
+        import asyncio as _aio
+        for _ in range(30):
+            await _aio.sleep(1)
+            sess = db.get_session(req.session_id)
+            if sess and sess.get("score") is not None:
+                return {
+                    "session_id": req.session_id,
+                    "score": sess["score"],
+                    "total": sess["score"],
+                    "verdict": sess["verdict"],
+                    "weaknesses": sess.get("weaknesses", []),
+                    "feedback": sess.get("feedback", ""),
+                }
+        raise HTTPException(409, "Scoring in progress — retry shortly")
+    if claim == "missing":
+        raise HTTPException(404, "Session not found")
+
     transcript = sess.get("transcript", [])
     if not transcript:
+        db.release_scoring(req.session_id)
         raise HTTPException(409, "No transcript captured — session had no audio")
 
     # Feature 2: pass the filler-word nervousness score into scoring
     nervousness = int(sess.get("nervousness_score", 0) or 0)
-    result = await scoring.score_transcript(
-        transcript, sess.get("test_type", "general"),
-        nervousness_score=nervousness)
+    try:
+        result = await scoring.score_transcript(
+            transcript, sess.get("test_type", "general"),
+            nervousness_score=nervousness)
+    except Exception:
+        # Scoring crashed — release the claim so a retry isn't stuck behind
+        # a stale in_progress flag.
+        db.release_scoring(req.session_id)
+        raise
     db.update_session_scored(
         req.session_id,
         score=result["total"],
@@ -619,13 +664,19 @@ async def telegram_webhook(request: Request):
             log.warning("successful_payment with no resolvable user: %s", charge_id)
             return {"ok": True}
 
-        db.record_payment(
+        # Idempotent + race-safe: record_payment returns True only for the
+        # first processing of this charge (Firestore transaction). Retries or
+        # concurrent deliveries get False and grant nothing.
+        is_new = db.record_payment(
             payment_id=charge_id,
             user_id=user_id,
             amount_stars=int(sp.get("total_amount", 0) or 0),
             status="captured",
             affiliate_code=affiliate_code,
         )
+        if not is_new:
+            log.info("duplicate webhook for charge %s — credits not re-granted", charge_id)
+            return {"ok": True}
         # Bundle flow: credit interview credits. Do NOT mark_paid for bundles —
         # paid=True would grant unlimited sessions after credits run out.
         bundle_id = (inv or {}).get("bundle_id")
