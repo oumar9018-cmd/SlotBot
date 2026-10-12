@@ -205,7 +205,55 @@ def update_session_scored(session_id: str, score: int, verdict: str,
         "breakdown": breakdown,
         "weaknesses": weaknesses,
         "feedback": feedback,
+        "scoring_in_progress": False,
     })
+
+
+def claim_scoring(session_id: str) -> str:
+    """Atomically claim the right to score a session.
+    Returns "claimed" (this caller should score), "scored" (already done),
+    or "in_progress" (another request is scoring). Prevents double Groq
+    scoring calls from concurrent /session/end requests."""
+    if not is_db_available():
+        s = _mem_sessions.get(session_id) or {}
+        if s.get("score") is not None:
+            return "scored"
+        if s.get("scoring_in_progress"):
+            return "in_progress"
+        s["scoring_in_progress"] = True
+        _mem_sessions[session_id] = s
+        return "claimed"
+    from google.cloud import firestore as _fs
+    db = get_db()
+    ref = db.collection("sessions").document(session_id)
+
+    @_fs.transactional
+    def _claim(transaction):
+        snap = ref.get(transaction=transaction)
+        if not snap.exists:
+            return "missing"
+        d = snap.to_dict() or {}
+        if d.get("score") is not None:
+            return "scored"
+        if d.get("scoring_in_progress"):
+            return "in_progress"
+        transaction.set(ref, {"scoring_in_progress": True}, merge=True)
+        return "claimed"
+
+    return _claim(db.transaction())
+
+
+def release_scoring(session_id: str):
+    """Clear a stale scoring_in_progress flag (after a failed scoring attempt)."""
+    if not is_db_available():
+        s = _mem_sessions.get(session_id) or {}
+        s.pop("scoring_in_progress", None)
+        return
+    try:
+        get_db().collection("sessions").document(session_id).update(
+            {"scoring_in_progress": False})
+    except Exception:
+        pass
 
 
 # ---------- DS-160 attack vectors (Feature 1: Dynamic Attacker) ----------
@@ -361,7 +409,8 @@ def get_interview_credits(user_id: str) -> int:
 
 
 def use_interview_credit(user_id: str) -> bool:
-    """Consume one credit. Returns True if a credit was available."""
+    """Consume one credit atomically via Firestore transaction.
+    Returns True if a credit was available."""
     uid = str(user_id)
     if not is_db_available():
         cur = int((_mem_users.get(uid) or {}).get("interview_credits", 0))
@@ -369,13 +418,20 @@ def use_interview_credit(user_id: str) -> bool:
             return False
         _mem_users[uid]["interview_credits"] = cur - 1
         return True
-    ref = get_db().collection("users").document(uid)
-    doc = ref.get()
-    cur = int((doc.to_dict() or {}).get("interview_credits", 0) or 0) if doc.exists else 0
-    if cur <= 0:
-        return False
-    ref.set({"interview_credits": cur - 1}, merge=True)
-    return True
+    from google.cloud import firestore as _fs
+    db = get_db()
+    ref = db.collection("users").document(uid)
+
+    @_fs.transactional
+    def _consume(transaction):
+        snap = ref.get(transaction=transaction)
+        cur = int((snap.to_dict() or {}).get("interview_credits", 0) or 0) if snap.exists else 0
+        if cur <= 0:
+            return False
+        transaction.set(ref, {"interview_credits": cur - 1}, merge=True)
+        return True
+
+    return _consume(db.transaction())
 
 
 # ---------- referrals ----------
@@ -409,35 +465,41 @@ def claim_referral(user_id: str, referrer_id: str) -> dict:
                 "referral_count": r["referral_count"]}
     db = get_db()
     uref = db.collection("users").document(uid)
-    udoc = uref.get()
-    udata = (udoc.to_dict() or {}) if udoc.exists else {}
-    if udata.get("referral_claimed"):
-        raise ValueError("already_claimed")
     rref = db.collection("users").document(rid)
-    rdoc = rref.get()
-    if not rdoc.exists:
-        raise ValueError("referrer_not_found")
-    rdata = rdoc.to_dict() or {}
-    # Credit the new user (+1 interview), mark claimed
-    u_credits = int(udata.get("interview_credits", 0) or 0) + 1
-    uref.set({
-        "interview_credits": u_credits,
-        "referred_by": rid,
-        "referral_claimed": True,
-    }, merge=True)
-    # Credit the referrer (+1 interview, bump counters)
-    r_credits = int(rdata.get("interview_credits", 0) or 0) + 1
-    r_count = int(rdata.get("referral_count", 0) or 0) + 1
-    r_earned = int(rdata.get("referral_earned", 0) or 0) + 1
-    rref.set({
-        "interview_credits": r_credits,
-        "referral_count": r_count,
-        "referral_earned": r_earned,
-    }, merge=True)
-    return {"user_id": uid, "referrer_id": rid,
-            "user_credits": u_credits,
-            "referrer_credits": r_credits,
-            "referral_count": r_count}
+    from google.cloud import firestore as _fs
+
+    @_fs.transactional
+    def _claim(transaction):
+        udoc = uref.get(transaction=transaction)
+        udata = (udoc.to_dict() or {}) if udoc.exists else {}
+        if udata.get("referral_claimed"):
+            raise ValueError("already_claimed")
+        rdoc = rref.get(transaction=transaction)
+        if not rdoc.exists:
+            raise ValueError("referrer_not_found")
+        rdata = rdoc.to_dict() or {}
+        # Credit the new user (+1 interview), mark claimed
+        u_credits = int(udata.get("interview_credits", 0) or 0) + 1
+        transaction.set(uref, {
+            "interview_credits": u_credits,
+            "referred_by": rid,
+            "referral_claimed": True,
+        }, merge=True)
+        # Credit the referrer (+1 interview, bump counters)
+        r_credits = int(rdata.get("interview_credits", 0) or 0) + 1
+        r_count = int(rdata.get("referral_count", 0) or 0) + 1
+        r_earned = int(rdata.get("referral_earned", 0) or 0) + 1
+        transaction.set(rref, {
+            "interview_credits": r_credits,
+            "referral_count": r_count,
+            "referral_earned": r_earned,
+        }, merge=True)
+        return {"user_id": uid, "referrer_id": rid,
+                "user_credits": u_credits,
+                "referrer_credits": r_credits,
+                "referral_count": r_count}
+
+    return _claim(db.transaction())
 
 
 def get_referral_stats(user_id: str) -> dict:
@@ -466,7 +528,11 @@ def get_payment(payment_id: str) -> dict | None:
 
 
 def record_payment(payment_id: str, user_id: str, amount_stars: int,
-                   status: str, affiliate_code: str | None = None):
+                   status: str, affiliate_code: str | None = None) -> bool:
+    """Record a payment idempotently. Returns True if this was a NEW payment
+    (caller should grant credits), False if it was already recorded
+    (caller must NOT grant credits again). Uses a Firestore transaction so
+    concurrent webhook retries can't double-credit."""
     data = {
         "payment_id": payment_id,
         "user_id": str(user_id),
@@ -476,15 +542,23 @@ def record_payment(payment_id: str, user_id: str, amount_stars: int,
         "created_at": _now(),
     }
     if not is_db_available():
+        if payment_id in _mem_payments:
+            return False
         _mem_payments[payment_id] = data
-        return
+        return True
+    from google.cloud import firestore as _fs
     db = get_db()
     ref = db.collection("payments").document(payment_id)
-    snap = ref.get()
-    if snap.exists:
-        ref.update(data)
-    else:
-        ref.set(data)
+
+    @_fs.transactional
+    def _record(transaction):
+        snap = ref.get(transaction=transaction)
+        if snap.exists:
+            return False
+        transaction.set(ref, data)
+        return True
+
+    return _record(db.transaction())
 
     # affiliate revenue share bookkeeping on capture
     if status == "captured" and affiliate_code:
