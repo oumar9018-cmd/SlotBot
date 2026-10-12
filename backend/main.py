@@ -284,6 +284,30 @@ async def test_keys():
         except Exception as e:
             result["Deepgram_Status"] = f"ERROR: {str(e)[:100]}"
 
+    # Test Deepgram STT WebSocket (the actual voice pipeline connection)
+    if dg_key:
+        try:
+            import websockets
+            from realtime_proxy import DG_STT_URL
+            try:
+                dg_ws = await websockets.connect(
+                    DG_STT_URL,
+                    additional_headers={"Authorization": f"Token {dg_key}"},
+                    max_size=1024*1024,
+                    open_timeout=15,
+                )
+            except TypeError:
+                dg_ws = await websockets.connect(
+                    DG_STT_URL,
+                    extra_headers={"Authorization": f"Token {dg_key}"},
+                    max_size=1024*1024,
+                    open_timeout=15,
+                )
+            await dg_ws.close()
+            result["Deepgram_STT_WS"] = "200 OK - nova-3 streaming works"
+        except Exception as e:
+            result["Deepgram_STT_WS"] = f"FAILED: {type(e).__name__}: {str(e)[:200]}"
+
     return result
 
 
