@@ -54,10 +54,20 @@ def get_db():
     import firebase_admin
     from firebase_admin import credentials, firestore
 
-    cred_path = os.environ.get("FIREBASE_CRED_PATH", "")
-    if not cred_path or not os.path.exists(cred_path):
-        raise RuntimeError("FIREBASE_CRED_PATH not set or file missing")
-    cred = credentials.Certificate(cred_path)
+    # Try JSON content from env var first (easier for API-based setup)
+    cred_json = os.environ.get("FIREBASE_CRED_JSON", "")
+    if cred_json:
+        import json
+        try:
+            cred_dict = json.loads(cred_json)
+            cred = credentials.Certificate(cred_dict)
+        except Exception as e:
+            raise RuntimeError(f"FIREBASE_CRED_JSON invalid: {str(e)[:100]}")
+    else:
+        cred_path = os.environ.get("FIREBASE_CRED_PATH", "")
+        if not cred_path or not os.path.exists(cred_path):
+            raise RuntimeError("FIREBASE_CRED_PATH not set or file missing")
+        cred = credentials.Certificate(cred_path)
     try:
         firebase_admin.get_app()
     except ValueError:
