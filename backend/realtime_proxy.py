@@ -275,24 +275,38 @@ async def groq_reply(history: list[dict], system_prompt: str) -> str:
 async def deepgram_tts_stream(text: str, voice_mode: str = "strict"):
     """Deepgram TTS as an async generator yielding PCM16 chunks as they're
     generated — first audio arrives in ~300ms instead of waiting for the full
-    file (1-3s for typical responses)."""
+    file (1-3s for typical responses). Retries once on transient failure so a
+    single Deepgram hiccup doesn't leave the user in silence."""
     url = DG_TTS_FRIENDLY_URL if voice_mode == "friendly" else DG_TTS_STRICT_URL
-    async with httpx.AsyncClient(timeout=60) as client:
-        async with client.stream(
-            "POST",
-            url,
-            headers={
-                "Authorization": f"Token {DEEPGRAM_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={"text": text},
-        ) as r:
-            if r.status_code != 200:
-                body = await r.aread()
-                raise RuntimeError(f"Deepgram TTS HTTP {r.status_code}: {body[:200]}")
-            async for chunk in r.aiter_bytes(chunk_size=TTS_CHUNK):
-                if chunk:
-                    yield chunk
+    last_err = None
+    for attempt in range(2):
+        try:
+            async with httpx.AsyncClient(timeout=60) as client:
+                async with client.stream(
+                    "POST",
+                    url,
+                    headers={
+                        "Authorization": f"Token {DEEPGRAM_API_KEY}",
+                        "Content-Type": "application/json",
+                    },
+                    json={"text": text},
+                ) as r:
+                    if r.status_code != 200:
+                        body = await r.aread()
+                        raise RuntimeError(f"Deepgram TTS HTTP {r.status_code}: {body[:200]}")
+                    yielded = False
+                    async for chunk in r.aiter_bytes(chunk_size=TTS_CHUNK):
+                        if chunk:
+                            yielded = True
+                            yield chunk
+                    if yielded:
+                        return  # success — don't retry
+                    last_err = "empty audio stream"
+        except Exception as e:
+            last_err = e
+            log.warning("Deepgram TTS attempt %d failed: %s", attempt + 1, str(e)[:150])
+            await asyncio.sleep(0.5)
+    raise RuntimeError(f"Deepgram TTS failed after retry: {str(last_err)[:150]}")
 
 
 async def deepgram_tts(text: str, voice_mode: str = "strict") -> bytes:
@@ -678,6 +692,11 @@ async def voice_proxy(ws: WebSocket, session_id: str):
                     continue
 
                 reply = (reply or "").strip()
+                if not reply and kind == "opening":
+                    # Never leave the user in silence on connect — use a
+                    # canned stern opener if the LLM returns nothing.
+                    reply = "State your full name. Now."
+                    log.warning("Groq empty on opening for %s — using fallback", session_id)
                 if not reply or my_seq != seq or closed.is_set():
                     await safe_send({"type": "status", "state": "listening"})
                     continue  # interrupted while thinking, or empty
