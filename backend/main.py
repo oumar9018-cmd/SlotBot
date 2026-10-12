@@ -806,3 +806,10 @@ async def admin_grant_test_credits(req: GrantCreditsReq):
         "verified_total": verified,
         "persisted": verified == new_total,
     }
+
+
+# TEMP: Refund credits
+@app.get("/admin/refund-temp/{user_id}/{amount}")
+async def refund_temp(user_id: str, amount: int):
+    new_total = db.add_interview_credits(user_id, amount)
+    return {"ok": True, "new_total": new_total}
