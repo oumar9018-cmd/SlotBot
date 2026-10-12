@@ -566,10 +566,14 @@ WELCOME_KEYBOARD = {
 @app.post("/payment/telegram-webhook")
 async def telegram_webhook(request: Request):
     """Handle Telegram updates: /start welcome + pre_checkout_query + successful_payment."""
-    if TELEGRAM_WEBHOOK_SECRET:
-        got = request.headers.get("X-Telegram-Bot-Api-Secret-Token", "")
-        if got != TELEGRAM_WEBHOOK_SECRET:
-            raise HTTPException(401, "Bad webhook secret")
+    # SECURITY: fail-closed — reject all webhooks if no secret configured,
+    # rather than accepting forged payments.
+    if not TELEGRAM_WEBHOOK_SECRET:
+        log.error("TELEGRAM_WEBHOOK_SECRET not set — rejecting webhook")
+        raise HTTPException(503, "Webhook not configured")
+    got = request.headers.get("X-Telegram-Bot-Api-Secret-Token", "")
+    if got != TELEGRAM_WEBHOOK_SECRET:
+        raise HTTPException(401, "Bad webhook secret")
 
     update = await request.json()
 
@@ -622,12 +626,15 @@ async def telegram_webhook(request: Request):
             status="captured",
             affiliate_code=affiliate_code,
         )
-        db.mark_paid(user_id)
-        # Bundle flow: credit interview interviews to the user's account.
+        # Bundle flow: credit interview credits. Do NOT mark_paid for bundles —
+        # paid=True would grant unlimited sessions after credits run out.
         bundle_id = (inv or {}).get("bundle_id")
         bundle = BUNDLES.get(bundle_id) if bundle_id else None
         if bundle:
             db.add_interview_credits(user_id, bundle["interviews"])
+        else:
+            # Legacy non-bundle payment: mark paid access.
+            db.mark_paid(user_id)
             log.info("user %s credited %d interviews (bundle %s)",
                      user_id, bundle["interviews"], bundle_id)
         if payload_token:
@@ -801,20 +808,4 @@ class GrantCreditsReq(BaseModel):
 
 
 
-
-@app.post("/admin/grant-test-credits")
-async def admin_grant_test_credits(req: GrantCreditsReq):
-    """TEMPORARY: grant interview credits and verify the write by re-reading."""
-    if not db.is_db_available():
-        raise HTTPException(503, "firestore_not_connected — grant refused, credits would not persist")
-    new_total = db.add_interview_credits(req.user_id, req.credits)
-    verified = db.get_interview_credits(req.user_id)
-    return {
-        "ok": True,
-        "user_id": str(req.user_id),
-        "granted": req.credits,
-        "total": new_total,
-        "verified_total": verified,
-        "persisted": verified == new_total,
-    }
 

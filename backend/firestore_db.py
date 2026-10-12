@@ -378,7 +378,8 @@ def use_interview_credit(user_id: str) -> bool:
     return True
 
 
-# ---------- referrals ----------def claim_referral(user_id: str, referrer_id: str) -> dict:
+# ---------- referrals ----------
+def claim_referral(user_id: str, referrer_id: str) -> dict:
     """Claim a referral bonus: the new user gets +1 interview credit AND the
     referrer gets +1 credit plus referral_count/referral_earned incremented.
     One claim per user ever (idempotent guard).
