@@ -791,7 +791,22 @@ class GrantCreditsReq(BaseModel):
 @app.get("/admin/db-status")
 async def admin_db_status():
     """TEMPORARY: report whether the backend is on real Firestore or in-memory fallback."""
-    return {"firestore_connected": db.is_db_available()}
+    import os
+    cred_path = os.environ.get("FIREBASE_CRED_PATH", "")
+    exists = os.path.exists(cred_path) if cred_path else False
+    error = ""
+    if cred_path and exists:
+        try:
+            db.get_db()
+        except Exception as e:
+            error = str(e)[:200]
+    return {
+        "firestore_connected": db.is_db_available(),
+        "cred_path_set": bool(cred_path),
+        "cred_file_exists": exists,
+        "cred_path": cred_path[:50] if cred_path else "",
+        "error": error,
+    }
 
 
 @app.post("/admin/grant-test-credits")
