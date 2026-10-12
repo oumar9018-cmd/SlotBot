@@ -392,10 +392,53 @@ async def voice_proxy(ws: WebSocket, session_id: str):
         return
     log.info("Deepgram STT connected for session %s", session_id)
 
+    # FIX 2026-10-12: Indian name STT corrections. Deepgram nova-3 rejects
+    # the keyterm/keywords query param (HTTP 400), so we do post-processing
+    # instead. Maps common mishearings to correct spellings.
+    NAME_CORRECTIONS = {
+        "karzan": "Farzan", "harzan": "Farzan", "farzan": "Farzan",
+        "arjun": "Arjun", "arjan": "Arjun",
+        "priya": "Priya", "preya": "Priya",
+        "rahul": "Rahul", "rahul": "Rahul",
+        "sneha": "Sneha", "snehaa": "Sneha",
+        "vikram": "Vikram", "vikram": "Vikram",
+        "ananya": "Ananya", "anania": "Ananya",
+        "rohan": "Rohan", "rohen": "Rohan",
+        "amit": "Amit", "ameet": "Amit",
+        "kiran": "Kiran", "keeran": "Kiran",
+        "divya": "Divya", "divia": "Divya",
+        "sanjay": "Sanjay", "sanjai": "Sanjay",
+        "meera": "Meera", "mira": "Meera",
+        "kabir": "Kabir", "kabeer": "Kabir",
+        "ishaan": "Ishaan", "ishan": "Ishaan",
+        "neha": "Neha", "nehaa": "Neha",
+        "aditya": "Aditya", "aditia": "Aditya",
+        "pooja": "Pooja", "puja": "Pooja",
+        "suresh": "Suresh", "sures": "Suresh",
+        "kavya": "Kavya", "kaviya": "Kavya",
+    }
+
+    def correct_names(text: str) -> str:
+        """Replace misheard Indian names with correct spellings."""
+        import re
+        def repl(m):
+            word = m.group(0)
+            lower = word.lower()
+            if lower in NAME_CORRECTIONS:
+                correct = NAME_CORRECTIONS[lower]
+                # Preserve original capitalization
+                if word[0].isupper():
+                    return correct
+                return correct.lower()
+            return word
+        return re.sub(r'\b[A-Za-z]+\b', repl, text)
+
     def flush_utterance(buf: list):
         nonlocal turn_audio_start
         text = " ".join(buf).strip()
         buf.clear()
+        # Apply Indian name corrections before processing
+        text = correct_names(text)
         # Feature 4: how long did the candidate talk? (>20s = over-explaining)
         duration = (time.time() - turn_audio_start) if turn_audio_start else 0.0
         turn_audio_start = None
