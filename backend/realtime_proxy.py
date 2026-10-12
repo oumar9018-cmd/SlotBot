@@ -276,24 +276,35 @@ async def groq_reply(history: list[dict], system_prompt: str) -> str:
     raise RuntimeError(f"Groq unavailable ({last_err})")
 
 
-async def deepgram_tts(text: str, voice_mode: str = "strict") -> bytes:
-    """Deepgram TTS -> raw PCM16 24kHz mono bytes.
-    voice_mode: "strict" (cold examiner, aura-asteria-en) or
-                "friendly" (warm visa coach, aura-luna-en).
-    """
+async def deepgram_tts_stream(text: str, voice_mode: str = "strict"):
+    """Deepgram TTS as an async generator yielding PCM16 chunks as they're
+    generated — first audio arrives in ~300ms instead of waiting for the full
+    file (1-3s for typical responses)."""
     url = DG_TTS_FRIENDLY_URL if voice_mode == "friendly" else DG_TTS_STRICT_URL
     async with httpx.AsyncClient(timeout=60) as client:
-        r = await client.post(
+        async with client.stream(
+            "POST",
             url,
             headers={
                 "Authorization": f"Token {DEEPGRAM_API_KEY}",
                 "Content-Type": "application/json",
             },
             json={"text": text},
-        )
-    if r.status_code != 200:
-        raise RuntimeError(f"Deepgram TTS HTTP {r.status_code}: {r.text[:200]}")
-    return r.content
+        ) as r:
+            if r.status_code != 200:
+                body = await r.aread()
+                raise RuntimeError(f"Deepgram TTS HTTP {r.status_code}: {body[:200]}")
+            async for chunk in r.aiter_bytes(chunk_size=TTS_CHUNK):
+                if chunk:
+                    yield chunk
+
+
+async def deepgram_tts(text: str, voice_mode: str = "strict") -> bytes:
+    """Deepgram TTS -> raw PCM16 24kHz mono bytes (non-streaming fallback)."""
+    chunks = []
+    async for chunk in deepgram_tts_stream(text, voice_mode):
+        chunks.append(chunk)
+    return b"".join(chunks)
 
 
 async def connect_deepgram_stt():
@@ -596,34 +607,32 @@ async def voice_proxy(ws: WebSocket, session_id: str):
                 history.append({"role": "assistant", "content": reply})
                 del history[:-20]
 
-                try:
-                    audio = await deepgram_tts(reply, voice_mode="strict")
-                except Exception as e:
-                    log.error("Deepgram TTS failed for %s: %s", session_id, e)
-                    # text still delivered; audio skipped
-                    await safe_send({"type": "transcript_examiner", "text": reply})
-                    await safe_send({"type": "status", "state": "listening"})
-                    continue
-
                 if my_seq != seq or closed.is_set() or barge.is_set():
                     await safe_send({"type": "status", "state": "listening"})
                     continue
 
                 barge.clear()
+                # LATENCY: send transcript + speaking status IMMEDIATELY, before
+                # TTS — the UI updates instantly instead of waiting 1-3s for audio.
                 await safe_send({"type": "status", "state": "speaking"})
                 await safe_send({"type": "transcript_examiner", "text": reply})
-                # Initial burst: first 2 chunks sent back-to-back (no yield) so the
-                # frontend has ~0.7s of audio buffered before any scheduling pause;
-                # yields only after the buffer is seeded to smooth network jitter.
-                for chunk_idx, i in enumerate(range(0, len(audio), TTS_CHUNK)):
-                    if barge.is_set() or my_seq != seq or closed.is_set():
-                        break
-                    try:
-                        await ws.send_bytes(audio[i:i + TTS_CHUNK])
-                    except Exception:
-                        break
-                    if chunk_idx >= 1:
-                        await asyncio.sleep(0)  # yield between chunks after burst
+                # Stream TTS audio chunks as Deepgram generates them — first
+                # audio hits the frontend in ~300ms, not after the full file.
+                try:
+                    chunk_idx = 0
+                    async for audio_chunk in deepgram_tts_stream(reply, voice_mode="strict"):
+                        if barge.is_set() or my_seq != seq or closed.is_set():
+                            break
+                        try:
+                            await ws.send_bytes(audio_chunk)
+                        except Exception:
+                            break
+                        if chunk_idx >= 1:
+                            await asyncio.sleep(0)  # yield after initial burst
+                        chunk_idx += 1
+                except Exception as e:
+                    log.error("Deepgram TTS stream failed for %s: %s", session_id, e)
+                    # text already delivered; audio skipped
                 await safe_send({"type": "status", "state": "listening"})
         except asyncio.CancelledError:
             pass
