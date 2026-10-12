@@ -285,39 +285,28 @@ async def test_keys():
             result["Deepgram_Status"] = f"ERROR: {str(e)[:100]}"
 
     # Test Deepgram STT WebSocket (the actual voice pipeline connection)
-    # Try multiple URL variations to isolate the 400 error
     if dg_key:
-        import urllib.parse
-        base = "wss://api.deepgram.com/v1/listen"
-        tests = {
-            "minimal": f"{base}?model=nova-3&encoding=linear16&sample_rate=16000",
-            "nova2": f"{base}?model=nova-2&encoding=linear16&sample_rate=16000",
-            "full_no_keywords": (f"{base}?model=nova-3&language=en&smart_format=true"
-                "&interim_results=true&endpointing=2000"
-                "&encoding=linear16&sample_rate=16000&channels=1"
-                "&punctuate=true&profanity_filter=false&diarize=false"),
-        }
-        for name, url in tests.items():
+        try:
+            import websockets
+            from realtime_proxy import DG_STT_URL
             try:
-                import websockets
-                try:
-                    dg_ws = await websockets.connect(
-                        url,
-                        additional_headers={"Authorization": f"Token {dg_key}"},
-                        max_size=1024*1024,
-                        open_timeout=15,
-                    )
-                except TypeError:
-                    dg_ws = await websockets.connect(
-                        url,
-                        extra_headers={"Authorization": f"Token {dg_key}"},
-                        max_size=1024*1024,
-                        open_timeout=15,
-                    )
-                await dg_ws.close()
-                result[f"STT_WS_{name}"] = "OK"
-            except Exception as e:
-                result[f"STT_WS_{name}"] = f"FAILED: {type(e).__name__}: {str(e)[:150]}"
+                dg_ws = await websockets.connect(
+                    DG_STT_URL,
+                    additional_headers={"Authorization": f"Token {dg_key}"},
+                    max_size=1024*1024,
+                    open_timeout=15,
+                )
+            except TypeError:
+                dg_ws = await websockets.connect(
+                    DG_STT_URL,
+                    extra_headers={"Authorization": f"Token {dg_key}"},
+                    max_size=1024*1024,
+                    open_timeout=15,
+                )
+            await dg_ws.close()
+            result["Deepgram_STT_WS"] = "200 OK - nova-3 streaming works"
+        except Exception as e:
+            result["Deepgram_STT_WS"] = f"FAILED: {type(e).__name__}: {str(e)[:200]}"
 
     return result
 

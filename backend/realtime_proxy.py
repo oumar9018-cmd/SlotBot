@@ -52,13 +52,9 @@ DG_STT_URL = (
     "&interim_results=true&endpointing=2000"
     "&encoding=linear16&sample_rate=16000&channels=1"
     "&punctuate=true&profanity_filter=false&diarize=false"
-    # Keyword boosting for Indian first names (format: word:intensifier 0-10).
-    # Farzan gets max boost — it was the reported mis-hear ("harzan").
-    "&keywords=Farzan:4&keywords=Arjun:4&keywords=Priya:4&keywords=Rahul:4"
-    "&keywords=Sneha:4&keywords=Vikram:4&keywords=Ananya:4&keywords=Rohan:4"
-    "&keywords=Amit:4&keywords=Kiran:4&keywords=Divya:4&keywords=Sanjay:4"
-    "&keywords=Meera:4&keywords=Kabir:4&keywords=Ishaan:4&keywords=Neha:4"
-    "&keywords=Aditya:4&keywords=Pooja:4&keywords=Suresh:4&keywords=Kavya:4"
+    # NOTE: keyterm/keywords removed 2026-10-12 — nova-3 rejects them with
+    # HTTP 400, breaking all voice interviews. Indian-name boosting disabled
+    # until Deepgram's supported biasing param for nova-3 is confirmed.
 )
 DG_TTS_STRICT_URL = (
     "https://api.deepgram.com/v1/speak"
