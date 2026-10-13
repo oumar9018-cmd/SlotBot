@@ -2302,7 +2302,7 @@ async def notify_daily_grilly(req: DailyGrillyReq, request: Request):
                 # FINAL BUG-SWEEP Patch C: the old copy promised a voice-note
                 # roast, but the webhook has NO voice handler — a false
                 # promise. Fixed copy only (no voice handler built).
-                "Tap below and practice properly — before the real officer does this to you."
+                "Tap below and practice properly — before it happens in your real interview."
             )
             try:
                 await tg_api("sendMessage", {
