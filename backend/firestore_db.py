@@ -348,6 +348,14 @@ def _session_age_sec(sess: dict) -> float | None:
 
 
 def _session_is_live(sess: dict) -> bool:
+    # NO_ANSWERS is TERMINAL (scored state): a session /session/end
+    # resolved as NO_ANSWERS must never count as live — otherwise the
+    # next /session/start 409s SESSION_ACTIVE on a dead session that
+    # can never be resumed (the 2026-10-13 gate-loop bug, second form:
+    # update_session_scored did not set ended_at, so the ended_at check
+    # below could not see it either).
+    if sess.get("verdict") == "NO_ANSWERS":
+        return False
     if sess.get("score") is not None or sess.get("denied") or sess.get("ended_at") is not None:
         return False
     age = _session_age_sec(sess)
@@ -425,7 +433,9 @@ def find_ended_unscored_session(user_id: str) -> dict | None:
                 continue
             if s.get("score") is not None or s.get("denied") or s.get("refunded"):
                 continue
-            if s.get("ended_at") is None:
+            # NO_ANSWERS is terminal even when ended_at is unset (legacy
+            # sessions scored before update_session_scored set ended_at).
+            if s.get("ended_at") is None and s.get("verdict") != "NO_ANSWERS":
                 continue
             return {"session_id": sid, **s}
         return None
@@ -438,7 +448,7 @@ def find_ended_unscored_session(user_id: str) -> dict | None:
             d = doc.to_dict() or {}
             if d.get("denied") or d.get("refunded"):
                 continue
-            if d.get("ended_at") is None:
+            if d.get("ended_at") is None and d.get("verdict") != "NO_ANSWERS":
                 continue
             return {"session_id": doc.id, **d}
     except Exception as e:
@@ -550,6 +560,11 @@ def update_session_scored(session_id: str, score: int, verdict: str,
             _mem_sessions[session_id].update({
                 "score": score, "verdict": verdict, "breakdown": breakdown,
                 "weaknesses": weaknesses, "feedback": feedback,
+                # Scoring completes the session: stamp ended_at so the
+                # live/ended finders (and /session/status) see it as
+                # ended. Without this, a NO_ANSWERS session (score None)
+                # stayed "live" and blocked the next start.
+                "ended_at": _now(),
                 **extra,
             })
             _mem_sessions[session_id].pop("scoring_in_progress", None)
@@ -564,6 +579,8 @@ def update_session_scored(session_id: str, score: int, verdict: str,
         "feedback": feedback,
         "scoring_in_progress": False,
         "claimed_at": _fs.DELETE_FIELD,
+        # Scoring completes the session (see mem branch).
+        "ended_at": _now(),
         **extra,
     })
 
@@ -1007,7 +1024,10 @@ def refund_abandoned_session(session_id: str) -> dict:
             return {"status": "session_active", "session_id": session_id}
         age = _session_age_sec(s)
         max_dur = int(s.get("max_duration_sec") or s.get("maxSeconds") or 900)
-        if s.get("ended_at") is None:
+        # NO_ANSWERS is terminal: it is abandoned-eligible immediately,
+        # even when ended_at is unset (legacy sessions) and the age gate
+        # has not passed — it delivered no scorable value.
+        if s.get("ended_at") is None and s.get("verdict") != "NO_ANSWERS":
             if age is None or age <= (max_dur + ACTIVE_SESSION_GRACE_SEC):
                 return {"status": "not_abandoned", "session_id": session_id}
         plan = s.get("plan")
@@ -1062,7 +1082,8 @@ def refund_abandoned_session(session_id: str) -> dict:
             return {"status": "session_active", "session_id": session_id}
         age = _session_age_sec(s)
         max_dur = int(s.get("max_duration_sec") or s.get("maxSeconds") or 900)
-        if s.get("ended_at") is None:
+        # NO_ANSWERS is terminal: abandoned-eligible immediately (see mem branch).
+        if s.get("ended_at") is None and s.get("verdict") != "NO_ANSWERS":
             if age is None or age <= (max_dur + ACTIVE_SESSION_GRACE_SEC):
                 return {"status": "not_abandoned", "session_id": session_id}
         plan = s.get("plan")
