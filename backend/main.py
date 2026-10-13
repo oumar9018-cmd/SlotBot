@@ -592,6 +592,13 @@ class SessionStartReq(BaseModel):
         description="FIX 13: client-generated idempotency key (uuid). A retried "
         "start with the same (user_id, idempotency_key) returns the original "
         "session instead of charging a second credit.")
+    discard_unscored: bool = Field(False,
+        description="W2: explicit user consent (Setup DISCARD OLD & START "
+        "FRESH) to resolve the blocking ended-unscored session — refund any "
+        "consumed credit / release the mini claim, mark it cleared — and "
+        "start fresh in this same request. Only the HMAC-verified owner "
+        "(checked in session_start) can discard their own session; a "
+        "scorable session is NEVER discarded without this flag.")
 
 
 class SessionStartResp(BaseModel):
@@ -1038,6 +1045,26 @@ async def telegram_auth(req: TelegramAuthReq, request: Request):
     )
 
 
+def _ended_at_age_sec(sess: dict) -> float | None:
+    """Seconds since sess ended (ended_at), or None when unparseable.
+    ended_at is a tz-aware datetime from Firestore (or epoch in legacy
+    docs). None = fail closed: the caller must NOT auto-clear."""
+    ended = (sess or {}).get("ended_at")
+    try:
+        if isinstance(ended, datetime):
+            ts = ended.timestamp()
+        elif isinstance(ended, (int, float)):
+            ts = ended / 1000.0 if ended > 1e12 else float(ended)
+        else:
+            ts_fn = getattr(ended, "timestamp", None)
+            ts = ts_fn() if callable(ts_fn) else None
+        if ts is None:
+            return None
+        return time.time() - float(ts)
+    except Exception:
+        return None
+
+
 @app.post("/session/start", response_model=SessionStartResp)
 async def session_start(req: SessionStartReq, request: Request):
     # Entity rate limits: 10/IP/min + 3/user/min (on top of the global
@@ -1128,11 +1155,81 @@ async def session_start(req: SessionStartReq, request: Request):
     # route — never a silent re-charge.
     ended_unscored = _db_or_503(db.find_ended_unscored_session, req.user_id)
     if ended_unscored:
-        raise HTTPException(
-            409,
-            f"ENDED_UNSCORED_SCORE_NOW session_id={ended_unscored['session_id']} — "
-            "your previous interview ended but was never scored; "
-            "score it (SCORE ME NOW) or refund it instead of starting a new one.")
+        # W2 (Setup-start brick): an ended-unscored session blocks EVERY
+        # new start with 409, and the only in-app escape was SCORE ME NOW
+        # -> /session/end. When the old session can NEVER be scored,
+        # that is a permanent brick: /session/end 409s "No transcript
+        # captured" on an empty transcript, and the refund helper returns
+        # no_refund_needed WITHOUT marking refunded for free_trial /
+        # no-credit sessions, so the block never clears. Resolve here:
+        #  - auto-clear: empty transcript AND ended >120s ago (the age
+        #    guard covers the flush race — a just-ended session may still
+        #    have its transcript flush in flight). Nothing scorable
+        #    exists, and free_trial burns nothing until scored, so
+        #    nothing of value is lost.
+        #  - explicit discard: req.discard_unscored (user tapped
+        #    DISCARD OLD & START FRESH) — the user accepts losing the
+        #    old answers; any consumed credit is refunded first.
+        # Either way the credit path goes through
+        # db.refund_abandoned_session (paid -> +1 credit, free_mini ->
+        # release); when it reports no_refund_needed the session is
+        # marked refunded here so find_ended_unscored_session stops
+        # returning it. On ANY resolution failure the original 409 is
+        # raised (fail closed — never proceed while the block is
+        # unresolved, never silently discard).
+        _old_sid = ended_unscored.get("session_id")
+        _old_transcript = ended_unscored.get("transcript") or []
+        _ended_age = _ended_at_age_sec(ended_unscored)
+        _auto_clear = (not _old_transcript
+                       and _ended_age is not None
+                       and _ended_age > 120)
+        # GATE-LOOP FIX (Worker A, 2026-10-13): NO_ANSWERS is a TERMINAL
+        # scored state — claim_scoring + the /session/end cached path
+        # already treat it as scored, and Results renders its terminal
+        # card — but update_session_scored persists score=None for it, so
+        # find_ended_unscored_session (score == None, no verdict check)
+        # kept returning it FOREVER. SCORE ME NOW "succeeded" every time
+        # yet the next LET'S GO 409'd on the SAME session: a true
+        # infinite loop with no user escape except explicit DISCARD.
+        # Auto-clear it exactly like the empty-transcript case (refund
+        # path: paid -> credit back, free_mini -> release, free_trial /
+        # no-credit -> mark cleared). Nothing scorable remains, so this
+        # is NOT a silent discard of a scorable session.
+        if ended_unscored.get("verdict") == "NO_ANSWERS":
+            _auto_clear = True
+        if _old_sid and (_auto_clear or req.discard_unscored):
+            _resolved = False
+            try:
+                _res = db.refund_abandoned_session(_old_sid)
+                _status = (_res or {}).get("status")
+                if _status in ("refunded", "already_refunded",
+                               "already_scored", "denied"):
+                    _resolved = True
+                elif _status == "no_refund_needed":
+                    # Hole in the refund helper: it returns this WITHOUT
+                    # marking refunded for free_trial / no-credit
+                    # sessions, so the session would keep blocking.
+                    # Mark it cleared here (owner-verified above).
+                    db.update_session_analytics(
+                        _old_sid, {"refunded": True})
+                    _resolved = True
+            except Exception:
+                _resolved = False
+            if _resolved:
+                log.info("session_start cleared ended-unscored %s for user %s (auto=%s discard=%s)",
+                         _old_sid, req.user_id, _auto_clear, bool(req.discard_unscored))
+            else:
+                raise HTTPException(
+                    409,
+                    f"ENDED_UNSCORED_SCORE_NOW session_id={_old_sid} — "
+                    "your previous interview ended but was never scored; "
+                    "score it (SCORE ME NOW) or refund it instead of starting a new one.")
+        else:
+            raise HTTPException(
+                409,
+                f"ENDED_UNSCORED_SCORE_NOW session_id={ended_unscored['session_id']} — "
+                "your previous interview ended but was never scored; "
+                "score it (SCORE ME NOW) or refund it instead of starting a new one.")
 
     consumed_credit = False
     claimed_mini = False
@@ -1299,8 +1396,10 @@ async def session_end(req: SessionEndReq, request: Request):
             **_session_timer_fields(sess),
         }
 
-    if sess.get("score") is not None:
+    if sess.get("score") is not None or sess.get("verdict") == "NO_ANSWERS":
         # Already scored — idempotent (must include "total": frontend reads res.total).
+        # NO_ANSWERS has total None (no score exists) but is a terminal
+        # state: without the verdict check, re-fetch would re-score forever.
         # Must also include nervousness fields: without them the Results
         # meter vanished on any re-fetch/retry of /session/end.
         return {
@@ -1337,7 +1436,7 @@ async def session_end(req: SessionEndReq, request: Request):
         for _ in range(30):
             await asyncio.sleep(1)
             sess = db.get_session(req.session_id)
-            if sess and sess.get("score") is not None:
+            if sess and (sess.get("score") is not None or sess.get("verdict") == "NO_ANSWERS"):
                 return {
                     "session_id": req.session_id,
                     "score": sess["score"],
@@ -1437,6 +1536,7 @@ async def session_status(session_id: str, request: Request):
     return {"session_id": session_id, "plan": sess.get("plan"),
             "score": sess.get("score"), "verdict": sess.get("verdict"),
             "denied": bool(sess.get("denied")), "ended": sess.get("ended_at") is not None,
+            "refunded": bool(sess.get("refunded")),
             **_session_timer_fields(sess)}
 
 

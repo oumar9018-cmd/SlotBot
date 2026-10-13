@@ -3,6 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover, interactive-widget=resizes-content" />
+  <!-- WORKER 3 (cache-busting, defense-in-depth): ask every cache not to
+       store index.html. WebViews routinely IGNORE these meta tags, so
+       they are NOT the mechanism — the in-app update check (App.jsx,
+       re-fetch ./index.html with a cache-busting query + no-store,
+       compare bundle filename) is. These tags cost nothing and help
+       where they are honoured. -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <meta name="theme-color" content="#4C1D95" />
   <!-- SPLASH (worker 1/10): the theme-color matches the splash gradient so
        the browser chrome never flashes white on load. The inline script in
@@ -128,15 +137,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet" />
-  <script type="module" crossorigin src="./assets/index-BpHaJhrg.js"></script>
+  <script type="module" crossorigin src="./assets/index-BLLPPRva.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/react-core-Baehr4Gm.js">
   <link rel="modulepreload" crossorigin href="./assets/react-dom-a-CLRV2aXt.js">
   <link rel="modulepreload" crossorigin href="./assets/react-dom-b-CyLymGSX.js">
   <link rel="modulepreload" crossorigin href="./assets/motion-vendor-CxTnz5QR.js">
   <link rel="modulepreload" crossorigin href="./assets/state-vendor-D-UHNNKl.js">
   <link rel="modulepreload" crossorigin href="./assets/tg-vendor-BcrdubQO.js">
-  <link rel="modulepreload" crossorigin href="./assets/components-Bo7Vw5WH.js">
-  <link rel="stylesheet" crossorigin href="./assets/index-DkD8YHSf.css">
+  <link rel="modulepreload" crossorigin href="./assets/components-BEHATTVV.js">
+  <link rel="stylesheet" crossorigin href="./assets/index-Bf8guIuC.css">
 </head>
 <body>
   <!-- SPLASH (worker 1/10): static pre-paint boot splash — see <style> above.
@@ -192,6 +201,21 @@
     // has loaded"; calling it here (boot splash already painted) is
     // correct, and the later useTelegram ready() is a harmless repeat.
     try { if (typeof window.__MG_signalTgReady === 'function') window.__MG_signalTgReady() } catch (e) { /* noop */ }
+    // WORKER 3 (auth speed): pre-warm the backend DURING HTML parsing —
+    // before the JS bundle even downloads — so a sleeping Render
+    // backend starts waking while the bundle loads instead of only
+    // when the auth request fires (~seconds of head start on slow
+    // networks). `https://visaenglish-backend.onrender.com` is substituted by Vite at build time;
+    // if it is ever left literal (no env at build), the leading-%
+    // guard skips the ping. no-cors: the wake does not need to read
+    // the response, and a CORS-less /health must still reach the
+    // server. Never throws, never blocks parsing.
+    try {
+      var __mgApi = 'https://visaenglish-backend.onrender.com';
+      if (__mgApi && __mgApi.charAt(0) !== '%') {
+        fetch(__mgApi.replace(/\/$/, '') + '/health', { mode: 'no-cors', cache: 'no-store', keepalive: true }).catch(function () {});
+      }
+    } catch (e) { /* never throw from the boot path */ }
     // SPLASH / BOOT FALLBACKS (worker 4 — timeouts / never-blank only).
     // Boot timestamp for the React splash budget.
     window.__MG_BOOT_T0 = Date.now();

@@ -585,7 +585,7 @@ def claim_scoring(session_id: str) -> str:
         s = _mem_sessions.get(session_id)
         if s is None:
             return "missing"
-        if s.get("score") is not None:
+        if s.get("score") is not None or s.get("verdict") == "NO_ANSWERS":
             return "scored"
         if s.get("scoring_in_progress"):
             claimed_at = s.get("claimed_at")
@@ -610,7 +610,7 @@ def claim_scoring(session_id: str) -> str:
         if not snap.exists:
             return "missing"
         d = snap.to_dict() or {}
-        if d.get("score") is not None:
+        if d.get("score") is not None or d.get("verdict") == "NO_ANSWERS":
             return "scored"
         if d.get("scoring_in_progress"):
             claimed_at = d.get("claimed_at")

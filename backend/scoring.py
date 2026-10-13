@@ -619,6 +619,35 @@ async def score_transcript(transcript: list[dict], test_type: str = "general",
     passed to the scorer as delimited DATA; the LLM's consistency score
     can never outvote the deterministic finding.
     """
+    # NO-ANSWERS: a session where the candidate never answered (zero user
+    # turns with real text — examiner-only transcript) never actually
+    # tested anything. Scoring it 0/100 REJECTED misrepresents a
+    # non-event as a failed performance. Return a dedicated no-score
+    # state instead (no LLM call, no verdict). The frontend renders a
+    # "No answers recorded" card for verdict NO_ANSWERS; the cached path
+    # treats it as scored (see claim_scoring / session_end).
+    _user_answers = sum(
+        1 for _t in (transcript or [])
+        if isinstance(_t, dict) and _t.get("role") == "user"
+        and str(_t.get("text", "")).strip()
+    )
+    if _user_answers == 0:
+        log.info("score_transcript: no user answers — returning NO_ANSWERS state")
+        return {
+            "verdict": "NO_ANSWERS",
+            "no_answers": True,
+            "total": None,
+            "clarity": 0, "ties": 0, "financial": 0,
+            "consistency": 0, "composure": 0,
+            "weaknesses": [],
+            "feedback": "No answers were recorded — the examiner asked questions but no answers were captured, so there is nothing to score. Start a fresh grilling.",
+            "corrections": [],
+            "categories": [],
+            "nervousness_score": 0,
+            "nervousness_level": "Low",
+            "contradictions": [],
+        }
+
     if contradictions is None:
         _, contradictions = detect_contradictions(transcript)
     contradictions = [dict(c) for c in (contradictions or [])
