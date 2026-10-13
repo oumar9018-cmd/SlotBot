@@ -3,7 +3,41 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover, interactive-widget=resizes-content" />
-  <meta name="theme-color" content="#FFFBF5" />
+  <meta name="theme-color" content="#4C1D95" />
+  <!-- SPLASH (worker 1/10): the theme-color matches the splash gradient so
+       the browser chrome never flashes white on load. The inline script in
+       <body> restores the cream #FFFBF5 theme-color after the splash. -->
+  <style>
+    /* Pre-paint boot splash: index.css only arrives WITH the JS bundle, so
+       without this inline twin the first paint would be a white flash.
+       Same design as SplashScreen.jsx (deep-violet brand gradient, Grilly,
+       wordmark, tagline, three dots). It HOLDS (no CSS auto-fade) until
+       React's SplashScreen removes this node on mount — so on a slow
+       bundle there is never a blank gap between boot fade and React
+       splash, and the two never stack. Fallback: the inline script
+       below removes it after 1600ms if React never mounts. Total
+       choreographed splash budget is 1400ms from boot T0 (the React
+       splash plays only the remaining budget after boot). */
+    html, body { background: #4C1D95; }
+    body { margin: 0; }
+    #boot-splash {
+      position: fixed; inset: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden; text-align: center; color: #fff;
+      background: linear-gradient(165deg, #2E1065 0%, #4C1D95 38%, #6D28D9 68%, #7C3AED 100%);
+    }
+    .boot-glow { position: absolute; width: 240px; height: 240px; border-radius: 9999px; filter: blur(60px); opacity: 0.5; }
+    .boot-glow-pink { top: -70px; left: -70px; background: #F472B6; }
+    .boot-glow-sky { right: -80px; bottom: -60px; background: #38BDF8; }
+    .boot-inner { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; padding: 0 32px; }
+    .boot-grilly { filter: drop-shadow(0 18px 28px rgba(0, 0, 0, 0.35)); }
+    .boot-word { margin-top: 18px; font-family: "Quicksand", system-ui, sans-serif; font-weight: 800; font-size: 42px; line-height: 1.1; letter-spacing: -0.02em; color: #fff; }
+    .boot-word span { color: #FBCFE8; }
+    .boot-tag { margin: 10px 0 0; font-family: system-ui, sans-serif; font-weight: 700; font-size: 17px; line-height: 1.45; color: #EDE9FE; }
+    .boot-sub { margin: 8px 0 0; font-family: system-ui, sans-serif; font-weight: 800; font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; color: #DDD6FE; }
+    .boot-dots { display: flex; gap: 10px; margin-top: 24px; }
+    .boot-dots i { width: 10px; height: 10px; border-radius: 9999px; background: #EDE9FE; display: block; }
+  </style>
   <title>MockGrill — AI Visa Interview Coach</title>
   <meta name="description" content="MockGrill — a strict AI interview coach. Practice US visa, job and university interviews by voice with a brutal AI examiner who interrupts, pressures and scores you. Free 2-min trial inside Telegram." />
   <link rel="canonical" href="https://oumar9018-cmd.github.io/SlotBot/" />
@@ -43,17 +77,81 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet" />
-  <script type="module" crossorigin src="./assets/index-CMXp1W3T.js"></script>
+  <script type="module" crossorigin src="./assets/index-C8rOcG3u.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/react-core-Baehr4Gm.js">
   <link rel="modulepreload" crossorigin href="./assets/react-dom-a-CLRV2aXt.js">
   <link rel="modulepreload" crossorigin href="./assets/react-dom-b-CyLymGSX.js">
   <link rel="modulepreload" crossorigin href="./assets/motion-vendor-BxPH-uI2.js">
   <link rel="modulepreload" crossorigin href="./assets/state-vendor-D-UHNNKl.js">
   <link rel="modulepreload" crossorigin href="./assets/tg-vendor-BcrdubQO.js">
-  <link rel="modulepreload" crossorigin href="./assets/components-NpN3RbaS.js">
-  <link rel="stylesheet" crossorigin href="./assets/index-B_767jjC.css">
+  <link rel="modulepreload" crossorigin href="./assets/components-B11qRRjE.js">
+  <link rel="stylesheet" crossorigin href="./assets/index-hbDPt7s6.css">
 </head>
 <body>
+  <!-- SPLASH (worker 1/10): static pre-paint boot splash — see <style> above.
+       Simplified Grilly SVG (same mascot, no emoji, no raster images). -->
+  <div id="boot-splash" role="status" aria-label="MockGrill is loading">
+    <div class="boot-glow boot-glow-pink" aria-hidden="true"></div>
+    <div class="boot-glow boot-glow-sky" aria-hidden="true"></div>
+    <div class="boot-inner">
+      <div class="boot-grilly" aria-hidden="true">
+        <svg viewBox="0 0 110 110" width="148" height="148" focusable="false" style="display:block">
+          <defs>
+            <radialGradient id="bootGrillyBody" cx="40%" cy="30%" r="80%">
+              <stop offset="0%" stop-color="#FBCFE8" /><stop offset="60%" stop-color="#E9D5FF" /><stop offset="100%" stop-color="#C4B5FD" />
+            </radialGradient>
+          </defs>
+          <ellipse cx="38" cy="99" rx="10" ry="5.5" fill="#E9D5FF" />
+          <ellipse cx="72" cy="99" rx="10" ry="5.5" fill="#E9D5FF" />
+          <ellipse cx="28" cy="26" rx="12" ry="14" fill="#E9D5FF" />
+          <ellipse cx="82" cy="26" rx="12" ry="14" fill="#E9D5FF" />
+          <ellipse cx="28" cy="27" rx="6" ry="8" fill="#F9A8D4" opacity="0.7" />
+          <ellipse cx="82" cy="27" rx="6" ry="8" fill="#F9A8D4" opacity="0.7" />
+          <ellipse cx="55" cy="58" rx="42" ry="40" fill="url(#bootGrillyBody)" />
+          <ellipse cx="55" cy="76" rx="24" ry="18" fill="#fff" opacity="0.55" />
+          <ellipse cx="38" cy="34" rx="14" ry="9" fill="#fff" opacity="0.35" transform="rotate(-20 38 34)" />
+          <circle cx="38" cy="46" r="11" fill="#fff" />
+          <circle cx="72" cy="46" r="11" fill="#fff" />
+          <circle cx="40" cy="48" r="5.5" fill="#463F5A" />
+          <circle cx="74" cy="48" r="5.5" fill="#463F5A" />
+          <circle cx="42" cy="46" r="1.8" fill="#fff" />
+          <circle cx="76" cy="46" r="1.8" fill="#fff" />
+          <ellipse cx="24" cy="60" rx="7" ry="5" fill="#F9A8D4" opacity="0.8" />
+          <ellipse cx="86" cy="60" rx="7" ry="5" fill="#F9A8D4" opacity="0.8" />
+          <ellipse cx="55" cy="55" rx="2.6" ry="1.8" fill="#F472B6" opacity="0.9" />
+          <path d="M42 62 Q55 74 68 62" fill="none" stroke="#463F5A" stroke-width="4" stroke-linecap="round" />
+          <g transform="translate(88 78)">
+            <circle r="11" fill="#FDE68A" stroke="#FBBF24" stroke-width="2.5" />
+            <path d="M0 -5.5 L1.7 -1.7 L5.7 -1.7 L2.5 0.7 L3.6 4.5 L0 2.2 L-3.6 4.5 L-2.5 0.7 L-5.7 -1.7 L-1.7 -1.7 Z" fill="#F59E0B" />
+          </g>
+        </svg>
+      </div>
+      <div class="boot-word">Mock<span>Grill</span></div>
+      <p class="boot-tag">Get grilled like the real thing.</p>
+      <p class="boot-sub">AI visa interview coach</p>
+      <div class="boot-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+    </div>
+  </div>
+  <script>
+    // SPLASH: boot timestamp for the React splash budget. The boot node
+    // HOLDS until React's SplashScreen removes it on mount (no CSS
+    // auto-fade — that left a blank gap on slow bundles). Fallbacks:
+    // animationend (no-op now) + 1600ms removal if React never mounts.
+    // Theme-color restores to cream after the splash.
+    window.__MG_BOOT_T0 = Date.now();
+    (function () {
+      var s = document.getElementById('boot-splash');
+      if (!s) return;
+      var done = false;
+      function remove() { if (done) return; done = true; if (s.parentNode) s.parentNode.removeChild(s); }
+      s.addEventListener('animationend', remove);
+      setTimeout(remove, 1600);
+      setTimeout(function () {
+        var m = document.querySelector('meta[name="theme-color"]');
+        if (m) m.setAttribute('content', '#FFFBF5');
+      }, 1500);
+    })();
+  </script>
   <div id="root"></div>
 </body>
 </html>

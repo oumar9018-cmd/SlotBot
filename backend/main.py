@@ -47,6 +47,7 @@ import asyncio
 import base64
 import ipaddress
 import os
+import re
 import threading
 import time
 import logging
@@ -55,8 +56,11 @@ from datetime import datetime, timezone
 
 import httpx
 from fastapi import FastAPI, HTTPException, Request, WebSocket
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from pydantic import BaseModel, Field
 
 import firestore_db as db
@@ -126,6 +130,156 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ---------- Structured error envelope (form-error follow-up) ----------
+# Every HTTP error leaves the backend as:
+#   {"error": <human detail>, "code": <MACHINE_CODE>,
+#    "detail": <original detail>, "retryable": <bool>}
+# `code` is extracted from a leading CODE token in the detail string
+# ("SESSION_ACTIVE session_id=...", "TRIAL_ALREADY_USED: ...",
+# "ENDED_UNSCORED_SCORE_NOW session_id=..."), from the explicit map below
+# for known lowercase codes, from auth-message matching, or from the HTTP
+# status. The frontend branches on `code` (never string-matches messages)
+# and on `retryable` (a retry of CREDIT_REFUND_FAILED / SESSION_ACTIVE /
+# ENDED_UNSCORED must never happen; a retry of a 503 / 429 / timeout may
+# help). `detail` keeps the ORIGINAL detail (string or FastAPI
+# validation-error list) so older clients reading only `detail` keep
+# working. Retry-After headers from HTTPException are preserved.
+
+_CODE_PREFIX_RE = re.compile(r"^([A-Z][A-Z0-9_]{2,})(?::|\s|$)")
+
+_EXPLICIT_CODES = {
+    "self_referral": "SELF_REFERRAL",
+    "claimant_not_found": "CLAIMANT_NOT_FOUND",
+    "referrer_not_found": "REFERRER_NOT_FOUND",
+}
+
+# Substring -> AUTH_* code, checked in order (first match wins). Matched
+# against the lowercased detail string.
+_AUTH_CODE_BY_MESSAGE = [
+    ("missing initdata", "AUTH_MISSING_INITDATA"),
+    ("missing initdata or bot token", "AUTH_MISSING_INITDATA"),
+    ("missing session auth", "AUTH_MISSING_CREDENTIAL"),
+    ("initdata expired", "AUTH_EXPIRED_INITDATA"),
+    ("invalid initdata signature", "AUTH_INVALID_SIGNATURE"),
+    ("invalid or expired session token", "AUTH_INVALID_TOKEN"),
+    ("initdata user does not match", "AUTH_OWNER_MISMATCH"),
+    ("initdata user does not own", "AUTH_OWNER_MISMATCH"),
+    ("invalid admin key", "AUTH_INVALID_ADMIN_KEY"),
+    ("bad webhook secret", "AUTH_INVALID_WEBHOOK_SECRET"),
+    ("invalid or missing cron secret", "AUTH_INVALID_CRON_SECRET"),
+]
+
+_STATUS_DEFAULT_CODES = {
+    400: "BAD_REQUEST", 401: "AUTH_REQUIRED", 402: "PAYMENT_REQUIRED",
+    403: "AUTH_FORBIDDEN", 404: "NOT_FOUND", 409: "CONFLICT",
+    422: "VALIDATION_ERROR", 429: "RATE_LIMITED",
+    500: "INTERNAL_ERROR", 502: "UPSTREAM_ERROR", 503: "SERVICE_UNAVAILABLE",
+}
+
+
+def _extract_error_code(status: int, detail) -> str:
+    """CODE: prefix extraction + message/status mapping (see header)."""
+    if isinstance(detail, str):
+        text = detail.strip()
+        m = _CODE_PREFIX_RE.match(text)
+        if m:
+            return m.group(1)
+        low = text.lower()
+        if low in _EXPLICIT_CODES:
+            return _EXPLICIT_CODES[low]
+        for needle, code in _AUTH_CODE_BY_MESSAGE:
+            if needle in low:
+                return code
+        if "not configured" in low or "not set" in low:
+            return "CONFIG_ERROR"
+    return _STATUS_DEFAULT_CODES.get(status, "ERROR")
+
+
+def _error_retryable(status: int, code: str, detail) -> bool:
+    """True iff a retry could plausibly fix it. Terminal 4xx (auth /
+    validation / already-active / ended-unscored / refund-failed) are
+    never retryable — retrying them fails identically or double-spends."""
+    if code in ("CREDIT_REFUND_FAILED", "SESSION_ACTIVE",
+                "ENDED_UNSCORED_SCORE_NOW", "VALIDATION_ERROR",
+                "AUTH_REQUIRED", "AUTH_FORBIDDEN", "AUTH_OWNER_MISMATCH",
+                "AUTH_INVALID_SIGNATURE", "AUTH_INVALID_TOKEN",
+                "AUTH_MISSING_INITDATA", "AUTH_MISSING_CREDENTIAL",
+                "AUTH_EXPIRED_INITDATA", "AUTH_INVALID_ADMIN_KEY",
+                "AUTH_INVALID_WEBHOOK_SECRET", "AUTH_INVALID_CRON_SECRET",
+                "SELF_REFERRAL", "CLAIMANT_NOT_FOUND", "REFERRER_NOT_FOUND",
+                "CONFIG_ERROR", "BAD_REQUEST", "NOT_FOUND"):
+        return False
+    if status == 429:
+        return True
+    if status >= 500:
+        return True
+    if status == 409 and code in ("SCORING_IN_PROGRESS", "CONFLICT"):
+        # 409 CONFLICT here means "Scoring in progress" (the only other
+        # 409s carry explicit terminal codes above). A retry may win.
+        return isinstance(detail, str) and "Scoring in progress" in detail
+    return False
+
+
+def _error_body(status: int, detail) -> dict:
+    """Build the envelope for one error. `detail` is the original detail
+    (string or FastAPI validation-error list); `error` is the human text."""
+    code = _extract_error_code(status, detail)
+    if isinstance(detail, str):
+        error_text = detail
+    elif isinstance(detail, list):
+        parts = []
+        for d in detail:
+            if isinstance(d, dict):
+                parts.append(str(d.get("msg") or d))
+            else:
+                parts.append(str(d))
+        error_text = "; ".join(parts) or "Validation failed"
+    else:
+        error_text = str(detail)
+    return {"error": error_text, "code": code, "detail": detail,
+            "retryable": _error_retryable(status, code, detail)}
+
+
+@app.exception_handler(HTTPException)
+@app.exception_handler(StarletteHTTPException)
+async def _http_exception_handler(request: Request, exc: HTTPException):
+    """All HTTP errors become the structured envelope, with the original
+    status code and any headers (e.g. Retry-After) preserved. Registered
+    for BOTH FastAPI's HTTPException (route raises) and Starlette's
+    (router 404/405s) so every HTTP error has the same shape."""
+    return JSONResponse(status_code=exc.status_code,
+                        content=_error_body(exc.status_code, exc.detail),
+                        headers=getattr(exc, "headers", None))
+
+
+@app.exception_handler(RequestValidationError)
+async def _validation_exception_handler(request: Request, exc: RequestValidationError):
+    """FastAPI 422s become the envelope with code VALIDATION_ERROR and
+    the original validation-error list as `detail` (loc/msg/type)."""
+    return JSONResponse(status_code=422,
+                        content=_error_body(422, jsonable_encoder(exc.errors())))
+
+
+@app.exception_handler(Exception)
+async def _unhandled_exception_handler(request: Request, exc: Exception):
+    """Unhandled route exceptions become a 500 envelope (never a bare
+    traceback body). Logged server-side with the full traceback."""
+    log.exception("unhandled exception: %s", exc)
+    return JSONResponse(status_code=500,
+                        content=_error_body(500, "Internal server error"))
+
+
+def _db_or_503(fn, *args, **kwargs):
+    """Run a DB guard finder, converting a fail-closed DBUnavailableError
+    into a 503 DB_UNAVAILABLE (retryable) instead of a false None that
+    would let a duplicate session / double charge through."""
+    try:
+        return fn(*args, **kwargs)
+    except db.DBUnavailableError:
+        raise HTTPException(
+            503, "DB_UNAVAILABLE: database temporarily unavailable — try again")
 
 
 # ---------- Rate limiting (stdlib only: time + threading, no new deps) ----------
@@ -351,7 +505,7 @@ async def _per_ip_rate_limit(request: Request, call_next):
     if not allowed:
         return JSONResponse(
             status_code=429,
-            content={"detail": "Too many requests — slow down."},
+            content=_error_body(429, "Too many requests — slow down."),
             headers={"Retry-After": str(retry)},
         )
     return await call_next(request)
@@ -384,12 +538,16 @@ class SessionStartReq(BaseModel):
     affiliate_code: str | None = None
     background_summary: str | None = Field(None, max_length=2000,
         description="Optional applicant background for sharper examiner questions")
-    initData: str = Field(..., min_length=1,
+    initData: str | None = Field(None,
         description="REQUIRED raw Telegram WebApp initData. It is HMAC-verified "
         "BEFORE any credit is consumed, its user id must equal user_id, and a "
         "WS session token (ws_token) is minted from it. A bare user_id with no "
         "initData is unsigned identity and is rejected — the backend trusts "
-        "only HMAC-verified initData / server-issued tokens.")
+        "only HMAC-verified initData / server-issued tokens. Optional at the "
+        "schema level so a MISSING initData yields a 401 AUTH_MISSING_INITDATA "
+        "(verify_telegram_init_data(None) raises it) instead of a FastAPI "
+        "422 — a missing signed payload is an auth failure, not a form-field "
+        "failure.")
     idempotency_key: str | None = Field(None, max_length=128,
         description="FIX 13: client-generated idempotency key (uuid). A retried "
         "start with the same (user_id, idempotency_key) returns the original "
@@ -803,7 +961,10 @@ async def session_start(req: SessionStartReq, request: Request):
     # BEFORE any credit/claim is consumed, so a Setup retry never burns
     # a credit or creates a duplicate. Frontend resumes the existing
     # session (WS accepts fresh ?initData=, no new token needed).
-    active = db.find_active_unscored_session(req.user_id)
+    # FAIL-CLOSED guard finders: a Firestore outage must 503 (via
+    # _db_or_503) instead of returning a false None that would let a
+    # duplicate session / double charge through.
+    active = _db_or_503(db.find_active_unscored_session, req.user_id)
     if active:
         raise HTTPException(
             409,
@@ -816,7 +977,7 @@ async def session_start(req: SessionStartReq, request: Request):
     # BEFORE any credit/claim moves and before the ended-unscored block
     # (a replay is not a new start, so it must not 409 on its own past).
     if req.idempotency_key:
-        prior = db.get_session_by_idempotency_key(req.user_id, req.idempotency_key)
+        prior = _db_or_503(db.get_session_by_idempotency_key, req.user_id, req.idempotency_key)
         if prior:
             prior_max = int(prior.get("maxSeconds") or prior.get("max_duration_sec") or 0)
             prior_token = mint_session_token(prior["session_id"], req.user_id,
@@ -840,7 +1001,7 @@ async def session_start(req: SessionStartReq, request: Request):
     # user never got scored. 409 with a DISTINCT code the frontend routes
     # to SCORE ME NOW (score the old session) or the refund-on-abandon
     # route — never a silent re-charge.
-    ended_unscored = db.find_ended_unscored_session(req.user_id)
+    ended_unscored = _db_or_503(db.find_ended_unscored_session, req.user_id)
     if ended_unscored:
         raise HTTPException(
             409,
@@ -892,11 +1053,19 @@ async def session_start(req: SessionStartReq, request: Request):
     except Exception:
         # Session creation failed after we consumed a credit / claimed the
         # mini — refund/release it so a failed start never burns anything.
+        # A FAILED REFUND is its own terminal error (CREDIT_REFUND_FAILED,
+        # retryable=False): the credit is gone and an automatic retry
+        # would fail identically — the user must contact support with
+        # their session details instead of retrying.
         if consumed_credit:
             try:
                 db.add_interview_credits(req.user_id, 1)
             except Exception:
                 log.exception("credit refund failed for user %s", req.user_id)
+                raise HTTPException(
+                    500,
+                    "CREDIT_REFUND_FAILED: credit was consumed but the "
+                    "refund failed — do not retry, contact support")
         if claimed_mini:
             try:
                 db.release_free_mini(req.user_id)
@@ -1041,7 +1210,7 @@ async def session_end(req: SessionEndReq, request: Request):
                     "feedback": sess.get("feedback", ""),
                     **_session_timer_fields(sess),
                 }
-        raise HTTPException(409, "Scoring in progress — retry shortly")
+        raise HTTPException(409, "SCORING_IN_PROGRESS: Scoring in progress — retry shortly")
     if claim == "missing":
         raise HTTPException(404, "Session not found")
 

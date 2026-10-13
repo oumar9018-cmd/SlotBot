@@ -32,6 +32,17 @@ from datetime import datetime, timezone
 
 log = logging.getLogger("englishtest.db")
 
+
+class DBUnavailableError(Exception):
+    """Raised by guard finders when the Firestore query itself fails.
+
+    FAIL-CLOSED: a finder that cannot read must never return None ("no
+    record"), because callers treat None as "safe to proceed" — a
+    Firestore outage would then allow duplicate sessions, double
+    charges, and lost idempotency. Callers convert this to 503
+    DB_UNAVAILABLE (main._db_or_503). The in-memory fallback branch
+    (local dev, no Firestore configured) is unchanged."""
+
 _db = None
 _db_available = None  # None=unknown, True=ok, False=fallback mode
 _mem_users = {}
@@ -358,7 +369,10 @@ def find_active_unscored_session(user_id: str) -> dict | None:
             if _session_is_live(d):
                 return {"session_id": doc.id, **d}
     except Exception as e:
+        # FAIL-CLOSED: a failed query must not masquerade as "no active
+        # session" — the caller 503s instead of creating a duplicate.
         log.warning("find_active_unscored_session failed: %s", str(e)[:100])
+        raise DBUnavailableError("find_active_unscored_session query failed") from e
     return None
 
 
@@ -384,7 +398,10 @@ def get_session_by_idempotency_key(user_id: str, idempotency_key: str) -> dict |
             if d.get("idempotency_key") == idempotency_key:
                 return {"session_id": doc.id, **d}
     except Exception as e:
+        # FAIL-CLOSED: a failed query must not masquerade as "no prior
+        # session" — the caller 503s instead of double-charging a replay.
         log.warning("get_session_by_idempotency_key failed: %s", str(e)[:100])
+        raise DBUnavailableError("get_session_by_idempotency_key query failed") from e
     return None
 
 
@@ -417,7 +434,11 @@ def find_ended_unscored_session(user_id: str) -> dict | None:
                 continue
             return {"session_id": doc.id, **d}
     except Exception as e:
+        # FAIL-CLOSED: a failed query must not masquerade as "no
+        # ended-unscored session" — the caller 503s instead of charging
+        # for a new session while an unscored one exists.
         log.warning("find_ended_unscored_session failed: %s", str(e)[:100])
+        raise DBUnavailableError("find_ended_unscored_session query failed") from e
     return None
 
 
