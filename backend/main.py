@@ -1069,29 +1069,23 @@ async def session_start(req: SessionStartReq, request: Request):
     else:
         user = db.ensure_credit_fields(req.user_id) or user
 
-    # FIX 25 (re-derived): a second start must not overlap a live unscored
-    # session. Return 409 SESSION_ACTIVE with the existing session_id —
-    # BEFORE any credit/claim is consumed, so a Setup retry never burns
-    # a credit or creates a duplicate. Frontend resumes the existing
-    # session (WS accepts fresh ?initData=, no new token needed).
-    # FAIL-CLOSED guard finders: a Firestore outage must 503 (via
-    # _db_or_503) instead of returning a false None that would let a
-    # duplicate session / double charge through.
-    active = _db_or_503(db.find_active_unscored_session, req.user_id)
-    if active:
-        raise HTTPException(
-            409,
-            f"SESSION_ACTIVE session_id={active['session_id']} — "
-            "an interview is already in progress for this user; "
-            "resume it instead of starting a new one.")
-
-    # FIX 13 (idempotency): a retried start with the same key returns the
-    # ORIGINAL session — no second charge, no duplicate session. Checked
-    # BEFORE any credit/claim moves and before the ended-unscored block
-    # (a replay is not a new start, so it must not 409 on its own past).
+    # W2 (BUG 2 root cause #2): idempotency replay runs FIRST, before
+    # the SESSION_ACTIVE block. The old order (active-check first) meant
+    # a retry with the SAME key never replayed: the live session always
+    # 409'd first, so the replay branch was unreachable for the one case
+    # it exists for, and the only cases it DID serve were dead sessions
+    # (ended / scored / stale orphan) — replaying those would route the
+    # user into TestRoom with a dead session. Now: a retry of an intent
+    # whose session is still LIVE replays the ORIGINAL session (200 +
+    # fresh ws_token, no second charge, no duplicate). A prior session
+    # that is NOT live is NOT replayed — it falls through to the checks
+    # below (ended-unscored -> 409 SCORE ME NOW; scored -> normal
+    # new-start flow, which re-checks credits for a genuinely new
+    # interview). Usability = db._session_is_live (unscored, not denied,
+    # not ended, within max_duration + grace).
     if req.idempotency_key:
         prior = _db_or_503(db.get_session_by_idempotency_key, req.user_id, req.idempotency_key)
-        if prior:
+        if prior and db._session_is_live(prior):
             prior_max = int(prior.get("maxSeconds") or prior.get("max_duration_sec") or 0)
             prior_token = mint_session_token(prior["session_id"], req.user_id,
                                              ttl_sec=prior_max + 600) if prior_max else ""
@@ -1108,6 +1102,24 @@ async def session_start(req: SessionStartReq, request: Request):
                 ws_url_path=prior_path,
                 ws_token=prior_token,
             )
+
+    # FIX 25 (re-derived): a second start must not overlap a live unscored
+    # session. Return 409 SESSION_ACTIVE with the existing session_id —
+    # BEFORE any credit/claim is consumed, so a Setup retry never burns
+    # a credit or creates a duplicate. Frontend resumes the existing
+    # session (WS accepts fresh ?initData=, no new token needed).
+    # (A retry with the SAME idempotency key is handled by the replay
+    # block above and never reaches this 409.)
+    # FAIL-CLOSED guard finders: a Firestore outage must 503 (via
+    # _db_or_503) instead of returning a false None that would let a
+    # duplicate session / double charge through.
+    active = _db_or_503(db.find_active_unscored_session, req.user_id)
+    if active:
+        raise HTTPException(
+            409,
+            f"SESSION_ACTIVE session_id={active['session_id']} — "
+            "an interview is already in progress for this user; "
+            "resume it instead of starting a new one.")
 
     # FIX 13 (ended-but-unscored): the previous session ended but was never
     # scored — starting a new one would charge AGAIN for an interview the
@@ -1876,6 +1888,7 @@ class FeedbackReq(BaseModel):
     user_agent: str | None = None
     first_name: str | None = None
     username: str | None = None
+    initData: str | None = None
 
 
 @app.post("/feedback")
@@ -1883,6 +1896,11 @@ async def submit_feedback(req: FeedbackReq):
     """Accept one feedback / bug report from the Mini App."""
     if not req.user_id or not str(req.user_id).strip():
         raise HTTPException(400, "user_id is required")
+    # Auth: HMAC-verified initData must prove the caller owns user_id.
+    # A client-asserted user_id alone is forgeable — never trust it.
+    tg_user = verify_telegram_init_data(req.initData, TELEGRAM_BOT_TOKEN)
+    if str(tg_user.get("id")) != str(req.user_id).strip():
+        raise HTTPException(403, "initData user does not match user_id")
     if req.type not in FEEDBACK_TYPES:
         raise HTTPException(400, "type must be one of: bug, error, suggestion, other")
     msg = (req.message or "").strip()
