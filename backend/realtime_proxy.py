@@ -649,6 +649,13 @@ async def voice_proxy(ws: WebSocket, session_id: str):
                         # barge-in: invalidate current turn, stop TTS streaming
                         seq += 1
                         barge.set()
+                        # FIX 2026-10-13 (Bug #4/#5): clear tts_active IMMEDIATELY
+                        # on interrupt. Without this, if the thinker is stuck in
+                        # TTS streaming, tts_active stays set → all mic bytes
+                        # dropped → session goes deaf. Also fixes the race where
+                        # the barge-in chunk arrives while tts_active is still
+                        # set (thinker hasn't cleared it yet) → first words lost.
+                        tts_active.clear()
                         await safe_send({"type": "status", "state": "listening"})
                         await safe_send({"type": "interrupted"})
                     elif t == "user_done":
