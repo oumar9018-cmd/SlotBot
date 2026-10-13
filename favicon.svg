@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 110 110" role="img" aria-label="MockGrill — Grilly mascot">
+  <title>Grilly — MockGrill mascot</title>
+  <defs>
+    <radialGradient id="grillyBody" cx="40%" cy="30%" r="80%">
+      <stop offset="0%" stop-color="#FBCFE8"/>
+      <stop offset="60%" stop-color="#E9D5FF"/>
+      <stop offset="100%" stop-color="#C4B5FD"/>
+    </radialGradient>
+  </defs>
+  <!-- ears -->
+  <ellipse cx="28" cy="26" rx="12" ry="14" fill="#E9D5FF"/>
+  <ellipse cx="82" cy="26" rx="12" ry="14" fill="#E9D5FF"/>
+  <!-- body -->
+  <ellipse cx="55" cy="58" rx="42" ry="40" fill="url(#grillyBody)"/>
+  <!-- belly patch -->
+  <ellipse cx="55" cy="76" rx="24" ry="18" fill="#ffffff" opacity="0.55"/>
+  <!-- eyes -->
+  <circle cx="38" cy="46" r="11" fill="#ffffff"/>
+  <circle cx="72" cy="46" r="11" fill="#ffffff"/>
+  <circle cx="40" cy="48" r="5.5" fill="#463F5A"/>
+  <circle cx="74" cy="48" r="5.5" fill="#463F5A"/>
+  <circle cx="42" cy="46" r="1.8" fill="#ffffff"/>
+  <circle cx="76" cy="46" r="1.8" fill="#ffffff"/>
+  <!-- rosy cheeks -->
+  <ellipse cx="24" cy="60" rx="7" ry="5" fill="#F9A8D4" opacity="0.8"/>
+  <ellipse cx="86" cy="60" rx="7" ry="5" fill="#F9A8D4" opacity="0.8"/>
+  <!-- smile -->
+  <path d="M42 62 Q55 74 68 62" fill="none" stroke="#463F5A" stroke-width="4" stroke-linecap="round"/>
+  <!-- star badge -->
+  <g transform="translate(88 78)">
+    <circle r="11" fill="#FDE68A" stroke="#FBBF24" stroke-width="2.5"/>
+    <path d="M0 -5.5 L1.7 -1.7 L5.7 -1.7 L2.5 0.7 L3.6 4.5 L0 2.2 L-3.6 4.5 L-2.5 0.7 L-5.7 -1.7 L-1.7 -1.7 Z" fill="#F59E0B"/>
+  </g>
+</svg>

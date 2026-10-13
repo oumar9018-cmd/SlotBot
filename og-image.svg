@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="MockGrill — AI visa interview coach">
+  <title>MockGrill — AI Visa Interview Coach</title>
+  <defs>
+    <radialGradient id="grillyBody" cx="40%" cy="30%" r="80%">
+      <stop offset="0%" stop-color="#FBCFE8"/>
+      <stop offset="60%" stop-color="#E9D5FF"/>
+      <stop offset="100%" stop-color="#C4B5FD"/>
+    </radialGradient>
+    <linearGradient id="wordmark" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#EC4899"/>
+      <stop offset="50%" stop-color="#8B5CF6"/>
+      <stop offset="100%" stop-color="#0284C7"/>
+    </linearGradient>
+    <pattern id="dots" width="26" height="26" patternUnits="userSpaceOnUse">
+      <circle cx="4" cy="4" r="2" fill="#A78BFA" opacity="0.12"/>
+    </pattern>
+  </defs>
+
+  <!-- background -->
+  <rect width="1200" height="630" fill="#FFFBF5"/>
+  <rect width="1200" height="630" fill="url(#dots)"/>
+  <!-- pastel blobs -->
+  <circle cx="1080" cy="70" r="180" fill="#FBCFE8" opacity="0.45"/>
+  <circle cx="110" cy="580" r="170" fill="#E9D5FF" opacity="0.55"/>
+  <circle cx="1150" cy="570" r="140" fill="#BFDBFE" opacity="0.5"/>
+  <circle cx="640" cy="590" r="90" fill="#A7F3D0" opacity="0.35"/>
+
+  <!-- Grilly mascot (happy), scaled up on the left -->
+  <g transform="translate(70 75) scale(4.36)">
+    <ellipse cx="28" cy="26" rx="12" ry="14" fill="#E9D5FF"/>
+    <ellipse cx="82" cy="26" rx="12" ry="14" fill="#E9D5FF"/>
+    <ellipse cx="55" cy="58" rx="42" ry="40" fill="url(#grillyBody)"/>
+    <ellipse cx="55" cy="76" rx="24" ry="18" fill="#ffffff" opacity="0.55"/>
+    <circle cx="38" cy="46" r="11" fill="#ffffff"/>
+    <circle cx="72" cy="46" r="11" fill="#ffffff"/>
+    <circle cx="40" cy="48" r="5.5" fill="#463F5A"/>
+    <circle cx="74" cy="48" r="5.5" fill="#463F5A"/>
+    <circle cx="42" cy="46" r="1.8" fill="#ffffff"/>
+    <circle cx="76" cy="46" r="1.8" fill="#ffffff"/>
+    <ellipse cx="24" cy="60" rx="7" ry="5" fill="#F9A8D4" opacity="0.8"/>
+    <ellipse cx="86" cy="60" rx="7" ry="5" fill="#F9A8D4" opacity="0.8"/>
+    <path d="M42 62 Q55 74 68 62" fill="none" stroke="#463F5A" stroke-width="4" stroke-linecap="round"/>
+    <g transform="translate(88 78)">
+      <circle r="11" fill="#FDE68A" stroke="#FBBF24" stroke-width="2.5"/>
+      <path d="M0 -5.5 L1.7 -1.7 L5.7 -1.7 L2.5 0.7 L3.6 4.5 L0 2.2 L-3.6 4.5 L-2.5 0.7 L-5.7 -1.7 L-1.7 -1.7 Z" fill="#F59E0B"/>
+    </g>
+  </g>
+
+  <!-- wordmark block -->
+  <g font-family="Nunito, 'Arial Rounded MT Bold', Arial, sans-serif">
+    <!-- eyebrow pill -->
+    <rect x="600" y="128" width="400" height="48" rx="24" fill="#E9D5FF"/>
+    <text x="800" y="159" text-anchor="middle" font-size="24" font-weight="800" letter-spacing="3" fill="#6D28D9">AI VISA INTERVIEW COACH</text>
+
+    <!-- wordmark -->
+    <text x="600" y="300" font-size="100" font-weight="900" fill="url(#wordmark)">MockGrill</text>
+
+    <!-- tagline -->
+    <text x="600" y="368" font-size="28" font-weight="700" fill="#463F5A">Get grilled like a real interview.</text>
+    <text x="600" y="412" font-size="28" font-weight="700" fill="#463F5A">Interruptions, pressure, real score.</text>
+
+    <!-- category + free pills -->
+    <rect x="600" y="456" width="250" height="52" rx="26" fill="#ffffff" stroke="#E9D5FF" stroke-width="2"/>
+    <text x="725" y="490" text-anchor="middle" font-size="24" font-weight="800" fill="#7C3AED">F-1  •  B1/B2  •  H-1B</text>
+    <rect x="866" y="456" width="290" height="52" rx="26" fill="#FDE68A" stroke="#FBBF24" stroke-width="2"/>
+    <text x="1011" y="490" text-anchor="middle" font-size="24" font-weight="800" fill="#92400E">Free 2-minute grilling</text>
+  </g>
+</svg>

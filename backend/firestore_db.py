@@ -1,23 +1,32 @@
 """
-Firestore layer for Strict English Voice Test.
+Firestore layer for MockGrill.
 
 Collections:
   users      {telegram_id(str, doc id), paid:bool, free_trial_used:bool,
+              free_mini_used:bool, interview_credits:int, trial_credits:int,
+              trial_started_at:int (ms epoch), credited_charges:[charge_id],
               affiliate_code:str|None, created_at, paid_at}
   sessions   {user_id, test_type, plan, max_duration_sec, transcript:[{role,text}],
               score:int|None, verdict, breakdown, weaknesses, feedback,
-              duration_sec, affiliate_code, created_at, ended_at}
+              duration_sec, affiliate_code, created_at, ended_at,
+              scoring_in_progress:bool, claimed_at:int (epoch sec, scoring TTL)}
   affiliates {code(doc id), name, revenue_share (0-1), total_earned_stars, created_at}
   payments   {payment_id(doc id = Telegram charge id), user_id, amount_stars,
               status, affiliate_code, created_at}
   stars_invoices {payload(doc id), user_id, affiliate_code, used:bool,
               created_at, used_at}
+  daily_grilly_sends {date(doc id = YYYY-MM-DD), status: claimed|sent,
+              claimed_at, sent_at, sent, failed}
+  feedback    {id(doc id), user_id, type, message, screen, session_id,
+              app_version, user_agent, first_name, username, status,
+              created_at}
 
 Auth: firebase-admin with service account JSON whose path is in
 FIREBASE_CRED_PATH. Lazily initialized on first use.
 """
 import logging
 import os
+import time
 import uuid
 from datetime import datetime, timezone
 
@@ -87,12 +96,20 @@ def get_user(user_id: str) -> dict | None:
 
 def create_user(user_id: str, affiliate_code: str | None = None,
                 first_name: str = "", username: str = "") -> dict:
+    # Credit fields are initialized here for every new user. trial_started_at
+    # is a ms-epoch INT (not a Firestore Timestamp) so auth responses and the
+    # frontend can compare it with Date.now() with no conversion.
     data = {
         "telegram_id": str(user_id),
         "first_name": first_name,
         "username": username,
         "paid": False,
         "free_trial_used": False,
+        "free_mini_used": False,
+        "interview_credits": 0,
+        "trial_credits": 1,
+        "trial_started_at": int(time.time() * 1000),
+        "credited_charges": [],
         "affiliate_code": affiliate_code,
         "created_at": _now(),
         "paid_at": None,
@@ -102,6 +119,71 @@ def create_user(user_id: str, affiliate_code: str | None = None,
         return data
     get_db().collection("users").document(str(user_id)).set(data)
     return data
+
+
+def _trial_started_ms_from_created(created_at) -> int:
+    """Legacy backfill: trial_started_at anchored to the user's created_at,
+    NEVER to now — a legacy user must not get a fresh trial window."""
+    if isinstance(created_at, datetime):
+        return int(created_at.timestamp() * 1000)
+    if isinstance(created_at, (int, float)):
+        return int(created_at)
+    # Timestamp-like objects (Firestore Timestamp) expose timestamp()
+    ts = getattr(created_at, "timestamp", None)
+    if callable(ts):
+        try:
+            return int(ts() * 1000)
+        except Exception:
+            pass
+    return int(time.time() * 1000)
+
+
+def ensure_credit_fields(user_id: str) -> dict | None:
+    """Backfill credit fields on a legacy user doc that predates them.
+    Only fills MISSING keys — never overwrites existing values, and never
+    grants a fresh trial: a legacy user with free_trial_used=True backfills
+    trial_credits=0, and trial_started_at comes from created_at. Returns
+    the merged user dict, or None if the user does not exist."""
+    uid = str(user_id)
+    if not is_db_available():
+        u = _mem_users.get(uid)
+        if u is None:
+            return None
+        missing = {}
+        if "free_mini_used" not in u:
+            missing["free_mini_used"] = False
+        if "interview_credits" not in u:
+            missing["interview_credits"] = 0
+        if "trial_credits" not in u:
+            missing["trial_credits"] = 0 if u.get("free_trial_used") else 1
+        if "trial_started_at" not in u:
+            missing["trial_started_at"] = _trial_started_ms_from_created(u.get("created_at"))
+        if "credited_charges" not in u:
+            missing["credited_charges"] = []
+        u.update(missing)
+        return u
+    doc = get_db().collection("users").document(uid).get()
+    if not doc.exists:
+        return None
+    d = doc.to_dict() or {}
+    missing = {}
+    if "free_mini_used" not in d:
+        missing["free_mini_used"] = False
+    if "interview_credits" not in d:
+        missing["interview_credits"] = 0
+    if "trial_credits" not in d:
+        missing["trial_credits"] = 0 if d.get("free_trial_used") else 1
+    if "trial_started_at" not in d:
+        missing["trial_started_at"] = _trial_started_ms_from_created(d.get("created_at"))
+    if "credited_charges" not in d:
+        missing["credited_charges"] = []
+    if missing:
+        try:
+            get_db().collection("users").document(uid).update(missing)
+        except Exception:
+            log.warning("ensure_credit_fields update failed for %s", uid)
+        d.update(missing)
+    return d
 
 
 def update_user(user_id: str, fields: dict):
@@ -125,13 +207,51 @@ def mark_trial_used(user_id: str):
         {"free_trial_used": True})
 
 
-def mark_paid(user_id: str):
+# ---------- free_mini claim (atomic) ----------
+
+def claim_free_mini(user_id: str) -> bool:
+    """Atomically claim the user's one free_mini session. Returns True iff
+    THIS caller claimed it (flag was False, now True). False means the
+    free_mini was already used — caller must 402, never start a session.
+    Call release_free_mini() if session creation fails after a claim."""
+    uid = str(user_id)
     if not is_db_available():
-        if str(user_id) in _mem_users:
-            _mem_users[str(user_id)]["paid"] = True
+        u = _mem_users.get(uid)
+        if u is None or u.get("free_mini_used"):
+            return False
+        u["free_mini_used"] = True
+        return True
+    from google.cloud import firestore as _fs
+    db = get_db()
+    ref = db.collection("users").document(uid)
+
+    @_fs.transactional
+    def _claim(transaction):
+        snap = ref.get(transaction=transaction)
+        if not snap.exists:
+            return False
+        if (snap.to_dict() or {}).get("free_mini_used"):
+            return False
+        transaction.set(ref, {"free_mini_used": True}, merge=True)
+        return True
+
+    return _claim(db.transaction())
+
+
+def release_free_mini(user_id: str):
+    """Release a free_mini claim after session creation failed, so the user
+    can retry. ONLY call after this caller successfully claimed (claim
+    returned True) and session creation then failed — never to reset a
+    legitimately consumed free_mini."""
+    uid = str(user_id)
+    if not is_db_available():
+        if uid in _mem_users:
+            _mem_users[uid]["free_mini_used"] = False
         return
-    get_db().collection("users").document(str(user_id)).update(
-        {"paid": True, "paid_at": _now()})
+    try:
+        get_db().collection("users").document(uid).update({"free_mini_used": False})
+    except Exception:
+        pass
 
 
 # ---------- sessions ----------
@@ -171,6 +291,63 @@ def get_session(session_id: str) -> dict | None:
     return doc.to_dict() if doc.exists else None
 
 
+# FIX 25 (re-derived): a second /session/start for the same user must not
+# overlap an active unscored session — Setup retries return 409 with the
+# existing session_id instead of creating a duplicate (and burning a
+# credit). "Active" = unscored, not denied, not ended, AND created within
+# max_duration + 30 min grace. Older sessions are stale orphans (the voice
+# proxy's timeup should have ended them); they do not block a new start,
+# otherwise one crashed session would lock the user out forever.
+ACTIVE_SESSION_GRACE_SEC = 1800
+
+
+def _session_is_live(sess: dict) -> bool:
+    if sess.get("score") is not None or sess.get("denied") or sess.get("ended_at") is not None:
+        return False
+    created = sess.get("created_at")
+    if created is None:
+        return False
+    if isinstance(created, datetime):
+        age = (_now() - created).total_seconds()
+    elif isinstance(created, (int, float)):
+        age = time.time() - (created / 1000.0 if created > 1e12 else created)
+    else:
+        ts = getattr(created, "timestamp", None)
+        if callable(ts):
+            try:
+                age = time.time() - ts()
+            except Exception:
+                return False
+        else:
+            return False
+    max_dur = int(sess.get("max_duration_sec") or 900)
+    return age < (max_dur + ACTIVE_SESSION_GRACE_SEC)
+
+
+def find_active_unscored_session(user_id: str) -> dict | None:
+    """Return the user's live unscored session (with session_id) or None.
+    Equality-only Firestore filters (no composite index needed)."""
+    uid = str(user_id)
+    if not is_db_available():
+        for sid, s in _mem_sessions.items():
+            if str(s.get("user_id", "")) == uid and _session_is_live(s):
+                return {"session_id": sid, **s}
+        return None
+    try:
+        q = (get_db().collection("sessions")
+             .where("user_id", "==", uid)
+             .where("score", "==", None)
+             .where("ended_at", "==", None)
+             .limit(10).stream())
+        for doc in q:
+            d = doc.to_dict() or {}
+            if _session_is_live(d):
+                return {"session_id": doc.id, **d}
+    except Exception as e:
+        log.warning("find_active_unscored_session failed: %s", str(e)[:100])
+    return None
+
+
 def append_transcript(session_id: str, transcript: list[dict]):
     # Replace with the full accumulated transcript (proxy owns ordering)
     if not is_db_available():
@@ -198,7 +375,10 @@ def update_session_scored(session_id: str, score: int, verdict: str,
                 "score": score, "verdict": verdict, "breakdown": breakdown,
                 "weaknesses": weaknesses, "feedback": feedback,
             })
+            _mem_sessions[session_id].pop("scoring_in_progress", None)
+            _mem_sessions[session_id].pop("claimed_at", None)
         return
+    from google.cloud import firestore as _fs
     get_db().collection("sessions").document(session_id).update({
         "score": score,
         "verdict": verdict,
@@ -206,22 +386,36 @@ def update_session_scored(session_id: str, score: int, verdict: str,
         "weaknesses": weaknesses,
         "feedback": feedback,
         "scoring_in_progress": False,
+        "claimed_at": _fs.DELETE_FIELD,
     })
+
+
+SCORING_CLAIM_TTL_SEC = 300
 
 
 def claim_scoring(session_id: str) -> str:
     """Atomically claim the right to score a session.
     Returns "claimed" (this caller should score), "scored" (already done),
-    or "in_progress" (another request is scoring). Prevents double Groq
-    scoring calls from concurrent /session/end requests."""
+    "in_progress" (another request is scoring), or "missing" (no session).
+    The claim carries claimed_at (epoch seconds) with a 300s TTL: a crash
+    mid-scoring no longer blocks /session/end forever — a later caller
+    steals the stale claim in the SAME transaction that checks it. A
+    legacy claim with no claimed_at is treated as stale (deploy replaces
+    all scorers at once; any genuinely-live pre-deploy claim is seconds
+    old and its owner re-claims or the poll loop finds the result)."""
     if not is_db_available():
-        s = _mem_sessions.get(session_id) or {}
+        s = _mem_sessions.get(session_id)
+        if s is None:
+            return "missing"
         if s.get("score") is not None:
             return "scored"
         if s.get("scoring_in_progress"):
-            return "in_progress"
+            claimed_at = s.get("claimed_at")
+            if claimed_at is not None and (time.time() - float(claimed_at)) < SCORING_CLAIM_TTL_SEC:
+                return "in_progress"
+            # stale (or legacy, no claimed_at) — steal it
         s["scoring_in_progress"] = True
-        _mem_sessions[session_id] = s
+        s["claimed_at"] = int(time.time())
         return "claimed"
     from google.cloud import firestore as _fs
     db = get_db()
@@ -236,22 +430,34 @@ def claim_scoring(session_id: str) -> str:
         if d.get("score") is not None:
             return "scored"
         if d.get("scoring_in_progress"):
-            return "in_progress"
-        transaction.set(ref, {"scoring_in_progress": True}, merge=True)
+            claimed_at = d.get("claimed_at")
+            if claimed_at is not None:
+                try:
+                    age = time.time() - float(claimed_at)
+                except (TypeError, ValueError):
+                    age = SCORING_CLAIM_TTL_SEC  # unparseable -> stale
+                if age < SCORING_CLAIM_TTL_SEC:
+                    return "in_progress"
+            # stale (or legacy, no claimed_at) — steal it in this txn
+        transaction.set(ref, {"scoring_in_progress": True,
+                              "claimed_at": int(time.time())}, merge=True)
         return "claimed"
 
     return _claim(db.transaction())
 
 
 def release_scoring(session_id: str):
-    """Clear a stale scoring_in_progress flag (after a failed scoring attempt)."""
+    """Clear a scoring claim (after a failed scoring attempt). Clears BOTH
+    scoring_in_progress and claimed_at so no stale claim survives."""
     if not is_db_available():
         s = _mem_sessions.get(session_id) or {}
         s.pop("scoring_in_progress", None)
+        s.pop("claimed_at", None)
         return
     try:
+        from google.cloud import firestore as _fs
         get_db().collection("sessions").document(session_id).update(
-            {"scoring_in_progress": False})
+            {"scoring_in_progress": False, "claimed_at": _fs.DELETE_FIELD})
     except Exception:
         pass
 
@@ -339,10 +545,85 @@ def get_daily_push_targets(limit: int = 100) -> list[dict]:
     return targets
 
 
+# ---------- daily-grilly idempotency (one send per date) ----------
+# daily_grilly_sends/{YYYY-MM-DD}: claim BEFORE sending, mark sent AFTER the
+# loop, release (delete) on catastrophic failure so a retry can proceed.
+# A claim older than 1h is stealable (the send loop takes minutes; a
+# process that died mid-send must not block the whole day).
+
+_mem_daily_grilly = {}  # date_str -> {status, claimed_at, ...}
+DAILY_GRILLY_CLAIM_TTL_SEC = 3600
+
+
+def claim_daily_grilly_send(date_str: str) -> bool:
+    """Claim today's daily-grilly send. True iff THIS caller owns the send.
+    False when already sent, or another live claim owns it."""
+    now = int(time.time())
+    if not is_db_available():
+        cur = _mem_daily_grilly.get(date_str)
+        if cur and cur.get("status") == "sent":
+            return False
+        if cur and cur.get("status") == "claimed" and (now - int(cur.get("claimed_at", 0))) < DAILY_GRILLY_CLAIM_TTL_SEC:
+            return False
+        _mem_daily_grilly[date_str] = {"status": "claimed", "claimed_at": now}
+        return True
+    from google.cloud import firestore as _fs
+    db = get_db()
+    ref = db.collection("daily_grilly_sends").document(date_str)
+
+    @_fs.transactional
+    def _claim(transaction):
+        snap = ref.get(transaction=transaction)
+        if snap.exists:
+            d = snap.to_dict() or {}
+            if d.get("status") == "sent":
+                return False
+            if d.get("status") == "claimed":
+                try:
+                    age = now - int(d.get("claimed_at") or 0)
+                except (TypeError, ValueError):
+                    age = DAILY_GRILLY_CLAIM_TTL_SEC
+                if age < DAILY_GRILLY_CLAIM_TTL_SEC:
+                    return False  # live claim — another sender owns today
+                # stale claim — steal it in this txn
+        transaction.set(ref, {"status": "claimed", "claimed_at": now,
+                              "date": date_str}, merge=True)
+        return True
+
+    return _claim(db.transaction())
+
+
+def mark_daily_grilly_sent(date_str: str, sent: int, failed: int):
+    """Mark today's send complete. Called AFTER the send loop, even when
+    some individual sends failed — a retry must not re-message users who
+    already got today's push (failed users simply miss one day)."""
+    if not is_db_available():
+        _mem_daily_grilly[date_str] = {"status": "sent", "sent_at": int(time.time()),
+                                       "sent": sent, "failed": failed}
+        return
+    get_db().collection("daily_grilly_sends").document(date_str).set(
+        {"status": "sent", "sent_at": int(time.time()),
+         "sent": sent, "failed": failed, "date": date_str}, merge=True)
+
+
+def release_daily_grilly_send(date_str: str):
+    """Release today's claim after a catastrophic failure (exception escaped
+    the send loop before completion), so a retry can proceed. Deletes the
+    claim doc — a completed send is never released (see mark_sent)."""
+    if not is_db_available():
+        _mem_daily_grilly.pop(date_str, None)
+        return
+    try:
+        get_db().collection("daily_grilly_sends").document(date_str).delete()
+    except Exception:
+        pass
+
+
 # ---------- stars invoices (pending, created before checkout) ----------
 
 _mem_invoices = {}
 _mem_payments = {}
+_mem_feedback = []  # list[dict] — in-memory fallback for the feedback collection
 
 
 def record_stars_invoice(payload_token: str, user_id: str,
@@ -368,16 +649,6 @@ def get_stars_invoice(payload_token: str) -> dict | None:
         return _mem_invoices.get(payload_token)
     doc = get_db().collection("stars_invoices").document(payload_token).get()
     return doc.to_dict() if doc.exists else None
-
-
-def mark_invoice_used(payload_token: str):
-    if not is_db_available():
-        if payload_token in _mem_invoices:
-            _mem_invoices[payload_token]["used"] = True
-            _mem_invoices[payload_token]["used_at"] = _now()
-        return
-    get_db().collection("stars_invoices").document(payload_token).update(
-        {"used": True, "used_at": _now()})
 
 
 # ---------- interview credits (pay-per-use bundles) ----------
@@ -518,59 +789,114 @@ def get_referral_stats(user_id: str) -> dict:
 
 
 # ---------- payments (Telegram Stars) ----------
+# ONE atomic grant path: grant_stars_payment(). The old split path
+# (record_payment txn + add_interview_credits read-modify-write +
+# mark_invoice_used, plus the dead affiliate block after record_payment's
+# `return`) is deleted — it could double-grant under concurrency and the
+# affiliate block after `return` never executed. Affiliate revenue-share
+# bookkeeping is intentionally NOT re-added: it was dead code, and adding
+# a second write path would break the one-path rule. If affiliate payouts
+# are wanted, add them INSIDE grant_stars_payment's transaction.
 
-def get_payment(payment_id: str) -> dict | None:
-    """Idempotency check — returns existing payment record if any."""
+def _grant_checks(payload_token: str, currency: str, total_amount: int,
+                  expected_stars: int, inv: dict | None) -> str | None:
+    """Pure validation shared by both backends. Returns an error status or
+    None when the payment may be granted. Caller resolves the bundle from
+    the STORED invoice (never from client-controlled payload) and passes
+    its expected stars."""
+    parts = (payload_token or "").split(":")
+    if len(parts) < 3 or not all(parts[:3]):
+        return "invalid_payload"
+    if inv is None:
+        return "unknown_invoice"
+    if inv.get("used"):
+        return "invoice_used"
+    if str(inv.get("user_id", "")) != parts[0] or str(inv.get("bundle_id", "")) != parts[1]:
+        return "payload_mismatch"
+    if currency != "XTR":
+        return "currency_mismatch"
+    try:
+        if int(total_amount) != int(expected_stars):
+            return "amount_mismatch"
+    except (TypeError, ValueError):
+        return "amount_mismatch"
+    return None
+
+
+def grant_stars_payment(charge_id: str, payload_token: str, currency: str,
+                        total_amount: int, expected_stars: int,
+                        credit_count: int) -> dict:
+    """Grant a Stars payment in ONE transaction. Checks, in order:
+    duplicate charge (payments doc) -> invoice exists -> invoice not used
+    -> invoice user/bundle match the payload -> currency == XTR ->
+    amount == expected bundle stars -> charge not already in the user's
+    credited_charges. Then, atomically: record payment + mark invoice used
+    + grant credits + append charge to credited_charges.
+    Returns {"status": "granted"|"duplicate"|"unknown_invoice"|
+    "invoice_used"|"payload_mismatch"|"currency_mismatch"|"amount_mismatch"|
+    "invalid_payload", ...}. Any non-granted status means NOTHING was
+    written — the caller must not grant credits by any other path, and
+    must NEVER fall back to mark_paid."""
     if not is_db_available():
-        return _mem_payments.get(payment_id)
-    doc = get_db().collection("payments").document(payment_id).get()
-    return doc.to_dict() if doc.exists else None
-
-
-def record_payment(payment_id: str, user_id: str, amount_stars: int,
-                   status: str, affiliate_code: str | None = None) -> bool:
-    """Record a payment idempotently. Returns True if this was a NEW payment
-    (caller should grant credits), False if it was already recorded
-    (caller must NOT grant credits again). Uses a Firestore transaction so
-    concurrent webhook retries can't double-credit."""
-    data = {
-        "payment_id": payment_id,
-        "user_id": str(user_id),
-        "amount_stars": int(amount_stars),
-        "status": status,
-        "affiliate_code": affiliate_code,
-        "created_at": _now(),
-    }
-    if not is_db_available():
-        if payment_id in _mem_payments:
-            return False
-        _mem_payments[payment_id] = data
-        return True
+        if charge_id in _mem_payments:
+            return {"status": "duplicate", "charge_id": charge_id}
+        inv = _mem_invoices.get(payload_token)
+        err = _grant_checks(payload_token, currency, total_amount, expected_stars, inv)
+        if err:
+            return {"status": err, "charge_id": charge_id}
+        user_id = str(inv["user_id"])
+        u = _mem_users.setdefault(user_id, {})
+        credited = list(u.get("credited_charges") or [])
+        if charge_id in credited:
+            return {"status": "duplicate", "charge_id": charge_id}
+        new_total = int(u.get("interview_credits", 0) or 0) + int(credit_count)
+        u["interview_credits"] = new_total
+        u["credited_charges"] = credited + [charge_id]
+        _mem_payments[charge_id] = {
+            "payment_id": charge_id, "user_id": user_id,
+            "amount_stars": int(total_amount), "status": "captured",
+            "affiliate_code": inv.get("affiliate_code"), "created_at": _now(),
+        }
+        inv["used"] = True
+        inv["used_at"] = _now()
+        return {"status": "granted", "charge_id": charge_id, "user_id": user_id,
+                "credits_granted": int(credit_count), "new_total": new_total}
     from google.cloud import firestore as _fs
     db = get_db()
-    ref = db.collection("payments").document(payment_id)
+    pay_ref = db.collection("payments").document(charge_id)
+    inv_ref = db.collection("stars_invoices").document(payload_token)
 
     @_fs.transactional
-    def _record(transaction):
-        snap = ref.get(transaction=transaction)
-        if snap.exists:
-            return False
-        transaction.set(ref, data)
-        return True
+    def _grant(transaction):
+        if pay_ref.get(transaction=transaction).exists:
+            return {"status": "duplicate", "charge_id": charge_id}
+        inv_snap = inv_ref.get(transaction=transaction)
+        inv = inv_snap.to_dict() if inv_snap.exists else None
+        err = _grant_checks(payload_token, currency, total_amount, expected_stars, inv)
+        if err:
+            return {"status": err, "charge_id": charge_id}
+        user_id = str(inv["user_id"])
+        uref = db.collection("users").document(user_id)
+        usnap = uref.get(transaction=transaction)
+        udata = usnap.to_dict() if usnap.exists else {}
+        credited = list(udata.get("credited_charges") or [])
+        if charge_id in credited:
+            return {"status": "duplicate", "charge_id": charge_id}
+        new_total = int(udata.get("interview_credits", 0) or 0) + int(credit_count)
+        transaction.set(pay_ref, {
+            "payment_id": charge_id, "user_id": user_id,
+            "amount_stars": int(total_amount), "status": "captured",
+            "affiliate_code": inv.get("affiliate_code"), "created_at": _now(),
+        })
+        transaction.set(inv_ref, {"used": True, "used_at": _now()}, merge=True)
+        transaction.set(uref, {
+            "interview_credits": new_total,
+            "credited_charges": credited + [charge_id],
+        }, merge=True)
+        return {"status": "granted", "charge_id": charge_id, "user_id": user_id,
+                "credits_granted": int(credit_count), "new_total": new_total}
 
-    return _record(db.transaction())
-
-    # affiliate revenue share bookkeeping on capture
-    if status == "captured" and affiliate_code:
-        aff = db.collection("affiliates").document(affiliate_code).get()
-        if aff.exists:
-            share = float(aff.to_dict().get("revenue_share", 0.2))
-            earned = int(amount_stars * share)
-            ref_aff = db.collection("affiliates").document(affiliate_code)
-            # atomic increment
-            from firebase_admin import firestore as fs
-            ref_aff.update({"total_earned_stars": fs.Increment(earned)})
-            log.info("affiliate %s earned %d stars", affiliate_code, earned)
+    return _grant(db.transaction())
 
 
 # ---------- affiliates ----------
@@ -591,3 +917,58 @@ def get_affiliate_stats(code: str) -> dict | None:
         "total_earned_stars": d.get("total_earned_stars", 0),
         "paid_users_referred": paid_count,
     }
+
+
+# ---------- feedback / bug reports (MockGrill Support) ----------
+
+def _normalize_feedback(d: dict) -> dict:
+    """Copy a feedback doc, converting Firestore datetimes to ISO strings
+    so the JSON API never leaks a non-serializable value."""
+    out = dict(d or {})
+    created = out.get("created_at")
+    if isinstance(created, datetime):
+        out["created_at"] = created.isoformat()
+    return out
+
+
+def save_feedback(user_id: str, type: str, message: str, screen: str | None = None,
+                  session_id: str | None = None, app_version: str | None = None,
+                  user_agent: str | None = None, first_name: str = "",
+                  username: str = "") -> dict:
+    """Store one user feedback / bug report. Returns the stored record
+    (created_at as ISO string). Same shape in Firestore and mem fallback."""
+    data = {
+        "id": uuid.uuid4().hex,
+        "user_id": str(user_id),
+        "type": type,
+        "message": message,
+        "screen": screen or None,
+        "session_id": session_id or None,
+        "app_version": app_version or None,
+        "user_agent": (user_agent or "")[:500],
+        "first_name": first_name or "",
+        "username": username or "",
+        "status": "new",
+        "created_at": _now(),
+    }
+    if not is_db_available():
+        _mem_feedback.append(data)
+        return _normalize_feedback(data)
+    get_db().collection("feedback").document(data["id"]).set(data)
+    return _normalize_feedback(data)
+
+
+def list_feedback(status: str | None = None, limit: int = 100) -> list[dict]:
+    """Newest feedback first. status=None returns all; otherwise filters
+    to that status. limit clamped to 1..100 by the caller."""
+    if not is_db_available():
+        items = [_normalize_feedback(d) for d in _mem_feedback]
+        if status:
+            items = [d for d in items if d.get("status") == status]
+        items.sort(key=lambda d: d.get("created_at") or "", reverse=True)
+        return items[:limit]
+    q = get_db().collection("feedback")
+    if status:
+        q = q.where("status", "==", status)
+    q = q.order_by("created_at", direction="DESCENDING").limit(limit)
+    return [_normalize_feedback(doc.to_dict()) for doc in q.stream()]
