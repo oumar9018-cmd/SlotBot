@@ -45,6 +45,7 @@ CORS: allowlist from CORS_ALLOWED_ORIGINS env, credentials OFF.
 """
 import asyncio
 import base64
+import ipaddress
 import os
 import threading
 import time
@@ -60,7 +61,7 @@ from pydantic import BaseModel, Field
 
 import firestore_db as db
 import scoring
-from realtime_proxy import request_session_flush, voice_proxy
+from realtime_proxy import request_session_flush, wait_for_flush_completion, voice_proxy
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("englishtest")
@@ -137,16 +138,173 @@ _rate_buckets: dict[str, list[float]] = {}
 _rate_lock = threading.Lock()
 
 
+def _trusted_proxy_networks() -> list:
+    """Parse TRUSTED_PROXIES env (comma-separated IPs/CIDRs, e.g.
+    '10.0.0.0/8,172.16.0.0/12'). Empty = trust NO proxy: XFF is ignored
+    and the direct peer IP is used. Set this to the Render / LB proxy
+    ranges in production so XFF is honoured only from those peers."""
+    raw = os.environ.get("TRUSTED_PROXIES", "") or ""
+    nets = []
+    for part in raw.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        try:
+            nets.append(ipaddress.ip_network(part, strict=False))
+        except ValueError:
+            try:
+                nets.append(ipaddress.ip_network(part + "/32", strict=False))
+            except ValueError:
+                log.warning("TRUSTED_PROXIES: ignoring invalid entry %r", part)
+    return nets
+
+
+def _is_trusted_proxy(peer_ip: str) -> bool:
+    """True iff the direct peer IP is in the configured trusted-proxy set."""
+    if not peer_ip or peer_ip == "unknown":
+        return False
+    try:
+        addr = ipaddress.ip_address(peer_ip)
+    except ValueError:
+        return False
+    for net in _trusted_proxy_networks():
+        try:
+            if addr in net:
+                return True
+        except TypeError:
+            continue
+    return False
+
+
 def _client_ip(request: Request) -> str:
-    """Client IP behind the Render proxy: first X-Forwarded-For entry, else
-    the direct peer. Rate limiting only — never used for auth."""
-    xff = request.headers.get("x-forwarded-for", "")
-    if xff:
-        first = xff.split(",")[0].strip()
-        if first:
-            return first
+    """FIX 11 (trusted-proxy XFF): X-Forwarded-For is honoured ONLY when
+    the direct peer is a configured trusted proxy (TRUSTED_PROXIES). Any
+    other peer — including a spoofed XFF from an untrusted client — falls
+    back to the direct peer IP. Rate limiting only — never used for auth."""
     client = getattr(request, "client", None)
-    return (client.host if client else "unknown") or "unknown"
+    peer = (client.host if client else "unknown") or "unknown"
+    if _is_trusted_proxy(peer):
+        xff = request.headers.get("x-forwarded-for", "")
+        if xff:
+            first = xff.split(",")[0].strip()
+            if first:
+                return first
+    return peer
+
+
+def _app_version() -> tuple[str, str]:
+    """FIX 25: version/commit for /health deploy parity. From env
+    (VERSION/APP_VERSION, COMMIT/GIT_COMMIT) or a VERSION file, else
+    'unknown'. Never raises — /health must never crash when unset."""
+    try:
+        version = (os.environ.get("VERSION") or os.environ.get("APP_VERSION") or "").strip()
+        commit = (os.environ.get("COMMIT") or os.environ.get("GIT_COMMIT")
+                  or os.environ.get("RENDER_GIT_COMMIT") or "").strip()
+        if not version or not commit:
+            # Best-effort VERSION file: backend/VERSION or repo-root VERSION.
+            here = os.path.dirname(os.path.abspath(__file__))
+            for path in (os.path.join(here, "VERSION"),
+                         os.path.join(here, "..", "VERSION")):
+                try:
+                    with open(path, "r", encoding="utf-8") as f:
+                        content = f.read().strip()
+                    if content:
+                        parts = content.split()
+                        if not version and parts:
+                            version = parts[0]
+                        if not commit and len(parts) > 1:
+                            commit = parts[1]
+                        break
+                except OSError:
+                    continue
+        return version or "unknown", commit or "unknown"
+    except Exception:
+        return "unknown", "unknown"
+
+
+def _extract_init_data(request: Request | None, body_init_data: str | None = None) -> str:
+    """Collect Telegram initData from (in priority order): request body
+    field, X-Telegram-Init-Data header, ?initData= query param. Returns
+    '' when none was supplied (caller must 401)."""
+    if body_init_data:
+        return body_init_data
+    if request is None:
+        return ""
+    hdr = (request.headers.get("x-telegram-init-data") or "").strip()
+    if hdr:
+        return hdr
+    try:
+        q = (request.query_params.get("initData") or "").strip()
+    except Exception:
+        q = ""
+    return q
+
+
+def _verify_session_owner(session_id: str, owner: str,
+                          init_data: str = "", ws_token: str = "") -> str:
+    """FIX 4: verify the caller owns session_id. Exactly one credential is
+    required: a server-issued ws_token (verified against session+owner) OR
+    HMAC-verified initData whose user equals the owner. Raises 401 when no
+    credential is supplied or verification fails, 403 when the verified
+    identity is not the owner. Returns the verified user id."""
+    if ws_token:
+        if not verify_session_token(ws_token, session_id, owner):
+            raise HTTPException(401, "Invalid or expired session token")
+        return str(owner)
+    if init_data:
+        if not TELEGRAM_BOT_TOKEN:
+            raise HTTPException(500, "Telegram bot not configured")
+        tg_user = verify_telegram_init_data(init_data, TELEGRAM_BOT_TOKEN)
+        if str(tg_user.get("id")) != str(owner):
+            raise HTTPException(403, "initData user does not own this session")
+        return str(owner)
+    raise HTTPException(401, "Missing session auth: ws_token or initData required")
+
+
+def _iso_dt(value) -> str | None:
+    """Best-effort ISO string for a Firestore datetime / epoch / string."""
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        try:
+            return value.isoformat()
+        except Exception:
+            return None
+    if isinstance(value, (int, float)):
+        try:
+            sec = value / 1000.0 if value > 1e12 else value
+            return datetime.fromtimestamp(sec, tz=timezone.utc).isoformat()
+        except Exception:
+            return None
+    ts = getattr(value, "timestamp", None)
+    if callable(ts):
+        try:
+            return datetime.fromtimestamp(ts(), tz=timezone.utc).isoformat()
+        except Exception:
+            return None
+    if isinstance(value, str):
+        return value
+    return None
+
+
+def _session_timer_fields(sess: dict) -> dict:
+    """FIX 17: timer resync payload — frontend resyncs its countdown from
+    these backend values, never from a local guess."""
+    max_sec = int(sess.get("maxSeconds") or sess.get("max_duration_sec") or 0)
+    started = _iso_dt(sess.get("created_at"))
+    now_iso = datetime.now(timezone.utc).isoformat()
+    elapsed = None
+    remaining = None
+    try:
+        age = db._session_age_sec(sess) if hasattr(db, "_session_age_sec") else None
+        if age is not None and max_sec:
+            elapsed = max(0, int(age))
+            remaining = max(0, int(max_sec - age))
+    except Exception:
+        pass
+    return {"maxSeconds": max_sec, "max_duration_sec": max_sec,
+            "started_at": started, "server_now": now_iso,
+            "elapsed_sec": elapsed, "remaining_sec": remaining}
 
 
 def _rate_check(key: str, limit: int, window_sec: int = _RATE_WINDOW_SEC) -> tuple[bool, int]:
@@ -232,6 +390,10 @@ class SessionStartReq(BaseModel):
         "WS session token (ws_token) is minted from it. A bare user_id with no "
         "initData is unsigned identity and is rejected — the backend trusts "
         "only HMAC-verified initData / server-issued tokens.")
+    idempotency_key: str | None = Field(None, max_length=128,
+        description="FIX 13: client-generated idempotency key (uuid). A retried "
+        "start with the same (user_id, idempotency_key) returns the original "
+        "session instead of charging a second credit.")
 
 
 class SessionStartResp(BaseModel):
@@ -239,18 +401,34 @@ class SessionStartResp(BaseModel):
     ephemeral_token: str = ""  # legacy field, unused — voice WS is fully server-driven
     expires_in_sec: int = 0
     max_duration_sec: int
+    maxSeconds: int = 0  # FIX 17: timer alias — frontend resyncs from this
     ws_url_path: str
     ws_token: str = ""  # server-issued WS session token ("" when no initData was verified)
 
 
 class SessionEndReq(BaseModel):
     session_id: str
+    initData: str | None = Field(None, description="FIX 4: HMAC-verified initData "
+        "for the session owner (or ws_token). One of the two is REQUIRED.")
+    ws_token: str | None = Field(None, description="FIX 4: server-issued WS "
+        "session token for this session (authoritative when present).")
 
 
 class StarsInvoiceReq(BaseModel):
     user_id: str
     affiliate_code: str | None = None
     bundle_id: str | None = None  # reality | serious | panic — REQUIRED (None → 400)
+    initData: str | None = Field(None, description="FIX 4: REQUIRED HMAC-verified "
+        "initData for user_id. Also accepted via X-Telegram-Init-Data header. "
+        "Unknown user_id 404s — never auto-provisioned.")
+
+
+class RefundAbandonedReq(BaseModel):
+    session_id: str
+    initData: str | None = Field(None, description="FIX 14: HMAC-verified initData "
+        "for the session owner (or ws_token). One of the two is REQUIRED.")
+    ws_token: str | None = Field(None, description="FIX 14: server-issued WS "
+        "session token for this session.")
 
 
 # ---------- Helpers ----------
@@ -436,15 +614,23 @@ class TelegramAuthResp(BaseModel):
 
 @app.get("/health")
 async def health():
-    return {"ok": True, "ts": datetime.now(timezone.utc).isoformat()}
+    # FIX 25: version/commit deploy parity — never crashes when unset.
+    version, commit = _app_version()
+    return {"ok": True, "ts": datetime.now(timezone.utc).isoformat(),
+            "version": version, "commit": commit}
 
 
 @app.get("/test-keys")
 async def test_keys(request: Request):
-    """Diagnostic: test Groq and Deepgram API keys. Returns status for each.
+    """Diagnostic: test Groq and Deepgram API keys.
     Admin-gated: 404 unless ADMIN_API_KEY is set, then requires a matching
     X-Admin-Key (constant-time compare). Rate-limited: 2/IP/min on top of
-    the global per-IP budget — each call burns Groq + Deepgram quota."""
+    the global per-IP budget — each call burns Groq + Deepgram quota.
+    FIX 10: generic codes only — NO model list, NO upstream status codes,
+    NO upstream error bodies, NO exception text. Provider internals are
+    logged server-side only. Response shape:
+    {"ok": bool, "groq": "ok"|"unavailable"|"missing_key",
+     "deepgram": ..., "deepgram_stt": ...}."""
     expected = os.environ.get("ADMIN_API_KEY", "")
     if not expected:
         raise HTTPException(404, "Not found")
@@ -455,26 +641,12 @@ async def test_keys(request: Request):
     import httpx
     groq_key = os.environ.get("GROQ_API_KEY", "")
     dg_key = os.environ.get("DEEPGRAM_API_KEY", "")
-    result = {}
-
-    # Test Groq
+    # Test Groq (chat completion only — never list models).
     if not groq_key:
-        result["Groq_Status"] = "MISSING_KEY"
+        groq = "missing_key"
     else:
         try:
             async with httpx.AsyncClient(timeout=15) as client:
-                # First: list available models for this key
-                mr = await client.get(
-                    "https://api.groq.com/openai/v1/models",
-                    headers={"Authorization": f"Bearer {groq_key}"},
-                )
-                if mr.status_code == 200:
-                    models = [m.get("id", "?") for m in mr.json().get("data", [])]
-                    result["Groq_Available_Models"] = sorted(models)
-                else:
-                    result["Groq_Available_Models"] = f"list failed: {mr.status_code}"
-
-                # Then: test chat completion with configured model
                 r = await client.post(
                     "https://api.groq.com/openai/v1/chat/completions",
                     headers={"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"},
@@ -482,13 +654,15 @@ async def test_keys(request: Request):
                           "messages": [{"role": "user", "content": "Say hi"}],
                           "max_tokens": 5},
                 )
-            result["Groq_Status"] = "200 OK" if r.status_code == 200 else f"{r.status_code} {r.text[:100]}"
-        except Exception as e:
-            result["Groq_Status"] = f"ERROR: {str(e)[:100]}"
-
-    # Test Deepgram (TTS endpoint with minimal text)
+            groq = "ok" if r.status_code == 200 else "unavailable"
+            if r.status_code != 200:
+                log.warning("test-keys: groq probe failed (status withheld from client)")
+        except Exception:
+            log.exception("test-keys: groq probe exception (withheld from client)")
+            groq = "unavailable"
+    # Test Deepgram TTS.
     if not dg_key:
-        result["Deepgram_Status"] = "MISSING_KEY"
+        dg = "missing_key"
     else:
         try:
             async with httpx.AsyncClient(timeout=15) as client:
@@ -497,12 +671,16 @@ async def test_keys(request: Request):
                     headers={"Authorization": f"Token {dg_key}", "Content-Type": "application/json"},
                     json={"text": "hi"},
                 )
-            result["Deepgram_Status"] = "200 OK" if r.status_code == 200 else f"{r.status_code} {r.text[:100]}"
-        except Exception as e:
-            result["Deepgram_Status"] = f"ERROR: {str(e)[:100]}"
-
-    # Test Deepgram STT WebSocket (the actual voice pipeline connection)
-    if dg_key:
+            dg = "ok" if r.status_code == 200 else "unavailable"
+            if r.status_code != 200:
+                log.warning("test-keys: deepgram TTS probe failed (status withheld from client)")
+        except Exception:
+            log.exception("test-keys: deepgram TTS probe exception (withheld from client)")
+            dg = "unavailable"
+    # Test Deepgram STT WebSocket (the actual voice pipeline connection).
+    if not dg_key:
+        dg_stt = "missing_key"
+    else:
         try:
             import websockets
             from realtime_proxy import DG_STT_URL
@@ -521,22 +699,27 @@ async def test_keys(request: Request):
                     open_timeout=15,
                 )
             await dg_ws.close()
-            result["Deepgram_STT_WS"] = "200 OK - nova-3 streaming works"
-        except Exception as e:
-            result["Deepgram_STT_WS"] = f"FAILED: {type(e).__name__}: {str(e)[:200]}"
-
-    return result
+            dg_stt = "ok"
+        except Exception:
+            log.exception("test-keys: deepgram STT probe exception (withheld from client)")
+            dg_stt = "unavailable"
+    ok = (groq == "ok" and dg == "ok" and dg_stt == "ok")
+    return {"ok": ok, "groq": groq, "deepgram": dg, "deepgram_stt": dg_stt}
 
 
 @app.post("/api/auth/telegram", response_model=TelegramAuthResp)
-async def telegram_auth(req: TelegramAuthReq):
+async def telegram_auth(req: TelegramAuthReq, request: Request):
     """
     Step 2-4 of Telegram auto-login:
     1. Verify initData HMAC-SHA256 signature using bot token (proves user is real)
     2. Check Firestore for existing user
     3. Create new user doc if first time ("Free 2-minute test available")
     4. Return verified user profile
+    FIX 11: per-entity rate limits — 20/IP/min + 10/user/min on top of the
+    global per-IP middleware budget.
     """
+    # Per-IP bucket first (before any verification work).
+    _require_rate(f"ip-auth:{_client_ip(request)}", 20)
     if not TELEGRAM_BOT_TOKEN:
         raise HTTPException(500, "Telegram bot not configured")
 
@@ -544,6 +727,7 @@ async def telegram_auth(req: TelegramAuthReq):
     tg_user = verify_telegram_init_data(req.initData, TELEGRAM_BOT_TOKEN)
 
     telegram_id = str(tg_user["id"])
+    _require_rate(f"entity-auth:{telegram_id}", 10)
 
     # Step 4: Database check (Firestore)
     user = db.get_user(telegram_id)
@@ -627,6 +811,43 @@ async def session_start(req: SessionStartReq, request: Request):
             "an interview is already in progress for this user; "
             "resume it instead of starting a new one.")
 
+    # FIX 13 (idempotency): a retried start with the same key returns the
+    # ORIGINAL session — no second charge, no duplicate session. Checked
+    # BEFORE any credit/claim moves and before the ended-unscored block
+    # (a replay is not a new start, so it must not 409 on its own past).
+    if req.idempotency_key:
+        prior = db.get_session_by_idempotency_key(req.user_id, req.idempotency_key)
+        if prior:
+            prior_max = int(prior.get("maxSeconds") or prior.get("max_duration_sec") or 0)
+            prior_token = mint_session_token(prior["session_id"], req.user_id,
+                                             ttl_sec=prior_max + 600) if prior_max else ""
+            prior_path = (f"/ws/voice/{prior['session_id']}?token={prior_token}"
+                          if prior_token else f"/ws/voice/{prior['session_id']}")
+            log.info("session_start idempotent replay user %s key=%s session=%s",
+                     req.user_id, req.idempotency_key, prior["session_id"])
+            return SessionStartResp(
+                session_id=prior["session_id"],
+                ephemeral_token="",
+                expires_in_sec=0,
+                max_duration_sec=prior_max,
+                maxSeconds=prior_max,
+                ws_url_path=prior_path,
+                ws_token=prior_token,
+            )
+
+    # FIX 13 (ended-but-unscored): the previous session ended but was never
+    # scored — starting a new one would charge AGAIN for an interview the
+    # user never got scored. 409 with a DISTINCT code the frontend routes
+    # to SCORE ME NOW (score the old session) or the refund-on-abandon
+    # route — never a silent re-charge.
+    ended_unscored = db.find_ended_unscored_session(req.user_id)
+    if ended_unscored:
+        raise HTTPException(
+            409,
+            f"ENDED_UNSCORED_SCORE_NOW session_id={ended_unscored['session_id']} — "
+            "your previous interview ended but was never scored; "
+            "score it (SCORE ME NOW) or refund it instead of starting a new one.")
+
     consumed_credit = False
     claimed_mini = False
     if req.plan == "free_trial":
@@ -665,6 +886,8 @@ async def session_start(req: SessionStartReq, request: Request):
             max_duration_sec=max_dur,
             affiliate_code=req.affiliate_code or user.get("affiliate_code"),
             background_summary=req.background_summary,
+            idempotency_key=req.idempotency_key,
+            credit_consumed=consumed_credit,
         )
     except Exception:
         # Session creation failed after we consumed a credit / claimed the
@@ -696,43 +919,62 @@ async def session_start(req: SessionStartReq, request: Request):
         ephemeral_token="",
         expires_in_sec=0,
         max_duration_sec=max_dur,
+        maxSeconds=max_dur,
         ws_url_path=ws_url_path,
         ws_token=ws_token,
     )
 
 
 @app.post("/session/end")
-async def session_end(req: SessionEndReq):
+async def session_end(req: SessionEndReq, request: Request):
+    # FIX 4 + FIX 11: auth + owner check BEFORE any flush/scoring work, and
+    # per-entity rate limits (per IP + per session + per owner). Unknown
+    # session_id -> 404, never created; missing/invalid credential -> 401;
+    # verified non-owner -> 403. No auto-provisioning of any kind.
+    _require_rate(f"ip-session-end:{_client_ip(request)}", 20)
     sess = db.get_session(req.session_id)
     if not sess:
         raise HTTPException(404, "Session not found")
+    owner = str(sess.get("user_id", "") or "")
+    if not owner:
+        raise HTTPException(404, "Session not found")
+    _require_rate(f"entity-session-end:{req.session_id}", 10)
+    _require_rate(f"entity-session-end-user:{owner}", 10)
+    _verify_session_owner(req.session_id, owner,
+                          init_data=_extract_init_data(request, req.initData),
+                          ws_token=(req.ws_token or "").strip())
 
-    # FLUSH-BEFORE-SCORE (VOICE WAVE 47/50): the transcript lives in the
-    # voice_proxy task's memory and only reaches DB on finish / timeup /
-    # socket close. A manual finish calls this endpoint while the WS is
-    # still open (or just closed), so scoring the DB transcript as-is
-    # 409s on "empty" even though the user spoke. Fix in two layers:
-    #  1. If the WS is still live in this process, signal it to flush
-    #     (request_session_flush -> finisher()).
-    #  2. Poll DB up to ~8s for the flushed transcript (covers the
-    #     close-then-score race: WS closed, socket-close flush in flight).
-    # Break early when the session is fully closed (ended_at set) — the
-    # flush already landed, so an empty transcript there is genuinely empty.
-    # The canonical frontend path (task 26 resync) sends {"type":"finish"}
-    # and waits for the {"type":"flushed"} ack before calling here, so in
-    # practice this loop usually breaks on the first check.
+    # FLUSH-BEFORE-SCORE (VOICE WAVE 47/50 + integration pass): the
+    # transcript lives in the voice_proxy task's memory and only reaches
+    # DB on finish / timeup / socket close. A manual finish calls this
+    # endpoint while the WS is still open (or just closed), so scoring
+    # the DB transcript as-is 409s on "empty" even though the user spoke.
+    # Wait for the flush to COMPLETE — never break on any non-empty
+    # transcript: a stale/partial transcript from earlier turns is not
+    # proof the final turn's flush landed. wait_for_flush_completion
+    # returns False immediately when no live session exists in this
+    # process (other-worker / already-closed); then fall back to polling
+    # DB for the close-then-score race, breaking only on score /
+    # denied / ended_at (flush landed), never on transcript alone.
+    # The canonical frontend path sends {"type":"finish"} and waits for
+    # the {"type":"flushed"} ack before calling here, so in practice the
+    # wait usually returns at once (flush already complete).
     try:
         request_session_flush(req.session_id)
     except Exception:
         log.exception("request_session_flush failed for %s", req.session_id)
-    for _ in range(16):  # 16 x 0.5s = up to 8s
-        if sess.get("score") is not None or sess.get("denied"):
-            break
-        if sess.get("transcript"):
-            break
-        if sess.get("ended_at") is not None:
-            break  # socket-close flush already landed; transcript is final
-        await asyncio.sleep(0.5)
+    flushed = await wait_for_flush_completion(req.session_id, timeout_sec=8.0)
+    if not flushed:
+        for _ in range(16):  # 16 x 0.5s = up to 8s
+            if sess.get("score") is not None or sess.get("denied"):
+                break
+            if sess.get("ended_at") is not None:
+                break  # socket-close flush already landed; transcript is final
+            await asyncio.sleep(0.5)
+            sess = db.get_session(req.session_id)
+            if not sess:
+                raise HTTPException(404, "Session not found")
+    else:
         sess = db.get_session(req.session_id)
         if not sess:
             raise HTTPException(404, "Session not found")
@@ -754,6 +996,7 @@ async def session_end(req: SessionEndReq):
             "nervousness_score": int(sess.get("nervousness_score", 0) or 0),
             "nervousness_level": "High" if int(sess.get("nervousness_score", 0) or 0) > 60 else "Medium",
             "over_explain_count": int(sess.get("over_explain_count", 0) or 0),
+            **_session_timer_fields(sess),
         }
 
     if sess.get("score") is not None:
@@ -765,6 +1008,7 @@ async def session_end(req: SessionEndReq):
             "verdict": sess["verdict"],
             "weaknesses": sess.get("weaknesses", []),
             "feedback": sess.get("feedback", ""),
+            **_session_timer_fields(sess),
         }
 
     # Race guard: only one concurrent /session/end may run the (expensive)
@@ -779,6 +1023,7 @@ async def session_end(req: SessionEndReq):
             "verdict": sess["verdict"],
             "weaknesses": sess.get("weaknesses", []),
             "feedback": sess.get("feedback", ""),
+            **_session_timer_fields(sess),
         }
     if claim == "in_progress":
         # Another request is scoring right now — poll briefly for its result
@@ -794,6 +1039,7 @@ async def session_end(req: SessionEndReq):
                     "verdict": sess["verdict"],
                     "weaknesses": sess.get("weaknesses", []),
                     "feedback": sess.get("feedback", ""),
+                    **_session_timer_fields(sess),
                 }
         raise HTTPException(409, "Scoring in progress — retry shortly")
     if claim == "missing":
@@ -803,6 +1049,9 @@ async def session_end(req: SessionEndReq):
     # `sess` above can be up to one poll-loop iteration stale.
     sess = db.get_session(req.session_id)
     if not sess:
+        # Session vanished mid-claim — release the claim we just took, or
+        # a retry would sit behind a stale in_progress flag until TTL.
+        db.release_scoring(req.session_id)
         raise HTTPException(404, "Session not found")
 
     transcript = sess.get("transcript", [])
@@ -838,23 +1087,104 @@ async def session_end(req: SessionEndReq):
         db.mark_trial_used(sess["user_id"])
     log.info("session %s scored: %s (%s) nervousness=%d", req.session_id,
              result["total"], result["verdict"], nervousness)
-    return {"session_id": req.session_id, **result}
+    return {"session_id": req.session_id, **result, **_session_timer_fields(sess)}
+
+
+@app.get("/session/status/{session_id}")
+async def session_status(session_id: str, request: Request):
+    """FIX 17: timer resync read — returns maxSeconds/max_duration_sec +
+    started_at/server_now/elapsed/remaining so the frontend can resync its
+    countdown from the backend. Auth + owner check identical to
+    /session/end (ws_token via ?token=, initData via header/query)."""
+    _require_rate(f"ip-session-status:{_client_ip(request)}", 20)
+    sess = db.get_session(session_id)
+    if not sess:
+        raise HTTPException(404, "Session not found")
+    owner = str(sess.get("user_id", "") or "")
+    if not owner:
+        raise HTTPException(404, "Session not found")
+    _require_rate(f"entity-session-status:{session_id}", 10)
+    _verify_session_owner(
+        session_id, owner,
+        init_data=_extract_init_data(request, None),
+        ws_token=(request.query_params.get("token") or "").strip())
+    return {"session_id": session_id, "plan": sess.get("plan"),
+            "score": sess.get("score"), "verdict": sess.get("verdict"),
+            "denied": bool(sess.get("denied")), "ended": sess.get("ended_at") is not None,
+            **_session_timer_fields(sess)}
+
+
+@app.post("/session/refund-abandoned")
+async def session_refund_abandoned(req: RefundAbandonedReq, request: Request):
+    """FIX 14 (main part): refund-on-abandon route. Sessions abandoned after
+    credit burn but never started/scored get their credit back.
+
+    Rules (enforced transactionally in db.refund_abandoned_session):
+    - caller must own the session (ws_token or HMAC initData), else 401/403;
+      unknown session_id -> 404, never created.
+    - abandoned = unscored + not denied + not already refunded + (ended OR
+      older than max_duration + grace). Live sessions -> 409 SESSION_ACTIVE.
+    - paid + credit consumed -> +1 credit (Increment, same txn as the
+      refunded=True flag). Replays return already_refunded (200) — never a
+      double-refund. free_mini -> releases the mini claim. free_trial /
+      unlimited-paid -> no_refund_needed (nothing was burned).
+    - Per-entity rate limits: 20/IP/min + 5/session/min + 5/user/min."""
+    _require_rate(f"ip-refund:{_client_ip(request)}", 20)
+    sess = db.get_session(req.session_id)
+    if not sess:
+        raise HTTPException(404, "Session not found")
+    owner = str(sess.get("user_id", "") or "")
+    if not owner:
+        raise HTTPException(404, "Session not found")
+    _require_rate(f"entity-refund:{req.session_id}", 5)
+    _require_rate(f"entity-refund-user:{owner}", 5)
+    _verify_session_owner(req.session_id, owner,
+                          init_data=_extract_init_data(request, req.initData),
+                          ws_token=(req.ws_token or "").strip())
+    res = db.refund_abandoned_session(req.session_id)
+    status = res.get("status")
+    if status == "not_found":
+        raise HTTPException(404, "Session not found")
+    if status == "session_active":
+        raise HTTPException(409, "SESSION_ACTIVE: session is still live — finish or score it first")
+    if status in ("already_scored", "denied"):
+        raise HTTPException(409, f"{status}: session cannot be refunded")
+    if status == "not_abandoned":
+        raise HTTPException(409, "NOT_ABANDONED: session is not abandoned yet")
+    # refunded / already_refunded / no_refund_needed -> 200 (idempotent).
+    return {"ok": True, **res, **_session_timer_fields(db.get_session(req.session_id) or sess)}
 
 
 class FeedbackAudioReq(BaseModel):
     session_id: str
+    initData: str | None = Field(None, description="FIX 4: HMAC-verified initData "
+        "for the session owner (or ws_token). One of the two is REQUIRED.")
+    ws_token: str | None = Field(None, description="FIX 4: server-issued WS "
+        "session token for this session.")
 
 
 @app.post("/session/feedback-audio")
-async def session_feedback_audio(req: FeedbackAudioReq):
+async def session_feedback_audio(req: FeedbackAudioReq, request: Request):
     """Synthesize the session verdict + feedback with the FRIENDLY 'Visa Coach'
     voice (aura-luna-en). Returns raw PCM16 24kHz mono audio bytes.
-    The interview uses the strict officer voice; feedback uses the warm coach."""
+    The interview uses the strict officer voice; feedback uses the warm coach.
+    FIX 4: auth + owner check (ws_token or HMAC initData) — unknown session
+    404s, never created. FIX 11: per-entity rate limits (per IP + per
+    session + per owner)."""
     from fastapi.responses import Response
     from realtime_proxy import deepgram_tts
+    _require_rate(f"ip-feedback-audio:{_client_ip(request)}", 20)
     sess = db.get_session(req.session_id)
     if not sess:
         raise HTTPException(404, "Session not found")
+    owner = str(sess.get("user_id", "") or "")
+    if not owner:
+        raise HTTPException(404, "Session not found")
+    _require_rate(f"entity-feedback-audio:{req.session_id}", 10)
+    _require_rate(f"entity-feedback-audio-user:{owner}", 10)
+    _verify_session_owner(req.session_id, owner,
+                          init_data=_extract_init_data(request, req.initData),
+                          ws_token=(req.ws_token or "").strip())
     if sess.get("score") is None:
         raise HTTPException(409, "Session not scored yet")
     verdict = sess.get("verdict", "")
@@ -870,18 +1200,33 @@ async def session_feedback_audio(req: FeedbackAudioReq):
 
 
 @app.post("/payment/stars-invoice")
-async def stars_invoice(req: StarsInvoiceReq):
+async def stars_invoice(req: StarsInvoiceReq, request: Request):
     """Create a Telegram Stars invoice link. bundle_id is REQUIRED
     (reality | serious | panic). The legacy bundle-less 750-Star flow is
-    deleted: bundle_id None → 400, never an unlimited-access invoice."""
+    deleted: bundle_id None → 400, never an unlimited-access invoice.
+    FIX 4: caller must prove ownership with HMAC-verified initData
+    (body or X-Telegram-Init-Data header). Unknown user_id -> 404, NEVER
+    auto-provisioned. FIX 11: per-entity rate limits (per IP + per user)."""
+    _require_rate(f"ip-stars-invoice:{_client_ip(request)}", 10)
+    _require_rate(f"entity-stars-invoice:{req.user_id}", 5)
     if not req.bundle_id:
         raise HTTPException(400, "bundle_id is required — legacy 750-Star flow removed")
     bundle = BUNDLES.get(req.bundle_id)
     if not bundle:
         raise HTTPException(400, f"Unknown bundle_id: {req.bundle_id}")
+    init_data = _extract_init_data(request, req.initData)
+    if not init_data:
+        raise HTTPException(401, "Missing initData: HMAC-verified initData required")
+    if not TELEGRAM_BOT_TOKEN:
+        raise HTTPException(500, "Telegram bot not configured")
+    tg_user = verify_telegram_init_data(init_data, TELEGRAM_BOT_TOKEN)
+    if str(tg_user.get("id")) != str(req.user_id):
+        raise HTTPException(403, "initData user does not match user_id")
     user = db.get_user(req.user_id)
     if not user:
-        user = db.create_user(req.user_id, affiliate_code=req.affiliate_code)
+        # FIX 4: never auto-provision an arbitrary user_id from an invoice
+        # request — the account must already exist via verified auth.
+        raise HTTPException(404, "User not found — authenticate first via /api/auth/telegram")
 
     stars = bundle["stars"]
     title = bundle["title"]
@@ -909,7 +1254,7 @@ async def stars_invoice(req: StarsInvoiceReq):
         raise
     except Exception as e:
         log.exception("createInvoiceLink failed unexpectedly")
-        raise HTTPException(502, f"Telegram payment error: {str(e)[:200]}")
+        raise HTTPException(502, "Telegram payment error")
     return {"invoice_url": data["result"], "payload": payload_token,
             "stars": stars, "bundle_id": bundle["id"],
             "interviews": bundle["interviews"]}
@@ -954,6 +1299,21 @@ async def telegram_webhook(request: Request):
         raise HTTPException(401, "Bad webhook secret")
 
     update = await request.json()
+    # FIX 11: per-entity rate limits on the webhook (per IP + per charge +
+    # per payload). Retries of the same charge/payload are capped so a
+    # replay storm cannot hammer the grant transaction.
+    _require_rate(f"ip-webhook:{_client_ip(request)}", 30)
+    _webhook_entity = ""
+    try:
+        _pcq = update.get("pre_checkout_query") or {}
+        _sp = (update.get("message") or {}).get("successful_payment") or {}
+        _webhook_entity = (_sp.get("telegram_payment_charge_id") or ""
+                           or _sp.get("invoice_payload") or ""
+                           or _pcq.get("invoice_payload") or "")
+    except Exception:
+        _webhook_entity = ""
+    if _webhook_entity:
+        _require_rate(f"entity-webhook:{_webhook_entity}", 10)
 
     pcq = update.get("pre_checkout_query")
     if pcq:
@@ -1059,8 +1419,24 @@ async def telegram_webhook(request: Request):
 
 
 @app.get("/payment/credits/{user_id}")
-async def payment_credits(user_id: str):
-    """Return the user's remaining interview credits (single source of truth)."""
+async def payment_credits(user_id: str, request: Request):
+    """Return the user's remaining interview credits (single source of truth).
+    FIX 4: caller must own the id — HMAC-verified initData (header
+    X-Telegram-Init-Data or ?initData=) whose user equals user_id, else
+    401/403. Unknown user_id -> 404, never auto-provisioned. FIX 11:
+    per-entity rate limits (per IP + per user)."""
+    _require_rate(f"ip-credits:{_client_ip(request)}", 20)
+    _require_rate(f"entity-credits:{user_id}", 10)
+    init_data = _extract_init_data(request, None)
+    if not init_data:
+        raise HTTPException(401, "Missing initData: HMAC-verified initData required")
+    if not TELEGRAM_BOT_TOKEN:
+        raise HTTPException(500, "Telegram bot not configured")
+    tg_user = verify_telegram_init_data(init_data, TELEGRAM_BOT_TOKEN)
+    if str(tg_user.get("id")) != str(user_id):
+        raise HTTPException(403, "initData user does not match user_id")
+    if db.get_user(user_id) is None:
+        raise HTTPException(404, "User not found")
     return {
         "user_id": user_id,
         "interview_credits": db.get_interview_credits(user_id),
@@ -1076,29 +1452,63 @@ async def payment_bundles():
 class ReferralClaimReq(BaseModel):
     user_id: str
     referrer_id: str
+    initData: str | None = Field(None, description="FIX 3: REQUIRED HMAC-verified "
+        "initData for user_id (claimant). Also accepted via "
+        "X-Telegram-Init-Data header. Claimant must already exist — never "
+        "auto-minted.")
 
 
 @app.post("/referral/claim")
 async def referral_claim(req: ReferralClaimReq, request: Request):
     """Claim a referral bonus: +1 free interview for the new user AND +1 for
     the referrer. One claim per user ever; self-referral rejected.
-    Rate-limited: 10/IP/min + 3/user/min (referral farming throttle)."""
+    Rate-limited: 10/IP/min + 3/user/min (referral farming throttle).
+    FIX 3: requires verified initData/token (HMAC-verified initData whose
+    user equals user_id); rejects a non-existent claimant with 404 and
+    NEVER auto-mints a user doc for a claimant that doesn't exist."""
     _require_rate(f"ip-referral:{_client_ip(request)}", 10)
     _require_rate(f"entity-referral:{req.user_id}", 3)
     if not req.user_id or not req.referrer_id:
         raise HTTPException(400, "user_id and referrer_id are required")
     if req.user_id == req.referrer_id:
         raise HTTPException(400, "self_referral")
+    init_data = _extract_init_data(request, req.initData)
+    if not init_data:
+        raise HTTPException(401, "Missing initData: HMAC-verified initData required")
+    if not TELEGRAM_BOT_TOKEN:
+        raise HTTPException(500, "Telegram bot not configured")
+    tg_user = verify_telegram_init_data(init_data, TELEGRAM_BOT_TOKEN)
+    if str(tg_user.get("id")) != str(req.user_id):
+        raise HTTPException(403, "initData user does not match user_id")
+    if db.get_user(req.user_id) is None:
+        raise HTTPException(404, "Claimant not found — authenticate first via /api/auth/telegram")
     try:
         res = db.claim_referral(req.user_id, req.referrer_id)
     except ValueError as e:
-        raise HTTPException(400, str(e))
+        msg = str(e)
+        if msg in ("claimant_not_found", "referrer_not_found"):
+            raise HTTPException(404, msg)
+        raise HTTPException(400, msg)
     return {"ok": True, **res}
 
 
 @app.get("/referral/stats/{user_id}")
-async def referral_stats(user_id: str):
-    """Referral stats for the invite UI: friends joined + free interviews earned."""
+async def referral_stats(user_id: str, request: Request):
+    """Referral stats for the invite UI: friends joined + free interviews earned.
+    FIX 3: requires verified initData (header or ?initData=) for this
+    user_id; non-existent user -> 404. FIX 11: per-entity rate limits."""
+    _require_rate(f"ip-referral-stats:{_client_ip(request)}", 20)
+    _require_rate(f"entity-referral-stats:{user_id}", 10)
+    init_data = _extract_init_data(request, None)
+    if not init_data:
+        raise HTTPException(401, "Missing initData: HMAC-verified initData required")
+    if not TELEGRAM_BOT_TOKEN:
+        raise HTTPException(500, "Telegram bot not configured")
+    tg_user = verify_telegram_init_data(init_data, TELEGRAM_BOT_TOKEN)
+    if str(tg_user.get("id")) != str(user_id):
+        raise HTTPException(403, "initData user does not match user_id")
+    if db.get_user(user_id) is None:
+        raise HTTPException(404, "User not found")
     return db.get_referral_stats(user_id)
 
 
@@ -1121,17 +1531,25 @@ FEEDBACK_MAX_PER_HOUR = 5  # per user_id, in-process sliding window
 _feedback_rate: dict[str, list[float]] = {}  # user_id -> [epoch seconds]
 
 
-def _feedback_rate_ok(user_id: str) -> bool:
+def _feedback_rate_check(user_id: str) -> tuple[bool, int]:
     """Sliding-window rate limit: max FEEDBACK_MAX_PER_HOUR reports/hour/user.
-    Returns True if this report is allowed (and records it)."""
+    Returns (allowed, retry_after_sec). Records the hit when allowed.
+    FIX 11: the 429 path returns Retry-After (see submit_feedback)."""
     now = time.time()
-    stamps = [t for t in _feedback_rate.get(user_id, []) if now - t < 3600]
+    stamps = [s for s in _feedback_rate.get(user_id, []) if now - s < 3600]
     if len(stamps) >= FEEDBACK_MAX_PER_HOUR:
         _feedback_rate[user_id] = stamps
-        return False
+        retry = max(1, int(3600 - (now - stamps[0]))) if stamps else 1
+        return False, retry
     stamps.append(now)
     _feedback_rate[user_id] = stamps
-    return True
+    return True, 0
+
+
+def _feedback_rate_ok(user_id: str) -> bool:
+    """Back-compat wrapper — prefer _feedback_rate_check for Retry-After."""
+    allowed, _ = _feedback_rate_check(user_id)
+    return allowed
 
 
 class FeedbackReq(BaseModel):
@@ -1158,8 +1576,10 @@ async def submit_feedback(req: FeedbackReq):
         raise HTTPException(400, "message must be at least 10 characters")
     if len(msg) > 2000:
         raise HTTPException(400, "message must be at most 2000 characters")
-    if not _feedback_rate_ok(str(req.user_id)):
-        raise HTTPException(429, "Too many reports — please try again later")
+    _fb_allowed, _fb_retry = _feedback_rate_check(str(req.user_id))
+    if not _fb_allowed:
+        raise HTTPException(429, "Too many reports — please try again later",
+                            headers={"Retry-After": str(_fb_retry)})
     rec = db.save_feedback(
         user_id=str(req.user_id),
         type=req.type,
@@ -1244,19 +1664,26 @@ class DailyGrillyReq(BaseModel):
 
 
 @app.post("/notify/daily-grilly")
-async def notify_daily_grilly(req: DailyGrillyReq):
+async def notify_daily_grilly(req: DailyGrillyReq, request: Request):
     """Daily retention push — requires CRON_SECRET env var to match req.secret
     (constant-time compare). Prevents anyone from triggering mass Telegram
     messages. Idempotent per date: daily_grilly_sends/{date} is claimed
     before sending and marked sent after; a duplicate cron run the same
-    day skips sending (returns already_sent). A catastrophic failure
-    releases the claim so a retry can proceed."""
+    day skips sending (returns already_sent).
+    FIX 11: per-entity rate limits (per IP + per date).
+    FIX 24: per-recipient sent records (daily_grilly_sends/{date}/
+    recipients/{telegram_id}); a retry skips already-sent recipients.
+    Catastrophic failure does NOT delete the whole claim — the day doc is
+    marked 'partial' with per-recipient records intact, so a retry resumes
+    instead of re-messaging everyone or losing progress."""
     import os
     expected = os.environ.get("CRON_SECRET", "")
     if not expected or not req.secret or not hmac.compare_digest(req.secret, expected):
         raise HTTPException(403, "Invalid or missing cron secret")
     from datetime import date
     today = date.today().isoformat()
+    _require_rate(f"ip-daily-grilly:{_client_ip(request)}", 5)
+    _require_rate(f"entity-daily-grilly:{today}", 5)
     if req.dry_run:
         targets = db.get_daily_push_targets(limit=max(1, min(req.limit, 500)))
         return {"ok": True, "dry_run": True, "targets": len(targets),
@@ -1264,14 +1691,19 @@ async def notify_daily_grilly(req: DailyGrillyReq):
     if not db.claim_daily_grilly_send(today):
         log.info("daily-grilly: %s already sent/claimed — skipping duplicate run", today)
         return {"ok": True, "already_sent": True, "date": today}
+    # Resume counts from a prior partial send (claim preserves them).
+    _prior = db.get_daily_grilly_send(today) or {}
+    sent, failed, skipped = int(_prior.get("sent") or 0), int(_prior.get("failed") or 0), 0
+    q = DAILY_GRILLY_QUESTIONS[date.today().timetuple().tm_yday % len(DAILY_GRILLY_QUESTIONS)]
     try:
         targets = db.get_daily_push_targets(limit=max(1, min(req.limit, 500)))
-
         # Rotate the question daily — deterministic so a retry same-day is idempotent
-        q = DAILY_GRILLY_QUESTIONS[date.today().timetuple().tm_yday % len(DAILY_GRILLY_QUESTIONS)]
-        sent, failed = 0, 0
         for t in targets:
             chat_id = t.get("telegram_id")
+            # FIX 24: skip recipients who already got today's push.
+            if chat_id and db.has_daily_grilly_recipient(today, str(chat_id)):
+                skipped += 1
+                continue
             name = (t.get("first_name") or "candidate").split()[0]
             text = (
                 f"🔥 Grilly is watching, {name}.\n\n"
@@ -1285,19 +1717,29 @@ async def notify_daily_grilly(req: DailyGrillyReq):
                     "text": text,
                     "reply_markup": DAILY_GRILLY_KEYBOARD,
                 })
+                # Record per-recipient success BEFORE counting, so a crash
+                # immediately after still leaves this recipient marked.
+                if chat_id:
+                    db.mark_daily_grilly_recipient_sent(today, str(chat_id))
                 sent += 1
             except Exception as e:
                 log.warning("daily-grilly failed for %s: %s", chat_id, str(e)[:120])
                 failed += 1
-        log.info("daily-grilly: sent=%d failed=%d question=%s", sent, failed, q[:40])
+        log.info("daily-grilly: sent=%d failed=%d skipped=%d question=%s", sent, failed, skipped, q[:40])
     except Exception:
-        # Catastrophic failure before completion — release the claim so a
-        # retry can proceed. (Per-user failures are caught inside the loop
-        # and do NOT release: those users already got today's message.)
-        db.release_daily_grilly_send(today)
-        raise
+        # Catastrophic failure — mark PARTIAL (never delete the claim).
+        # Per-recipient records + counts survive, so a retry resumes and
+        # skips already-sent recipients. Return a partial payload (200)
+        # instead of raising, so the cron run is visibly partial, not lost.
+        log.exception("daily-grilly catastrophic failure — marking partial for %s", today)
+        try:
+            db.mark_daily_grilly_partial(today, sent, failed)
+        except Exception:
+            log.exception("daily-grilly: mark_partial failed for %s", today)
+        return {"ok": False, "partial": True, "sent": sent, "failed": failed,
+                "skipped": skipped, "question": q, "date": today}
     db.mark_daily_grilly_sent(today, sent, failed)
-    return {"ok": True, "sent": sent, "failed": failed,
+    return {"ok": True, "sent": sent, "failed": failed, "skipped": skipped,
             "question": q, "date": today}
 
 

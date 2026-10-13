@@ -258,13 +258,17 @@ def release_free_mini(user_id: str):
 
 def create_session(user_id: str, test_type: str, plan: str,
                    max_duration_sec: int, affiliate_code: str | None = None,
-                   background_summary: str | None = None) -> str:
+                   background_summary: str | None = None,
+                   idempotency_key: str | None = None,
+                   credit_consumed: bool = False) -> str:
     sid = uuid.uuid4().hex[:16]
     data = {
         "user_id": str(user_id),
         "test_type": test_type,
         "plan": plan,
         "max_duration_sec": max_duration_sec,
+        # FIX 17: timer alias — frontend resyncs from maxSeconds.
+        "maxSeconds": max_duration_sec,
         "transcript": [],
         "score": None,
         "verdict": None,
@@ -276,6 +280,11 @@ def create_session(user_id: str, test_type: str, plan: str,
         "background_summary": (background_summary or "")[:2000],
         "created_at": _now(),
         "ended_at": None,
+        # FIX 13/14: idempotency + refund bookkeeping.
+        "idempotency_key": idempotency_key or None,
+        "credit_consumed": bool(credit_consumed),
+        "refunded": False,
+        "refunded_at": None,
     }
     if not is_db_available():
         _mem_sessions[sid] = data
@@ -301,26 +310,31 @@ def get_session(session_id: str) -> dict | None:
 ACTIVE_SESSION_GRACE_SEC = 1800
 
 
+def _session_age_sec(sess: dict) -> float | None:
+    """Age of a session in seconds, or None when created_at is unparseable."""
+    created = sess.get("created_at")
+    if created is None:
+        return None
+    if isinstance(created, datetime):
+        return (_now() - created).total_seconds()
+    if isinstance(created, (int, float)):
+        return time.time() - (created / 1000.0 if created > 1e12 else created)
+    ts = getattr(created, "timestamp", None)
+    if callable(ts):
+        try:
+            return time.time() - ts()
+        except Exception:
+            return None
+    return None
+
+
 def _session_is_live(sess: dict) -> bool:
     if sess.get("score") is not None or sess.get("denied") or sess.get("ended_at") is not None:
         return False
-    created = sess.get("created_at")
-    if created is None:
+    age = _session_age_sec(sess)
+    if age is None:
         return False
-    if isinstance(created, datetime):
-        age = (_now() - created).total_seconds()
-    elif isinstance(created, (int, float)):
-        age = time.time() - (created / 1000.0 if created > 1e12 else created)
-    else:
-        ts = getattr(created, "timestamp", None)
-        if callable(ts):
-            try:
-                age = time.time() - ts()
-            except Exception:
-                return False
-        else:
-            return False
-    max_dur = int(sess.get("max_duration_sec") or 900)
+    max_dur = int(sess.get("max_duration_sec") or sess.get("maxSeconds") or 900)
     return age < (max_dur + ACTIVE_SESSION_GRACE_SEC)
 
 
@@ -348,14 +362,129 @@ def find_active_unscored_session(user_id: str) -> dict | None:
     return None
 
 
+def get_session_by_idempotency_key(user_id: str, idempotency_key: str) -> dict | None:
+    """FIX 13: idempotent replay lookup — return the session already created
+    for (user_id, idempotency_key), or None. Lets a retried /session/start
+    return the original session instead of charging a second credit."""
+    if not idempotency_key:
+        return None
+    uid = str(user_id)
+    if not is_db_available():
+        for sid, s in _mem_sessions.items():
+            if str(s.get("user_id", "")) == uid and s.get("idempotency_key") == idempotency_key:
+                return {"session_id": sid, **s}
+        return None
+    try:
+        # Single-field query + Python filter (no new composite index needed).
+        q = (get_db().collection("sessions")
+             .where("user_id", "==", uid)
+             .limit(20).stream())
+        for doc in q:
+            d = doc.to_dict() or {}
+            if d.get("idempotency_key") == idempotency_key:
+                return {"session_id": doc.id, **d}
+    except Exception as e:
+        log.warning("get_session_by_idempotency_key failed: %s", str(e)[:100])
+    return None
+
+
+def find_ended_unscored_session(user_id: str) -> dict | None:
+    """FIX 13: return the user's ended-but-unscored, not-yet-refunded session
+    (with session_id), or None. Caller must 409 with ENDED_UNSCORED_SCORE_NOW
+    (frontend routes to SCORE ME NOW) instead of charging for a new session.
+    Refunded sessions do NOT block — the credit is already back."""
+    uid = str(user_id)
+    if not is_db_available():
+        for sid, s in _mem_sessions.items():
+            if str(s.get("user_id", "")) != uid:
+                continue
+            if s.get("score") is not None or s.get("denied") or s.get("refunded"):
+                continue
+            if s.get("ended_at") is None:
+                continue
+            return {"session_id": sid, **s}
+        return None
+    try:
+        q = (get_db().collection("sessions")
+             .where("user_id", "==", uid)
+             .where("score", "==", None)
+             .limit(20).stream())
+        for doc in q:
+            d = doc.to_dict() or {}
+            if d.get("denied") or d.get("refunded"):
+                continue
+            if d.get("ended_at") is None:
+                continue
+            return {"session_id": doc.id, **d}
+    except Exception as e:
+        log.warning("find_ended_unscored_session failed: %s", str(e)[:100])
+    return None
+
+
+def _turn_key(turn):
+    """Identity of one transcript turn for merge-by-turn dedup.
+
+    Transcript entries are dicts {"role", "text", ...}; non-dict entries
+    fall back to the entry itself. Two turns with the same (role, text)
+    are the same turn for merge purposes."""
+    if isinstance(turn, dict):
+        return (turn.get("role"), turn.get("text"))
+    return (None, turn)
+
+
+def _merge_transcripts(stored, incoming):
+    """MERGE-by-turn: union of stored + incoming, stored order first.
+
+    A flush must NEVER delete turns: a shorter flush (e.g. a handler
+    whose local transcript missed early turns) only ADDS its new turns.
+    Idempotent — merging the same transcript twice changes nothing.
+    Exact-duplicate turns across the merge boundary collapse (a repeated
+    sentence spoken twice keeps one copy); duplicates inside one flush
+    are preserved by the prefix fast path below."""
+    stored = stored or []
+    incoming = incoming or []
+    if not incoming:
+        return list(stored)
+    if not stored:
+        return list(incoming)
+    # Fast path: stored is a prefix of incoming (normal progressive flush
+    # from one handler) — incoming is the fuller transcript, take it whole.
+    if len(incoming) >= len(stored) and all(
+        _turn_key(incoming[i]) == _turn_key(stored[i])
+        for i in range(len(stored))
+    ):
+        return list(incoming)
+    seen = {_turn_key(t) for t in stored}
+    merged = list(stored)
+    for t in incoming:
+        if _turn_key(t) not in seen:
+            seen.add(_turn_key(t))
+            merged.append(t)
+    return merged
+
+
 def append_transcript(session_id: str, transcript: list[dict]):
-    # Replace with the full accumulated transcript (proxy owns ordering)
+    # MERGE-by-turn: never full-replace. A shorter flush must not delete
+    # turns an earlier flush already persisted (see _merge_transcripts).
     if not is_db_available():
         if session_id in _mem_sessions:
-            _mem_sessions[session_id]["transcript"] = transcript
+            _mem_sessions[session_id]["transcript"] = _merge_transcripts(
+                _mem_sessions[session_id].get("transcript"), transcript)
         return
-    get_db().collection("sessions").document(session_id).update(
-        {"transcript": transcript})
+    from google.cloud import firestore as _fs
+    db = get_db()
+    ref = db.collection("sessions").document(session_id)
+
+    @_fs.transactional
+    def _merge(transaction):
+        snap = ref.get(transaction=transaction)
+        if not snap.exists:
+            return
+        stored = (snap.to_dict() or {}).get("transcript") or []
+        transaction.set(ref, {"transcript": _merge_transcripts(stored, transcript)},
+                        merge=True)
+
+    _merge(db.transaction())
 
 
 def mark_session_ended(session_id: str, duration_sec: int):
@@ -411,8 +540,13 @@ def claim_scoring(session_id: str) -> str:
             return "scored"
         if s.get("scoring_in_progress"):
             claimed_at = s.get("claimed_at")
-            if claimed_at is not None and (time.time() - float(claimed_at)) < SCORING_CLAIM_TTL_SEC:
-                return "in_progress"
+            if claimed_at is not None:
+                try:
+                    fresh = (time.time() - float(claimed_at)) < SCORING_CLAIM_TTL_SEC
+                except (TypeError, ValueError):
+                    fresh = False  # unparseable -> stale, steal it
+                if fresh:
+                    return "in_progress"
             # stale (or legacy, no claimed_at) — steal it
         s["scoring_in_progress"] = True
         s["claimed_at"] = int(time.time())
@@ -552,12 +686,56 @@ def get_daily_push_targets(limit: int = 100) -> list[dict]:
 # process that died mid-send must not block the whole day).
 
 _mem_daily_grilly = {}  # date_str -> {status, claimed_at, ...}
+_mem_daily_grilly_recipients: dict[str, dict] = {}  # "YYYY-MM-DD:telegram_id" -> {sent_at}
 DAILY_GRILLY_CLAIM_TTL_SEC = 3600
+
+
+def get_daily_grilly_send(date_str: str) -> dict | None:
+    """Return the daily_grilly_sends/{date} doc (or None). Used to resume a
+    partial send with its prior sent/failed counts."""
+    if not is_db_available():
+        cur = _mem_daily_grilly.get(date_str)
+        return dict(cur) if cur else None
+    try:
+        doc = get_db().collection("daily_grilly_sends").document(date_str).get()
+        return doc.to_dict() if doc.exists else None
+    except Exception:
+        return None
+
+
+def has_daily_grilly_recipient(date_str: str, telegram_id: str) -> bool:
+    """FIX 24: True iff this recipient already got today's push."""
+    key = f"{date_str}:{telegram_id}"
+    if not is_db_available():
+        return key in _mem_daily_grilly_recipients
+    try:
+        doc = (get_db().collection("daily_grilly_sends").document(date_str)
+               .collection("recipients").document(str(telegram_id)).get())
+        return doc.exists
+    except Exception:
+        return False
+
+
+def mark_daily_grilly_recipient_sent(date_str: str, telegram_id: str):
+    """FIX 24: record a per-recipient send so a retry skips this user."""
+    key = f"{date_str}:{telegram_id}"
+    if not is_db_available():
+        _mem_daily_grilly_recipients[key] = {"sent_at": int(time.time())}
+        return
+    try:
+        (get_db().collection("daily_grilly_sends").document(date_str)
+         .collection("recipients").document(str(telegram_id))
+         .set({"sent_at": int(time.time()), "telegram_id": str(telegram_id)}, merge=True))
+    except Exception as e:
+        log.warning("mark_daily_grilly_recipient_sent failed: %s", str(e)[:100])
 
 
 def claim_daily_grilly_send(date_str: str) -> bool:
     """Claim today's daily-grilly send. True iff THIS caller owns the send.
-    False when already sent, or another live claim owns it."""
+    False when already sent, or another live claim owns it.
+    FIX 24: a 'partial' send (catastrophic failure mid-loop) is
+    reclaimable — the caller resumes and per-recipient records skip users
+    who already got today's push."""
     now = int(time.time())
     if not is_db_available():
         cur = _mem_daily_grilly.get(date_str)
@@ -565,7 +743,11 @@ def claim_daily_grilly_send(date_str: str) -> bool:
             return False
         if cur and cur.get("status") == "claimed" and (now - int(cur.get("claimed_at", 0))) < DAILY_GRILLY_CLAIM_TTL_SEC:
             return False
-        _mem_daily_grilly[date_str] = {"status": "claimed", "claimed_at": now}
+        # 'partial' or stale claim or first claim — (re)claim, preserving
+        # prior sent/failed counts and per-recipient records.
+        prev = dict(cur) if cur else {}
+        prev.update({"status": "claimed", "claimed_at": now, "date": date_str})
+        _mem_daily_grilly[date_str] = prev
         return True
     from google.cloud import firestore as _fs
     db = get_db()
@@ -586,6 +768,7 @@ def claim_daily_grilly_send(date_str: str) -> bool:
                 if age < DAILY_GRILLY_CLAIM_TTL_SEC:
                     return False  # live claim — another sender owns today
                 # stale claim — steal it in this txn
+            # 'partial' falls through: resume the send in this txn.
         transaction.set(ref, {"status": "claimed", "claimed_at": now,
                               "date": date_str}, merge=True)
         return True
@@ -606,17 +789,34 @@ def mark_daily_grilly_sent(date_str: str, sent: int, failed: int):
          "sent": sent, "failed": failed, "date": date_str}, merge=True)
 
 
-def release_daily_grilly_send(date_str: str):
-    """Release today's claim after a catastrophic failure (exception escaped
-    the send loop before completion), so a retry can proceed. Deletes the
-    claim doc — a completed send is never released (see mark_sent)."""
+def mark_daily_grilly_partial(date_str: str, sent: int, failed: int):
+    """FIX 24: record a partial send after a catastrophic failure. The day
+    doc stays (status='partial') with its per-recipient records intact, so
+    a retry resumes and skips already-sent recipients instead of
+    re-messaging them or losing the whole claim."""
     if not is_db_available():
-        _mem_daily_grilly.pop(date_str, None)
+        cur = _mem_daily_grilly.get(date_str) or {}
+        cur.update({"status": "partial", "sent": int(sent), "failed": int(failed),
+                    "date": date_str, "partial_at": int(time.time())})
+        _mem_daily_grilly[date_str] = cur
         return
     try:
-        get_db().collection("daily_grilly_sends").document(date_str).delete()
+        get_db().collection("daily_grilly_sends").document(date_str).set(
+            {"status": "partial", "sent": int(sent), "failed": int(failed),
+             "date": date_str, "partial_at": int(time.time())}, merge=True)
     except Exception:
         pass
+
+
+def release_daily_grilly_send(date_str: str):
+    """DEPRECATED (FIX 24): previously deleted the whole day claim on
+    catastrophic failure, which lost per-recipient progress. Now it
+    transitions the claim to 'partial' (preserving per-recipient records)
+    instead of deleting anything. New code must call
+    mark_daily_grilly_partial() directly. A completed send is never
+    released (see mark_sent)."""
+    cur = get_daily_grilly_send(date_str) or {}
+    mark_daily_grilly_partial(date_str, int(cur.get("sent") or 0), int(cur.get("failed") or 0))
 
 
 # ---------- stars invoices (pending, created before checkout) ----------
@@ -654,19 +854,32 @@ def get_stars_invoice(payload_token: str) -> dict | None:
 # ---------- interview credits (pay-per-use bundles) ----------
 
 def add_interview_credits(user_id: str, n: int) -> int:
-    """Add n interview credits. Returns the new total."""
+    """Add n interview credits. Returns the new total.
+    FIX 13: transactional Increment — no read-modify-write race. The old
+    get-then-set lost concurrent grants/refunds (two writers read the same
+    total and one increment vanished)."""
     uid = str(user_id)
     if not is_db_available():
         cur = (_mem_users.get(uid) or {}).get("interview_credits", 0)
         new_total = cur + int(n)
         _mem_users.setdefault(uid, {})["interview_credits"] = new_total
         return new_total
-    ref = get_db().collection("users").document(uid)
+    from google.cloud import firestore as _fs
+    db = get_db()
+    ref = db.collection("users").document(uid)
+
+    @_fs.transactional
+    def _add(transaction):
+        # Server-side atomic increment inside the transaction; no
+        # client-side read-modify-write. set(merge=True) also creates the
+        # doc when the user row is missing.
+        transaction.set(ref, {"interview_credits": _fs.Increment(int(n))}, merge=True)
+
+    _add(db.transaction())
     doc = ref.get()
-    cur = (doc.to_dict() or {}).get("interview_credits", 0) if doc.exists else 0
-    new_total = int(cur) + int(n)
-    ref.set({"interview_credits": new_total}, merge=True)
-    return new_total
+    if doc.exists:
+        return int((doc.to_dict() or {}).get("interview_credits", 0) or 0)
+    return int(n)
 
 
 def get_interview_credits(user_id: str) -> int:
@@ -705,17 +918,158 @@ def use_interview_credit(user_id: str) -> bool:
     return _consume(db.transaction())
 
 
+# ---------- refund-on-abandon (FIX 14) ----------
+def refund_abandoned_session(session_id: str) -> dict:
+    """FIX 14: refund a session abandoned after credit burn but never
+    started/scored. Transactional + idempotent, never double-refunds.
+
+    Abandoned = score is None, not denied, not already refunded, AND
+    (ended_at is not None OR age > max_duration + grace). Live sessions
+    (see _session_is_live) are NOT abandoned — caller gets
+    status='session_active' and must wait or finish/score first.
+
+    Credit rule: only plan='paid' sessions that actually consumed a credit
+    (credit_consumed=True, or legacy sessions where the user is not
+    unlimited-paid) get +1 credit back via Increment inside the same
+    transaction that marks refunded=True. plan='free_mini' releases the
+    mini claim instead (no interview credit was burned). plan='free_trial'
+    and unlimited-paid sessions get status='no_refund_needed' (the trial
+    is only marked used on scoring, so nothing was burned).
+
+    Returns {"status": "refunded"|"already_refunded"|"not_found"|
+    "already_scored"|"denied"|"session_active"|"not_abandoned"|
+    "no_refund_needed", "new_total": int|None, ...}. Any non-refunded
+    status means NOTHING was written (except already_refunded, which is
+    a safe idempotent replay returning the original outcome)."""
+    if not is_db_available():
+        s = _mem_sessions.get(session_id)
+        if s is None:
+            return {"status": "not_found", "session_id": session_id}
+        if s.get("score") is not None:
+            return {"status": "already_scored", "session_id": session_id}
+        if s.get("denied"):
+            return {"status": "denied", "session_id": session_id}
+        if s.get("refunded"):
+            u = _mem_users.get(str(s.get("user_id", "")), {})
+            return {"status": "already_refunded", "session_id": session_id,
+                    "user_id": str(s.get("user_id", "")),
+                    "new_total": int(u.get("interview_credits", 0) or 0)}
+        if _session_is_live(s):
+            return {"status": "session_active", "session_id": session_id}
+        age = _session_age_sec(s)
+        max_dur = int(s.get("max_duration_sec") or s.get("maxSeconds") or 900)
+        if s.get("ended_at") is None:
+            if age is None or age <= (max_dur + ACTIVE_SESSION_GRACE_SEC):
+                return {"status": "not_abandoned", "session_id": session_id}
+        plan = s.get("plan")
+        uid = str(s.get("user_id", ""))
+        if plan == "free_trial":
+            return {"status": "no_refund_needed", "session_id": session_id,
+                    "reason": "free_trial burns nothing until scored"}
+        if plan == "free_mini":
+            s["refunded"] = True
+            s["refunded_at"] = _now()
+            if uid in _mem_users:
+                _mem_users[uid]["free_mini_used"] = False
+            return {"status": "refunded", "session_id": session_id,
+                    "user_id": uid, "refund_type": "free_mini_release",
+                    "new_total": int((_mem_users.get(uid) or {}).get("interview_credits", 0) or 0)}
+        if plan == "paid":
+            u = _mem_users.get(uid) or {}
+            consumed = s.get("credit_consumed")
+            if consumed is None:
+                consumed = not bool(u.get("paid"))
+            if not consumed or bool(u.get("paid")):
+                return {"status": "no_refund_needed", "session_id": session_id,
+                        "reason": "unlimited-paid session consumed no credit"}
+            new_total = int(u.get("interview_credits", 0) or 0) + 1
+            u["interview_credits"] = new_total
+            _mem_users[uid] = u
+            s["refunded"] = True
+            s["refunded_at"] = _now()
+            return {"status": "refunded", "session_id": session_id,
+                    "user_id": uid, "refund_type": "credit",
+                    "credits_refunded": 1, "new_total": new_total}
+        return {"status": "no_refund_needed", "session_id": session_id,
+                "reason": f"unknown plan {plan!r}"}
+    from google.cloud import firestore as _fs
+    db = get_db()
+    sref = db.collection("sessions").document(session_id)
+
+    @_fs.transactional
+    def _refund(transaction):
+        snap = sref.get(transaction=transaction)
+        if not snap.exists:
+            return {"status": "not_found", "session_id": session_id}
+        s = snap.to_dict() or {}
+        if s.get("score") is not None:
+            return {"status": "already_scored", "session_id": session_id}
+        if s.get("denied"):
+            return {"status": "denied", "session_id": session_id}
+        if s.get("refunded"):
+            return {"status": "already_refunded", "session_id": session_id,
+                    "user_id": str(s.get("user_id", ""))}
+        if _session_is_live(s):
+            return {"status": "session_active", "session_id": session_id}
+        age = _session_age_sec(s)
+        max_dur = int(s.get("max_duration_sec") or s.get("maxSeconds") or 900)
+        if s.get("ended_at") is None:
+            if age is None or age <= (max_dur + ACTIVE_SESSION_GRACE_SEC):
+                return {"status": "not_abandoned", "session_id": session_id}
+        plan = s.get("plan")
+        uid = str(s.get("user_id", ""))
+        uref = db.collection("users").document(uid)
+        usnap = uref.get(transaction=transaction)
+        udata = usnap.to_dict() if usnap.exists else {}
+        if plan == "free_trial":
+            return {"status": "no_refund_needed", "session_id": session_id,
+                    "reason": "free_trial burns nothing until scored"}
+        if plan == "free_mini":
+            transaction.set(sref, {"refunded": True, "refunded_at": _now()}, merge=True)
+            transaction.set(uref, {"free_mini_used": False}, merge=True)
+            return {"status": "refunded", "session_id": session_id,
+                    "user_id": uid, "refund_type": "free_mini_release",
+                    "new_total": int(udata.get("interview_credits", 0) or 0)}
+        if plan == "paid":
+            consumed = s.get("credit_consumed")
+            if consumed is None:
+                consumed = not bool(udata.get("paid"))
+            if not consumed or bool(udata.get("paid")):
+                return {"status": "no_refund_needed", "session_id": session_id,
+                        "reason": "unlimited-paid session consumed no credit"}
+            # Atomic: mark refunded + Increment credit in ONE transaction.
+            # The refunded flag is checked first in this txn, so a
+            # concurrent second refund sees refunded=True and returns
+            # already_refunded without a second Increment.
+            transaction.set(sref, {"refunded": True, "refunded_at": _now()}, merge=True)
+            transaction.set(uref, {"interview_credits": _fs.Increment(1)}, merge=True)
+            new_total = int(udata.get("interview_credits", 0) or 0) + 1
+            return {"status": "refunded", "session_id": session_id,
+                    "user_id": uid, "refund_type": "credit",
+                    "credits_refunded": 1, "new_total": new_total}
+        return {"status": "no_refund_needed", "session_id": session_id,
+                "reason": f"unknown plan {plan!r}"}
+
+    return _refund(db.transaction())
+
+
 # ---------- referrals ----------
 def claim_referral(user_id: str, referrer_id: str) -> dict:
     """Claim a referral bonus: the new user gets +1 interview credit AND the
     referrer gets +1 credit plus referral_count/referral_earned incremented.
     One claim per user ever (idempotent guard).
-    Raises ValueError("self_referral" | "already_claimed" | "referrer_not_found").
+    FIX 3: NEVER auto-mint a user doc for a claimant that doesn't exist —
+    the claimant doc must already exist (created via verified
+    /api/auth/telegram). Raises ValueError("claimant_not_found") when it
+    doesn't. Raises ValueError("self_referral" | "already_claimed" |
+    "referrer_not_found" | "claimant_not_found").
     """
     uid, rid = str(user_id), str(referrer_id)
     if uid == rid:
         raise ValueError("self_referral")
     if not is_db_available():
+        if uid not in _mem_users:
+            raise ValueError("claimant_not_found")
         u = _mem_users.get(uid) or {}
         if u.get("referral_claimed"):
             raise ValueError("already_claimed")
@@ -742,7 +1096,10 @@ def claim_referral(user_id: str, referrer_id: str) -> dict:
     @_fs.transactional
     def _claim(transaction):
         udoc = uref.get(transaction=transaction)
-        udata = (udoc.to_dict() or {}) if udoc.exists else {}
+        if not udoc.exists:
+            # FIX 3: never auto-mint a claimant doc — caller must 404.
+            raise ValueError("claimant_not_found")
+        udata = (udoc.to_dict() or {})
         if udata.get("referral_claimed"):
             raise ValueError("already_claimed")
         rdoc = rref.get(transaction=transaction)

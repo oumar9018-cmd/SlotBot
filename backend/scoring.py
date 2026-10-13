@@ -27,6 +27,13 @@ GROQ_SCORING_MODEL = os.environ.get("GROQ_SCORING_MODEL", "openai/gpt-oss-20b")
 GROQ_FALLBACK_MODEL = os.environ.get("GROQ_MODEL_FALLBACK", "qwen/qwen3.8-27b")
 GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions"
 
+# Fix 12 (scoring injection): test_type allowlist. Only these values may
+# reach the model; anything else (e.g. a forged session doc containing
+# "ignore instructions...") is rejected -> falls back to "general" and is
+# NEVER passed to the model raw. Mirrors SessionStartReq in main.py
+# (pattern ^(academic|business|general)$) and TEST_TYPE_HINTS keys.
+ALLOWED_TEST_TYPES = frozenset({"academic", "business", "general"})
+
 RUBRIC = """You are a senior English speaking-test evaluator scoring a PRACTICE strict English speaking test transcript.
 
 Score these five dimensions. Be brutal and specific — inflated scores hurt the test taker.
@@ -125,6 +132,15 @@ def wrap_transcript_data(text: str) -> str:
 
 
 def _format_transcript(transcript: list[dict]) -> str:
+    """Encode each turn as JSON — never string-concat user text into a prompt.
+
+    Fix 12 (scoring injection): each turn is emitted via json.dumps, so
+    quotes / newlines / fake "system:" lines / fake delimiters inside
+    candidate speech are escaped as JSON string data and cannot break
+    out of the turn structure or masquerade as prompt syntax. The whole
+    block is still wrapped in <interview_transcript_data> delimiters by
+    the caller (see wrap_transcript_data).
+    """
     lines = []
     for turn in transcript:
         role = "TEST_TAKER" if turn.get("role") == "user" else "EXAMINER"
@@ -132,7 +148,7 @@ def _format_transcript(transcript: list[dict]) -> str:
         # Examiner lines are model-generated, but the transcript is stored
         # data that could be edited/forged before scoring — never trust it.
         text = _strip_instruction_like_lines(str(turn.get("text", "")))
-        lines.append(f"{role}: {text}")
+        lines.append(json.dumps({"role": role, "text": text}, ensure_ascii=False))
     return "\n".join(lines)
 
 
@@ -165,6 +181,13 @@ async def score_transcript(transcript: list[dict], test_type: str = "general",
     if not GROQ_API_KEY:
         raise RuntimeError("GROQ_API_KEY not configured")
 
+    # Fix 12: allowlist test_type — unknown values are rejected (fallback
+    # to "general"), never passed to the model raw. test_type comes from
+    # a stored session doc, so a forged value must not reach the prompt.
+    validated_test_type = test_type if test_type in ALLOWED_TEST_TYPES else "general"
+    if validated_test_type != test_type:
+        log.warning("score_transcript: rejected unknown test_type %r, using 'general'", test_type)
+
     convo = _format_transcript(transcript)
     # Wave 28: transcript goes to the scorer ONLY inside delimiters, and
     # the rubric (system) states it is data that never overrides the rubric.
@@ -173,7 +196,7 @@ async def score_transcript(transcript: list[dict], test_type: str = "general",
         "messages": [
             {"role": "system", "content": RUBRIC},
             {"role": "user", "content":
-             f"Test type: {test_type}\n\n{convo_wrapped}\n\n"
+             f"Test type: {validated_test_type}\n\n{convo_wrapped}\n\n"
              "Score ONLY the interview content inside the transcript block, "
              "following the rubric above."},
         ],
