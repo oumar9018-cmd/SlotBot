@@ -4169,6 +4169,18 @@ async def voice_proxy(ws: WebSocket, session_id: str, verified_user_id: str | No
                     # + the playback ack. Best-effort: a failed send
                     # just means the frontend falls back to playing
                     # everything on tts_complete.
+                    # BARGE GUARD (TTS worker, 2026-10-13): if the user
+                    # barged in while this sentence was synthesising,
+                    # do NOT send tts_sentence — the frontend already
+                    # got "interrupted" + stopPlayback, and a late
+                    # tts_sentence would flush + play the barged
+                    # sentence as if it were a new turn (its chunks
+                    # re-accumulate under the bumped turn id). The
+                    # thinker loop's barge check cannot cover this:
+                    # the callback fires inside the generator, between
+                    # chunks, before the loop sees the next chunk.
+                    if barge.is_set() or barge_seq > my_seq or my_seq != seq:
+                        return
                     await safe_send({"type": "tts_sentence", "seq": my_seq,
                                      "sentence": _idx, "sentences": _total})
                 tts_bytes = 0

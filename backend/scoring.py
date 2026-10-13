@@ -327,11 +327,11 @@ def _money_near(text: str, kw_start: int, kw_end: int):
     tuition. Falls back to the LAST money before the keyword in the same
     clause ("I have $40,000 in savings"). Returns (usd, raw) or None.
     """
-    after = re.split(r"[.,;\n]", (text or "")[kw_end:kw_end + 80], maxsplit=1)[0]
+    after = re.split(r"[;\n]|,\s|\.\s", (text or "")[kw_end:kw_end + 80], maxsplit=1)[0]
     for value, raw in _iter_money(after):
         return value, raw
     before = (text or "")[max(0, kw_start - 60):kw_start]
-    before = re.split(r"[.,;\n]", before)[-1]
+    before = re.split(r"[;\n]|,\s|\.\s", before)[-1]
     last = None
     for value, raw in _iter_money(before):
         last = (value, raw)
