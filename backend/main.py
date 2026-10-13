@@ -1,17 +1,39 @@
 """
-Strict English Voice Test — Backend (FastAPI)
-AI-powered strict English speaking test. Stern examiner persona via Grok (xAI)
+MockGrill — Backend (FastAPI)
+AI-powered mock interview practice. Stern examiner persona via Groq
 for dialogue, Deepgram for speech-to-text and text-to-speech.
 
 Endpoints:
   POST /api/auth/telegram           — verify Telegram initData (HMAC-SHA256), get/create user
-  POST /session/start              — create session record (no token minting; WS is server-driven)
+  POST /session/start              — create session record; mints a WS session
+                                   token (ws_token) ONLY when verified Telegram
+                                   initData is supplied (initData.user.id must
+                                   equal user_id). Without initData, ws_token
+                                   is "" and the WS must be opened with
+                                   ?initData= instead (verified per-connect).
   POST /session/end                — score transcript, save, return verdict
   POST /payment/stars-invoice      — create Telegram Stars invoice link (750 Stars)
   POST /payment/telegram-webhook   — pre_checkout approval + successful_payment handler
   GET  /affiliate/stats/{code}
-  WS   /ws/voice/{session_id}      (realtime_proxy: Deepgram STT -> Grok -> Deepgram TTS)
+  WS   /ws/voice/{session_id}?token=... | ?initData=...
+                                   (realtime_proxy: Deepgram STT -> Groq -> Deepgram TTS)
+                                   WS AUTH (Wave 37): the WS is CLOSED without
+                                   proof the caller owns the session. Exactly one
+                                   of ?token= (server-issued HMAC session token
+                                   from /session/start) or ?initData= (raw Telegram
+                                   WebApp initData, HMAC-verified, user must equal
+                                   the session owner) is required. If ?token= is
+                                   present it is authoritative — a bad token is
+                                   rejected even if initData is also supplied.
+                                   Unverified WS is closed (4401/4403/4404)
+                                   BEFORE ws.accept() and before any Deepgram
+                                   connect. Unknown session_ids are rejected —
+                                   the WS path NEVER creates sessions (the old
+                                   temp-session fallback in voice_proxy was a
+                                   free-voice hole: any random id got a session).
 """
+import asyncio
+import base64
 import os
 import time
 import logging
@@ -25,7 +47,7 @@ from pydantic import BaseModel, Field
 
 import firestore_db as db
 import scoring
-from realtime_proxy import voice_proxy
+from realtime_proxy import request_session_flush, voice_proxy
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("englishtest")
@@ -69,7 +91,7 @@ BUNDLES = {
 FREE_TRIAL_MAX_SEC = 120   # 2 min hard cutoff
 PAID_MAX_SEC = 900         # 15 min
 
-app = FastAPI(title="Strict English Voice Test API", version="0.2.0")
+app = FastAPI(title="MockGrill API", version="0.2.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -107,6 +129,11 @@ class SessionStartReq(BaseModel):
     affiliate_code: str | None = None
     background_summary: str | None = Field(None, max_length=2000,
         description="Optional applicant background for sharper examiner questions")
+    initData: str | None = Field(None,
+        description="Optional raw Telegram WebApp initData. When supplied it is "
+        "HMAC-verified BEFORE any credit is consumed, its user id must equal "
+        "user_id, and a WS session token (ws_token) is minted for this session. "
+        "Without it ws_token is '' and the WS must be opened with ?initData=.")
 
 
 class SessionStartResp(BaseModel):
@@ -115,6 +142,7 @@ class SessionStartResp(BaseModel):
     expires_in_sec: int = 0
     max_duration_sec: int
     ws_url_path: str
+    ws_token: str = ""  # server-issued WS session token ("" when no initData was verified)
 
 
 class SessionEndReq(BaseModel):
@@ -209,6 +237,80 @@ def verify_telegram_init_data(init_data: str, bot_token: str, max_age_sec: int =
 
     log.info("Telegram auth OK for user_id=%s", user["id"])
     return user
+
+
+# ---------- WS session tokens (Wave 37) ----------
+# Stateless, single-session, expiring proof of session ownership for
+# /ws/voice/{session_id}. Format (base64url, no padding):
+#   base64url("<session_id>.<user_id>.<exp_unix>.<hmac_hex>")
+# where hmac = HMAC-SHA256(key, "<session_id>.<user_id>.<exp_unix>").
+# Statelessness is deliberate: firestore_db.create_session has no token
+# field, so storing a token would need a DB-schema change. An HMAC token
+# needs no storage, is bound to ONE session + ONE owner, and expires with
+# the session (max_duration + grace). It is NOT a general auth token and
+# must never be accepted for any other session or endpoint.
+# Signing key: WS_AUTH_SECRET when set, else the Telegram bot token.
+# Set WS_AUTH_SECRET in production so WS tokens survive a bot-token rotation
+# and so a leaked bot token alone does not mint WS tokens. The key is read
+# from the environment on every call (never cached) so rotation takes effect
+# without a restart; outstanding tokens signed with the old key then fail
+# verification, which is the intended behaviour.
+
+def _ws_signing_key() -> bytes:
+    secret = os.environ.get("WS_AUTH_SECRET") or os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    return secret.encode()
+
+
+def mint_session_token(session_id: str, user_id: str, ttl_sec: int) -> str:
+    """Mint a WS session token for (session_id, user_id), valid ttl_sec seconds.
+
+    Callers MUST only mint after the caller's identity was verified (verified
+    initData whose user id equals user_id) — a token minted for an unverified
+    user_id would let anyone use a session they created for someone else.
+    Returns "" when no signing key is configured (fail-closed: the WS will
+    then only accept ?initData=).
+    """
+    if not session_id or user_id is None:
+        return ""
+    if not _ws_signing_key():
+        log.error("mint_session_token: no WS signing key (WS_AUTH_SECRET / TELEGRAM_BOT_TOKEN)")
+        return ""
+    exp = int(time.time()) + int(ttl_sec)
+    payload = f"{session_id}.{user_id}.{exp}"
+    sig = hmac.new(_ws_signing_key(), payload.encode(), hashlib.sha256).hexdigest()
+    raw = f"{payload}.{sig}"
+    return base64.urlsafe_b64encode(raw.encode()).decode().rstrip("=")
+
+
+def verify_session_token(token: str, session_id: str, expected_user_id: str) -> bool:
+    """Verify a WS session token. Returns False on ANY failure (never raises).
+
+    Checks, in order: well-formed base64url + 4 dot-separated parts, token's
+    session_id equals the URL session_id, token's user_id equals the session
+    owner's user_id, token not expired, HMAC matches (constant-time compare).
+    """
+    if not token or not session_id or expected_user_id is None:
+        return False
+    if not _ws_signing_key():
+        return False
+    try:
+        padded = token + "=" * (-len(token) % 4)
+        raw = base64.urlsafe_b64decode(padded.encode()).decode()
+        tok_sid, tok_uid, exp_s, sig = raw.split(".", 3)
+    except Exception:
+        return False
+    if tok_sid != session_id or str(tok_uid) != str(expected_user_id):
+        return False
+    try:
+        exp = int(exp_s)
+    except ValueError:
+        return False
+    if exp < time.time():
+        return False
+    expected_sig = hmac.new(
+        _ws_signing_key(), f"{tok_sid}.{tok_uid}.{exp_s}".encode(),
+        hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected_sig, sig)
 
 
 class TelegramAuthReq(BaseModel):
@@ -359,6 +461,19 @@ async def telegram_auth(req: TelegramAuthReq):
 
 @app.post("/session/start", response_model=SessionStartResp)
 async def session_start(req: SessionStartReq):
+    # Wave 37: when the client supplies initData, verify it BEFORE any credit
+    # is consumed or any session is created. A bad initData (or one for a
+    # different user) must never burn a credit — and a token is minted ONLY
+    # from verified initData, so an attacker who starts a session for
+    # someone else's user_id gets a session they cannot use on the WS
+    # (ws_token stays "" and they do not hold the victim's initData).
+    initdata_verified = False
+    if req.initData:
+        tg_user = verify_telegram_init_data(req.initData, TELEGRAM_BOT_TOKEN)
+        if str(tg_user.get("id")) != str(req.user_id):
+            raise HTTPException(403, "initData user does not match user_id")
+        initdata_verified = True
+
     user = db.get_user(req.user_id)
     if not user:
         user = db.create_user(req.user_id, affiliate_code=req.affiliate_code)
@@ -397,12 +512,24 @@ async def session_start(req: SessionStartReq):
                 log.exception("credit refund failed for user %s", req.user_id)
         raise
     log.info("session %s started for user %s plan=%s", session_id, req.user_id, req.plan)
+    # Mint the WS token ONLY from verified initData (see above). Token TTL =
+    # session length + 10 min grace for reconnects; the WS re-checks expiry.
+    ws_token = ""
+    ws_url_path = f"/ws/voice/{session_id}"
+    if initdata_verified:
+        ws_token = mint_session_token(session_id, req.user_id, ttl_sec=max_dur + 600)
+        if ws_token:
+            ws_url_path = f"/ws/voice/{session_id}?token={ws_token}"
+        else:
+            # No signing key configured — client must fall back to ?initData=.
+            log.error("session %s: initData verified but no WS signing key — no token minted", session_id)
     return SessionStartResp(
         session_id=session_id,
         ephemeral_token="",
         expires_in_sec=0,
         max_duration_sec=max_dur,
-        ws_url_path=f"/ws/voice/{session_id}",
+        ws_url_path=ws_url_path,
+        ws_token=ws_token,
     )
 
 
@@ -411,6 +538,36 @@ async def session_end(req: SessionEndReq):
     sess = db.get_session(req.session_id)
     if not sess:
         raise HTTPException(404, "Session not found")
+
+    # FLUSH-BEFORE-SCORE (VOICE WAVE 47/50): the transcript lives in the
+    # voice_proxy task's memory and only reaches DB on finish / timeup /
+    # socket close. A manual finish calls this endpoint while the WS is
+    # still open (or just closed), so scoring the DB transcript as-is
+    # 409s on "empty" even though the user spoke. Fix in two layers:
+    #  1. If the WS is still live in this process, signal it to flush
+    #     (request_session_flush -> finisher()).
+    #  2. Poll DB up to ~8s for the flushed transcript (covers the
+    #     close-then-score race: WS closed, socket-close flush in flight).
+    # Break early when the session is fully closed (ended_at set) — the
+    # flush already landed, so an empty transcript there is genuinely empty.
+    # The canonical frontend path (task 26 resync) sends {"type":"finish"}
+    # and waits for the {"type":"flushed"} ack before calling here, so in
+    # practice this loop usually breaks on the first check.
+    try:
+        request_session_flush(req.session_id)
+    except Exception:
+        log.exception("request_session_flush failed for %s", req.session_id)
+    for _ in range(16):  # 16 x 0.5s = up to 8s
+        if sess.get("score") is not None or sess.get("denied"):
+            break
+        if sess.get("transcript"):
+            break
+        if sess.get("ended_at") is not None:
+            break  # socket-close flush already landed; transcript is final
+        await asyncio.sleep(0.5)
+        sess = db.get_session(req.session_id)
+        if not sess:
+            raise HTTPException(404, "Session not found")
 
     # Feature 4: instant cut-off — the officer ended the interview early.
     if sess.get("denied"):
@@ -424,7 +581,7 @@ async def session_end(req: SessionEndReq):
             "denied_reason": reason,
             "weaknesses": [reason],
             "feedback": ("The officer stopped the interview. " + reason + ". "
-                         "Real officers don't listen to stories — answer directly, "
+                         "In a real interview, long stories get cut off — answer directly, "
                          "with facts, in under 20 seconds."),
             "nervousness_score": int(sess.get("nervousness_score", 0) or 0),
             "nervousness_level": "High" if int(sess.get("nervousness_score", 0) or 0) > 60 else "Medium",
@@ -458,9 +615,8 @@ async def session_end(req: SessionEndReq):
     if claim == "in_progress":
         # Another request is scoring right now — poll briefly for its result
         # instead of firing a duplicate Groq call.
-        import asyncio as _aio
         for _ in range(30):
-            await _aio.sleep(1)
+            await asyncio.sleep(1)
             sess = db.get_session(req.session_id)
             if sess and sess.get("score") is not None:
                 return {
@@ -473,6 +629,12 @@ async def session_end(req: SessionEndReq):
                 }
         raise HTTPException(409, "Scoring in progress — retry shortly")
     if claim == "missing":
+        raise HTTPException(404, "Session not found")
+
+    # Re-fetch: the flush may have landed while we were claiming, and the
+    # `sess` above can be up to one poll-loop iteration stale.
+    sess = db.get_session(req.session_id)
+    if not sess:
         raise HTTPException(404, "Session not found")
 
     transcript = sess.get("transcript", [])
@@ -588,15 +750,15 @@ async def stars_invoice(req: StarsInvoiceReq):
 
 
 WELCOME_TEXT = (
-    "🎤 Welcome to MockGrill — #1 AI Mock Interview Practice Bot!\n\n"
+    "🎤 Welcome to MockGrill — AI Mock Interview Practice Bot!\n\n"
     "Practice for:\n"
     "🇺🇸 US Visa Interview (F1, B1/B2, H1B)\n"
-    "❌ 214(b) Rejection Prevention\n"
+    "❌ 214(b) Rejection Practice\n"
     "💼 Job Interview Mock Test\n"
     "🎓 University Admission Interview\n\n"
     "Grilly the strict AI examiner will grill you, interrupt rambling, "
-    "catch lies, and score you 0-100 with zero mercy.\n\n"
-    "🎁 FIRST MOCK INTERVIEW FREE!\n\n"
+    "probe contradictions, and score you 0-100 with zero mercy.\n\n"
+    "🎁 FIRST 2-MINUTE GRILLING FREE!\n\n"
     "Tap below to start! 👇"
 )
 
@@ -843,7 +1005,62 @@ async def notify_daily_grilly(req: DailyGrillyReq):
 
 @app.websocket("/ws/voice/{session_id}")
 async def ws_voice(ws: WebSocket, session_id: str):
-    await voice_proxy(ws, session_id)
+    # WAVE 37 — WS AUTH GATE. Runs BEFORE ws.accept() and before voice_proxy
+    # (hence before any Deepgram/Groq connection). Closes unverified sockets
+    # without accepting them; Starlette allows close() before accept().
+    # Close codes: 4401 = missing/invalid credential, 4403 = session belongs
+    # to another user, 4404 = unknown session / lookup failed.
+    params = ws.query_params
+    token = (params.get("token") or "").strip()
+    init_data = (params.get("initData") or "").strip()
+    if not token and not init_data:
+        log.warning("ws_voice: rejected session %s — no token or initData", session_id)
+        await ws.close(code=4401, reason="missing ws auth: token or initData required")
+        return
+    try:
+        sess = db.get_session(session_id)
+    except Exception as e:
+        log.error("ws_voice: db.get_session failed for %s: %s", session_id, e)
+        await ws.close(code=4404, reason="session lookup failed")
+        return
+    if not sess:
+        log.warning("ws_voice: rejected unknown session %s", session_id)
+        await ws.close(code=4404, reason="unknown session")
+        return
+    owner = str(sess.get("user_id", "") or "")
+    if not owner:
+        log.warning("ws_voice: rejected session %s — no owner", session_id)
+        await ws.close(code=4403, reason="session has no owner")
+        return
+    # If ?token= is present it is authoritative. A bad token is rejected even
+    # when initData is also supplied (fail-closed: no silent downgrade to the
+    # weaker/fallback credential, and no oracle for which credential failed
+    # beyond the close code).
+    if token:
+        if not verify_session_token(token, session_id, owner):
+            log.warning("ws_voice: rejected session %s — invalid/expired token", session_id)
+            await ws.close(code=4401, reason="invalid or expired session token")
+            return
+        verified_user_id = owner
+    else:
+        if not TELEGRAM_BOT_TOKEN:
+            log.error("ws_voice: initData auth impossible — TELEGRAM_BOT_TOKEN not configured")
+            await ws.close(code=4401, reason="telegram auth not configured")
+            return
+        try:
+            tg_user = verify_telegram_init_data(init_data, TELEGRAM_BOT_TOKEN)
+        except HTTPException:
+            log.warning("ws_voice: rejected session %s — invalid initData", session_id)
+            await ws.close(code=4401, reason="invalid initData")
+            return
+        if str(tg_user.get("id")) != owner:
+            log.warning("ws_voice: rejected session %s — initData user != owner", session_id)
+            await ws.close(code=4403, reason="session belongs to another user")
+            return
+        verified_user_id = owner
+    # Authenticated: voice_proxy re-checks ownership (defense-in-depth) and
+    # only then accepts the socket and connects to Deepgram.
+    await voice_proxy(ws, session_id, verified_user_id=verified_user_id)
 
 
 
