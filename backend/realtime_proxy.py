@@ -14,6 +14,18 @@ Frontend protocol (over this WebSocket):
   server -> client : {"type":"session_ended"}         (compat: current frontend build)
   server -> client : {"type":"error","message":"..."}
 
+CONTINUOUS MODE (2026-10-13): mic stays on, no user_done needed.
+  - Deepgram endpointing=1200 emits speech_final after 1.2s silence →
+    dg_listener flushes → thinker responds. user_done is only a fast-path
+    (sends Finalize to Deepgram for immediate finalization).
+  - No timeout kills the session for lack of user_done; only enforcer() at
+    max_dur (intended interview duration). keepalive() prevents Deepgram
+    disconnect during silences.
+  - Barge-in is FRONTEND-DRIVEN ONLY via {"type": "interrupt"}. The backend
+    self-echo guard drops mic audio during TTS, so STT cannot trigger
+    barge-in. Frontend must detect user speech locally (energy/VAD) and
+    send interrupt. See tts_active comment for details.
+
 Backend flow:
   1. Mic audio chunks -> Deepgram STT WebSocket (nova-3, endpointing 2000ms)
   2. Final utterance transcript -> Groq chat completions (Groq, OpenAI-compatible REST)
@@ -387,6 +399,22 @@ async def voice_proxy(ws: WebSocket, session_id: str):
     closed = asyncio.Event()
     barge = asyncio.Event()       # set on barge-in; checked during TTS streaming
     flush_req = asyncio.Event()   # set on user_done; flushes pending utterance
+    tts_active = asyncio.Event()  # SELF-ECHO GUARD 2026-10-13: set while TTS
+    # streams to frontend. Mic bytes arriving during TTS are dropped (not
+    # forwarded to Deepgram) — if frontend AEC fails, examiner's own voice
+    # would otherwise be transcribed as user speech (echo loop).
+    # CONTINUOUS-MODE BARGE-IN ARCHITECTURE (2026-10-13, verified):
+    # STT-based barge-in is INTENTIONALLY NOT implemented here. The echo
+    # guard above drops all mic audio during TTS, so Deepgram can never
+    # produce a transcript that would trigger barge-in. This is by design:
+    # forwarding mic audio during TTS would let the examiner's own voice
+    # trigger false barge-ins (echo loop), cutting TTS off mid-sentence.
+    # Barge-in works ONLY via the frontend `interrupt` message: the frontend
+    # detects user speech locally (mic energy / VAD) while TTS plays, sends
+    # {"type": "interrupt"}, and the backend cancels TTS via `barge`/`seq`.
+    # Frontend MUST implement local speech detection for barge-in to work.
+    # Do NOT add STT-based barge-in without also solving the echo problem
+    # (e.g. fuzzy-matching STT against the known TTS text).
     user_turns: asyncio.Queue = asyncio.Queue()
     seq = 0                       # generation counter — invalidates stale turns
     warned_webm = False
@@ -544,6 +572,11 @@ async def voice_proxy(ws: WebSocket, session_id: str):
                 if closed.is_set():
                     break
                 if "bytes" in msg and msg["bytes"]:
+                    # SELF-ECHO GUARD: drop mic audio while TTS is streaming.
+                    # Frontend guard handles most cases; this catches any echo
+                    # that slips past (e.g. frontend guard bypassed by loud echo).
+                    if tts_active.is_set():
+                        continue
                     data = msg["bytes"]
                     if not warned_webm and data[:4] == WEBM_MAGIC:
                         warned_webm = True
@@ -748,6 +781,9 @@ async def voice_proxy(ws: WebSocket, session_id: str):
                 # TTS — the UI updates instantly instead of waiting 1-3s for audio.
                 await safe_send({"type": "status", "state": "speaking"})
                 await safe_send({"type": "transcript_examiner", "text": reply})
+                # SELF-ECHO GUARD: mark TTS active so incoming mic bytes are
+                # dropped (examiner's own voice must not reach Deepgram).
+                tts_active.set()
                 # Stream TTS audio chunks as Deepgram generates them — first
                 # audio hits the frontend in ~300ms, not after the full file.
                 try:
@@ -765,6 +801,8 @@ async def voice_proxy(ws: WebSocket, session_id: str):
                 except Exception as e:
                     log.error("Deepgram TTS stream failed for %s: %s", session_id, e)
                     # text already delivered; audio skipped
+                finally:
+                    tts_active.clear()
                 await safe_send({"type": "status", "state": "listening"})
         except asyncio.CancelledError:
             pass
