@@ -686,8 +686,11 @@ async def telegram_webhook(request: Request):
         else:
             # Legacy non-bundle payment: mark paid access.
             db.mark_paid(user_id)
-            log.info("user %s credited %d interviews (bundle %s)",
-                     user_id, bundle["interviews"], bundle_id)
+            # FIX 2026-10-13 (scan HIGH): bundle is None here — old code
+            # referenced bundle["interviews"] → TypeError → webhook crash
+            # after mark_paid succeeded. Log without bundle reference.
+            log.info("user %s granted legacy paid access (bundle %s)",
+                     user_id, bundle_id)
         if payload_token:
             db.mark_invoice_used(payload_token)
         log.info("user %s paid %s Stars (charge %s)",
