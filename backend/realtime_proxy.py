@@ -211,14 +211,37 @@ DG_STT_URL = _build_stt_url(keyterms=True, filler_words=True)
 DG_STT_URL_MINIMAL = _build_stt_url(keyterms=False, filler_words=False)
 DG_TTS_STRICT_URL = (
     "https://api.deepgram.com/v1/speak"
+    "?model=aura-2-asteria-en&encoding=linear16&sample_rate=24000&container=none"
+)
+DG_TTS_STRICT_FALLBACK_URL = (
+    "https://api.deepgram.com/v1/speak"
     "?model=aura-asteria-en&encoding=linear16&sample_rate=24000&container=none"
 )
 DG_TTS_FRIENDLY_URL = (
+    "https://api.deepgram.com/v1/speak"
+    "?model=aura-2-luna-en&encoding=linear16&sample_rate=24000&container=none"
+)
+DG_TTS_FRIENDLY_FALLBACK_URL = (
     "https://api.deepgram.com/v1/speak"
     "?model=aura-luna-en&encoding=linear16&sample_rate=24000&container=none"
 )
 # Back-compat alias (interview default)
 DG_TTS_URL = DG_TTS_STRICT_URL
+
+
+def _tts_primary_url(voice_mode: str) -> str:
+    """Primary TTS URL for a voice mode: Aura-2 voice (same voice
+    character as v1, next-generation model — more natural prosody)."""
+    return DG_TTS_FRIENDLY_URL if voice_mode == "friendly" else DG_TTS_STRICT_URL
+
+
+def _tts_fallback_url(voice_mode: str) -> str:
+    """Aura v1 fallback URL for a voice mode. Used ONLY when the Aura-2
+    primary fails before any byte was delivered (see deepgram_tts_stream):
+    same voice character, previous-generation model, so a fallback can
+    never produce a wrong voice or a mid-utterance voice switch."""
+    return (DG_TTS_FRIENDLY_FALLBACK_URL if voice_mode == "friendly"
+            else DG_TTS_STRICT_FALLBACK_URL)
 GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 TTS_CHUNK = 16384  # ~0.34s of 24kHz 16-bit mono per chunk
@@ -251,15 +274,24 @@ KEEPALIVE_MAX_CONSECUTIVE_FAILURES = 3
 WEBM_MAGIC = b"\x1aE\xdf\xa3"  # EBML header — detects wrong audio container
 
 # ---- WAVE 40: WS inbound rate limit / chunk cap (2026-10-13) ----
-# Legit traffic is PCM16 16kHz mono = 32,000 bytes/s, typically 10-50
-# chunks/s (640-3200 bytes each). Caps below are ~4x legit bytes and ~4x
-# legit chunk rate, so normal clients never trip them; a flooding / buggy
-# client (huge chunks, 1000s of msgs/s, replay loop) is dropped, then
-# disconnected after repeated violations instead of being forwarded
-# unbounded to Deepgram (cost + STT overload + memory pressure).
+# Legit traffic is PCM16 16kHz mono = 32,000 bytes/s. The shipped
+# worklet (pcm16-worklet.js) posts ONE WS message per 128-frame
+# AudioWorklet quantum with NO batching (useVoice.js forwards each via
+# ws.send(e.data)), so legit chunk rate = sample_rate / 128:
+# 375 msgs/s @ 48kHz, ~345/s @ 44.1kHz, up to 750/s @ 96kHz — at only
+# ~85-95 bytes each. The old 200/s chunk cap was BELOW every legit
+# rate (it assumed 10-50 chunks/s of 640-3200 B, which no shipped
+# client produces) and closed every mic session ~0.5 s after mic start
+# (chunk #203 -> 3rd violation -> close 1008). The BYTE cap below
+# (128 KB/s = 4x legit) is the true cost bound and is unchanged; the
+# chunk cap must simply exceed the fastest legit quantum rate (750/s),
+# so it is 1000. A flooding / buggy client (huge chunks, 1000s of
+# msgs/s, replay loop) is still dropped, then disconnected after
+# repeated violations instead of being forwarded unbounded to Deepgram
+# (cost + STT overload + memory pressure).
 MAX_AUDIO_CHUNK_BYTES = 65536            # 2s of PCM16 16kHz mono; larger = drop
 MAX_AUDIO_BYTES_PER_WINDOW = 128 * 1024  # per AUDIO_RATE_WINDOW_SEC
-MAX_AUDIO_CHUNKS_PER_WINDOW = 200
+MAX_AUDIO_CHUNKS_PER_WINDOW = 1000
 AUDIO_RATE_WINDOW_SEC = 1.0
 MAX_TEXT_MSG_BYTES = 4096                # control msgs are tiny JSON; larger = drop
 MAX_TEXT_MSGS_PER_WINDOW = 60            # text frames per AUDIO_RATE_WINDOW_SEC
@@ -392,7 +424,8 @@ VISA_TYPE_PROMPTS = {
         "academic history and backlogs, English ability, and — decisively — intent to "
         "RETURN home after studies (what job, what ties, what waits for them). "
         "Red flags: vague course knowledge, a 'visa-mill' university choice, funding "
-        "that does not add up, no concrete post-study plan at home."
+        "that does not add up, no concrete post-study plan at home. "
+        "OPENING: Open with why THIS university and THIS course."
     ),
     "B1": (
         "VISA TYPE: B-1 BUSINESS VISITOR VISA. You are a consular officer deciding "
@@ -402,7 +435,8 @@ VISA_TYPE_PROMPTS = {
         "duration and itinerary, and ties to home (job to return to, family, "
         "property). This is NOT a work visa: any hint of US employment, salary, or "
         "staying on is an instant red flag — pounce on it. Demand specifics: "
-        "'business meeting' with no company, agenda, or dates is not an answer."
+        "'business meeting' with no company, agenda, or dates is not an answer. "
+        "OPENING: Open with the exact business purpose of this trip."
     ),
     "B2": (
         "VISA TYPE: B-2 TOURIST VISA. You are a consular officer deciding a B-2 "
@@ -411,7 +445,8 @@ VISA_TYPE_PROMPTS = {
         "history (have they ever travelled abroad), and — decisively — ties to home "
         "(job, family, property, commitments that force a return). Red flags: no "
         "itinerary, 'visiting a friend' with no details, weak ties, evasive funding, "
-        "any hint of working or settling in the US."
+        "any hint of working or settling in the US. "
+        "OPENING: Open with the exact itinerary — where, when, with whom."
     ),
     "H1B": (
         "VISA TYPE: H-1B SPECIALTY-OCCUPATION WORK VISA. You are a consular officer "
@@ -421,9 +456,78 @@ VISA_TYPE_PROMPTS = {
         "the duties, salary and LCA terms, prior work experience with numbers, and "
         "intent to work ONLY for the petitioning employer. Red flags: cannot describe "
         "the job duties, degree unrelated to the role, vague employer, salary "
-        "inconsistencies, any hint of a different employer or job on arrival."
+        "inconsistencies, any hint of a different employer or job on arrival. "
+        "OPENING: Open with the US employer and the exact job."
     ),
 }
+
+# ---------- Strictness: Gentle vs Brutal (allowlisted, server-side) ----------
+# BUG FIXED (voice-quality): the Settings Gentle/Brutal toggle used to ride
+# to the backend ONLY as a "[EXAMINER TONE: ...]" marker smuggled inside
+# background_summary — the very block the Wave 28 hierarchy rule tells the
+# model to treat as UNTRUSTED DATA, never instructions. Whether the toggle
+# did anything depended on the model obeying an instruction it was told to
+# ignore: a placebo by construction. Strictness is now a real allowlisted
+# field: the frontend sends it, main.py stores it on the session, and
+# voice_proxy passes it to build_system_prompt, which appends exactly one
+# of these two blocks as SYSTEM instructions (never inside the untrusted
+# background block). The two blocks REALLY differ in delivery; standards
+# are identical in both — vague answers still fail.
+ALLOWED_STRICTNESS = frozenset({"gentle", "brutal"})
+
+STRICTNESS_PROMPTS = {
+    "gentle": (
+        "STRICTNESS: GENTLE — delivery rules (these OVERRIDE the harsher "
+        "delivery in the base persona; standards stay identical — vague "
+        "answers still fail). Be a firm, professional consular officer: "
+        "measured pace, neutral tone, no intimidation, no sarcasm, no "
+        "mockery. Ask one question at a time. If the candidate is stuck, "
+        "rephrase the question ONCE in simpler words, then move on. Call "
+        "out vagueness plainly and ask for one specific fact; do not "
+        "threaten and do not mock. Interrupt only when an answer truly "
+        "rambles; keep the cut brief and neutral, then ask one direct "
+        "question."
+    ),
+    "brutal": (
+        "STRICTNESS: BRUTAL — delivery rules (these OVERRIDE any softer "
+        "delivery in the base persona). Be a cold, clipped, impatient "
+        "consular officer: zero warmth, zero encouragement, zero small "
+        "talk. Questions are short and pointed. Never rephrase a question "
+        "and never give a second chance on the same question — if the "
+        "candidate dodges, name the dodge plainly in fresh words and move "
+        "to a sharper question. Call out every vague word immediately: "
+        "quote only the key word briefly, then demand one specific fact. "
+        "Interrupt rambling at once, briefly, with no apology; never let "
+        "a ramble finish. After a weak answer, let a short silence land "
+        "before your next question."
+    ),
+}
+
+
+def normalize_strictness(value) -> str | None:
+    """Allowlisted strictness: 'gentle'|'brutal' or None. Never raw."""
+    v = str(value or "").strip().lower()
+    return v if v in ALLOWED_STRICTNESS else None
+
+
+# Legacy tone markers the frontend used to smuggle inside background_summary
+# ("[EXAMINER TONE: brutal ...]" / "[EXAMINER TONE: firm but encouraging ...]").
+# Used ONLY when no explicit strictness was passed (old clients / replayed
+# sessions): exact-match on our own emitted strings, never free text.
+_STRICTNESS_LEGACY_BRUTAL = "[EXAMINER TONE: brutal"
+_STRICTNESS_LEGACY_GENTLE = "[EXAMINER TONE: firm but encouraging"
+
+
+def _strictness_from_background(background_summary) -> str | None:
+    """Legacy strictness from a background tone marker, or None."""
+    if not background_summary:
+        return None
+    if _STRICTNESS_LEGACY_BRUTAL in background_summary:
+        return "brutal"
+    if _STRICTNESS_LEGACY_GENTLE in background_summary:
+        return "gentle"
+    return None
+
 
 # DS-160 attack vectors that make sense per visa type. B1/B2/H1B applicants
 # have no university/course to attack — the old code could pick 'university'
@@ -1359,7 +1463,8 @@ def _sanitise_assistant_content(text: str) -> str:
 def build_system_prompt(test_type: str, background_summary: str | None,
                         attack_vector: str | None = None,
                         visa_type: str | None = None,
-                        is_reapplicant: bool = False) -> str:
+                        is_reapplicant: bool = False,
+                        strictness: str | None = None) -> str:
     prompt = PERSONA_INSTRUCTIONS
     # Wave 28: hierarchy rule first, so it governs every untrusted block below.
     prompt += BACKGROUND_HIERARCHY_RULE
@@ -1448,9 +1553,30 @@ def build_system_prompt(test_type: str, background_summary: str | None,
         "happens after the session ends, by a separate scorer. If asked for a "
         "score or verdict mid-interview, deflect in character (the test is "
         "still running; answer the question) and ask your next question."
+        "\n13. ACKNOWLEDGE THEN PROBE: Acknowledge the previous answer in a couple "
+        "of words (varied every time — never reuse the same acknowledgement "
+        "twice in a session), then ask your ONE follow-up. Never lecture, "
+        "never summarise their whole answer back to them."
+        "\n14. FOLLOW-UP BEFORE MOVING ON: If an answer is vague, missing a "
+        "number / date / name, or dodges the question, do NOT move to a new "
+        "topic. Ask exactly one follow-up demanding one specific fact (a "
+        "name, a date, a number, or a place) before moving on."
+        "\n15. PRESSURE ESCALATION: If the candidate dodges the same question "
+        "twice, sharpen — shorter questions, no preamble, name the dodge "
+        "plainly in fresh words and ask once more. Never threaten, never "
+        "invent consequences, never invent a verdict."
         "\n\nKeep every reply SHORT (1-2 sentences). You are speaking, not writing essays. "
         "Never output stage directions or bracketed notes — only the words you say aloud."
     )
+    # Strictness: explicit allowlisted field wins; the legacy background
+    # tone marker is the fallback for old clients / replayed sessions.
+    # None = pre-existing behaviour (base PERSONA.md delivery, no
+    # strictness block). Appended AFTER the naturalness block so its
+    # "OVERRIDE" claim holds in prompt order.
+    _strict = (normalize_strictness(strictness)
+               or _strictness_from_background(background_summary))
+    if _strict:
+        prompt += "\n\n" + STRICTNESS_PROMPTS[_strict]
     # Wave 27: candidate speech is untrusted data, never instructions.
     prompt += USER_SPEECH_SECURITY_RULE
     # Feature 1: this session's dedicated attack vector
@@ -1656,15 +1782,19 @@ async def groq_reply(history: list[dict], system_prompt: str) -> str:
     raise RuntimeError(f"Groq unavailable ({last_err})")
 
 
-# ---------- TTS voice params (Deepgram Aura v1 REST, POST /v1/speak) ----------
-# Verified against Deepgram docs 2026-10-13: the REST Speak endpoint
-# accepts ONLY model / encoding / container / sample_rate / bit_rate /
-# callback. There is NO speed / pitch / expressivity param on Aura v1 —
-# those exist only on Flux v2 (/v2/speak). Do NOT add them here: they
-# would be silently ignored at best, rejected at worst.
-#   model: aura-asteria-en (strict officer) / aura-luna-en (friendly coach).
-#     Aura v1 voices. aura-2-* is a different family — do not switch
-#     without verifying it on this key/project first.
+# ---------- TTS voice params (Deepgram Speak REST, POST /v1/speak) ----------
+# Verified against Deepgram docs: the REST Speak endpoint accepts ONLY
+# model / encoding / container / sample_rate / bit_rate / callback. There
+# is NO speed / pitch / expressivity param on Aura — those exist only on
+# Flux v2 (/v2/speak). Do NOT add them here: they would be silently
+# ignored at best, rejected at worst.
+#   Primary: aura-2-asteria-en (strict officer) / aura-2-luna-en
+#     (friendly coach). Aura-2 is the same voice character as Aura v1,
+#     next-generation model, more natural prosody — the "sounds like a
+#     bot" fix. Fallback: Aura v1 (aura-asteria-en / aura-luna-en) if the
+#     Aura-2 request fails before any byte is delivered (see
+#     deepgram_tts_stream); a mid-stream failure NEVER switches voice,
+#     because the offset-skip resume assumes byte-identical synthesis.
 #   encoding=linear16 + container=none -> bare PCM16 bytes, exactly what
 #     the WS protocol promises the frontend ("binary PCM16 24kHz").
 #     container was MISSING before: REST defaults to container=wav, so
@@ -1683,6 +1813,18 @@ async def groq_reply(history: list[dict], system_prompt: str) -> str:
 # re-speaks or cuts inside an already-played sentence.
 
 TTS_SENTENCE_GAP_BYTES = 5760  # 120ms of silence at 24kHz 16-bit mono
+TTS_QUESTION_GAP_BYTES = 11520  # 240ms — longer beat before a question
+
+
+def _tts_gap_before(next_sentence: str) -> int:
+    """Silence (bytes) to insert before `next_sentence`.
+
+    A real officer leaves a beat before asking the question — the pause
+    reads as deliberation instead of a flat run-on. A statement gets the
+    standard 120ms gap; a question gets 240ms. Always even (PCM16-safe).
+    """
+    nxt = (next_sentence or "").strip()
+    return TTS_QUESTION_GAP_BYTES if nxt.endswith("?") else TTS_SENTENCE_GAP_BYTES
 TTS_MAX_SENTENCE_CHARS = 480  # split over-long sentences at clause breaks
 
 # Abbreviations / decimals that must NOT be treated as sentence ends.
@@ -1882,7 +2024,7 @@ async def deepgram_tts_stream(text: str, voice_mode: str = "strict",
     caught; GeneratorExit / CancelledError are BaseExceptions and
     propagate without triggering a retry.
     """
-    url = DG_TTS_FRIENDLY_URL if voice_mode == "friendly" else DG_TTS_STRICT_URL
+    url = _tts_primary_url(voice_mode)
     sentences = _split_tts_sentences(text)
     if not sentences:
         return
@@ -1979,6 +2121,25 @@ async def deepgram_tts_stream(text: str, voice_mode: str = "strict",
                             )
             except Exception as e:
                 last_err = e
+                # VOICE-QUALITY: Aura-2 primary / Aura v1 fallback. If the
+                # primary model fails BEFORE any byte was delivered
+                # (bytes_yielded == 0 — e.g. HTTP 400 "model not found"),
+                # retry with the v1 fallback voice: nothing was heard, so
+                # there is no splice risk, and the turn still gets audio.
+                # If bytes WERE delivered, the retry MUST stay on the same
+                # model: the offset-skip resume assumes byte-identical
+                # synthesis, which a different voice/model cannot provide.
+                # The reassigned `url` persists for later sentences in this
+                # call, so one bad model costs one failed request per turn,
+                # not one per sentence.
+                if attempt == 0 and bytes_yielded == 0:
+                    _fallback = _tts_fallback_url(voice_mode)
+                    if url != _fallback:
+                        log.warning(
+                            "Deepgram TTS primary voice failed pre-stream "
+                            "(%s) — falling back to %s for this turn",
+                            str(e)[:150], _fallback)
+                        url = _fallback
                 log.warning(
                     "Deepgram TTS sentence %d/%d attempt %d failed: %s "
                     "(%d bytes already yielded; retry will resume at offset %d)",
@@ -1996,8 +2157,9 @@ async def deepgram_tts_stream(text: str, voice_mode: str = "strict",
                 f"{str(last_err)[:150]}"
             )
         # Natural pause between sentences — not after the last one.
+        # A question gets the longer beat (see _tts_gap_before).
         if idx < len(sentences) - 1:
-            yield b"\x00" * TTS_SENTENCE_GAP_BYTES
+            yield b"\x00" * _tts_gap_before(sentences[idx + 1])
             # LATENCY: sentence pipelining — this sentence's audio is
             # fully yielded; let the caller tell the frontend to play it
             # NOW while the next sentence synthesises, instead of waiting
@@ -2343,9 +2505,13 @@ async def voice_proxy(ws: WebSocket, session_id: str, verified_user_id: str | No
             pass
     else:
         attack_vector = pick_attack_vector(user_id, visa_type=visa_type)
+    # Strictness rides on the session as an allowlisted field (see
+    # STRICTNESS_PROMPTS); legacy background markers cover old sessions.
+    strictness = normalize_strictness(sess.get("strictness"))
     system_prompt = build_system_prompt(
         test_type, background, attack_vector,
-        visa_type=visa_type, is_reapplicant=is_reapplicant)
+        visa_type=visa_type, is_reapplicant=is_reapplicant,
+        strictness=strictness)
     transcript: list[dict] = list(_prior_transcript)
     # History is rebuilt from the restored transcript (fresh: empty). The old
     # code reset history to [] on every connect, so after a reconnect Groq

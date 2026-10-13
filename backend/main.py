@@ -575,6 +575,12 @@ class SessionStartReq(BaseModel):
     # picker sends this, and only for visa-style sessions.
     visa_type: str | None = Field(None, pattern="^(F1|B1|B2|H1B)$",
         description="Visa type for visa-style sessions: F1|B1|B2|H1B")
+    # FINAL BUG-SWEEP Patch A: examiner delivery as a structured,
+    # allowlisted field — replaces the "[EXAMINER TONE: ...]" marker the
+    # frontend used to smuggle inside background_summary (realtime_proxy
+    # still honours legacy markers as a fallback for old sessions).
+    strictness: str | None = Field(None, pattern="^(gentle|brutal)$",
+        description="Examiner delivery: gentle|brutal. Allowlisted; None = default delivery.")
     is_reapplicant: bool = Field(False,
         description="True when the applicant was refused before (214(b) "
         "re-application mode). Also auto-detected from background text.")
@@ -1067,10 +1073,14 @@ def _ended_at_age_sec(sess: dict) -> float | None:
 
 @app.post("/session/start", response_model=SessionStartResp)
 async def session_start(req: SessionStartReq, request: Request):
-    # Entity rate limits: 10/IP/min + 3/user/min (on top of the global
-    # per-IP middleware budget). Checked before any credit moves.
+    # Per-IP budget (10/min) stays FIRST: the abuse backstop, on top of
+    # the global per-IP middleware budget.
     _require_rate(f"ip-session-start:{_client_ip(request)}", 10)
-    _require_rate(f"entity-session-start:{req.user_id}", 3)
+    # GATE: the per-user budget (3/min) is enforced AFTER the gate loop
+    # below (see GATE note there) — 409 rejections (idempotency replay,
+    # SESSION_ACTIVE, ENDED_UNSCORED) must not consume it, or a user
+    # working the gate dialog (LET'S GO -> 409 -> DISCARD -> 409 ->
+    # LET'S GO) 429s on the 4th tap and the gate feels infinite.
     # Null-user guard: whitespace-only ids never reach Firestore (empty
     # string is already rejected by the pydantic min_length=1 → 422).
     if not req.user_id or not req.user_id.strip():
@@ -1254,6 +1264,13 @@ async def session_start(req: SessionStartReq, request: Request):
                 "your previous interview ended but was never scored; "
                 "score it (SCORE ME NOW) or refund it instead of starting a new one.")
 
+    # GATE: per-user budget (3/min) enforced HERE — after idempotency
+    # replay, SESSION_ACTIVE, and the ended-unscored gate loop above.
+    # Those 409 rejections must not consume it (see GATE note at the
+    # top of session_start). Only attempts that reach credit consumption
+    # count. The per-IP check at the top is still the abuse backstop.
+    _require_rate(f"entity-session-start:{req.user_id}", 3)
+
     consumed_credit = False
     claimed_mini = False
     if req.plan == "free_trial":
@@ -1263,6 +1280,26 @@ async def session_start(req: SessionStartReq, request: Request):
             raise HTTPException(
                 402,
                 "TRIAL_ALREADY_USED: Free trial already used — upgrade to continue")
+        # FINAL BUG-SWEEP Patch B: enforce the 3-day trial window +
+        # trial_credits on the SERVER (the frontend peek enforced them
+        # locally, so a direct API call could start unlimited trials).
+        # trial_credits None = legacy user without the field: backfill
+        # semantics (0 if used else 1). trial_started_at <= 0 = unknown
+        # start: do NOT 402 on expiry (cannot prove expiry).
+        _trial_credits = user.get("trial_credits")
+        if _trial_credits is None:
+            _trial_credits = 0 if user.get("free_trial_used") else 1
+        if int(_trial_credits or 0) <= 0:
+            raise HTTPException(
+                402,
+                "TRIAL_ALREADY_USED: Free trial already used — upgrade to continue")
+        _trial_started = int(user.get("trial_started_at") or 0)
+        if _trial_started > 0:
+            _trial_age_ms = int(time.time() * 1000) - _trial_started
+            if _trial_age_ms > 3 * 24 * 60 * 60 * 1000:
+                raise HTTPException(
+                    402,
+                    "TRIAL_EXPIRED: Free trial expired (3-day window) — upgrade to continue")
         max_dur = FREE_TRIAL_MAX_SEC
     elif req.plan == "free_mini":
         # Atomic claim BEFORE session creation. If the session create
@@ -1301,6 +1338,7 @@ async def session_start(req: SessionStartReq, request: Request):
             credit_consumed=consumed_credit,
             visa_type=req.visa_type,
             is_reapplicant=_reapplicant,
+            strictness=req.strictness,
         )
     except Exception:
         # Session creation failed after we consumed a credit / claimed the
@@ -2261,8 +2299,10 @@ async def notify_daily_grilly(req: DailyGrillyReq, request: Request):
             text = (
                 f"🔥 Grilly is watching, {name}.\n\n"
                 f"Today's brutal question:\n\"{q}\"\n\n"
-                "Reply with a VOICE NOTE and I'll roast your answer in one line. "
-                "Or tap below and practice properly — before the real officer does this to you."
+                # FINAL BUG-SWEEP Patch C: the old copy promised a voice-note
+                # roast, but the webhook has NO voice handler — a false
+                # promise. Fixed copy only (no voice handler built).
+                "Tap below and practice properly — before the real officer does this to you."
             )
             try:
                 await tg_api("sendMessage", {

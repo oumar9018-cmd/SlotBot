@@ -273,7 +273,8 @@ def create_session(user_id: str, test_type: str, plan: str,
                    idempotency_key: str | None = None,
                    credit_consumed: bool = False,
                    visa_type: str | None = None,
-                   is_reapplicant: bool = False) -> str:
+                   is_reapplicant: bool = False,
+                   strictness: str | None = None) -> str:
     sid = uuid.uuid4().hex[:16]
     data = {
         "user_id": str(user_id),
@@ -283,6 +284,9 @@ def create_session(user_id: str, test_type: str, plan: str,
         # is_reapplicant is a bool. Older sessions simply lack these keys.
         "visa_type": visa_type if visa_type in ("F1", "B1", "B2", "H1B") else None,
         "is_reapplicant": bool(is_reapplicant),
+        # FINAL BUG-SWEEP Patch A: structured examiner delivery, allowlisted
+        # here too (defense-in-depth — a raw value never lands in the doc).
+        "strictness": strictness if strictness in ("gentle", "brutal") else None,
         "plan": plan,
         "plan": plan,
         "max_duration_sec": max_duration_sec,
@@ -985,6 +989,21 @@ def use_interview_credit(user_id: str) -> bool:
 
 
 # ---------- refund-on-abandon (FIX 14) ----------
+def _transcript_has_real_user_answer(transcript) -> bool:
+    """True when any user turn carries real answer content (any
+    alphanumeric char). Same rule as scoring._has_real_answer —
+    placeholder-only turns ('...', '???', whitespace) are STT
+    placeholders, not answers. Used by refund-on-abandon so a free
+    session WITH real answers cannot be DISCARDed for a fresh free one
+    (the DISCARD reuse hole): real answers CONSUME the free session,
+    only a zero-answer session releases it."""
+    for _turn in (transcript or []):
+        if isinstance(_turn, dict) and _turn.get("role") == "user":
+            if any(ch.isalnum() for ch in str(_turn.get("text") or "")):
+                return True
+    return False
+
+
 def refund_abandoned_session(session_id: str) -> dict:
     """FIX 14: refund a session abandoned after credit burn but never
     started/scored. Transactional + idempotent, never double-refunds.
@@ -998,9 +1017,13 @@ def refund_abandoned_session(session_id: str) -> dict:
     (credit_consumed=True, or legacy sessions where the user is not
     unlimited-paid) get +1 credit back via Increment inside the same
     transaction that marks refunded=True. plan='free_mini' releases the
-    mini claim instead (no interview credit was burned). plan='free_trial'
-    and unlimited-paid sessions get status='no_refund_needed' (the trial
-    is only marked used on scoring, so nothing was burned).
+    mini claim instead (no interview credit was burned) — but ONLY when
+    the transcript has ZERO real user answers; with real answers the
+    claim stays consumed (refund_type='free_mini_consumed'). plan='free_trial'
+    with real answers CONSUMES the trial (free_trial_used=True,
+    trial_credits=0, status='refunded'); with zero real answers it gets
+    status='no_refund_needed' (the trial is only marked used on scoring,
+    so nothing was burned). Unlimited-paid sessions: no_refund_needed.
 
     Returns {"status": "refunded"|"already_refunded"|"not_found"|
     "already_scored"|"denied"|"session_active"|"not_abandoned"|
@@ -1032,12 +1055,32 @@ def refund_abandoned_session(session_id: str) -> dict:
                 return {"status": "not_abandoned", "session_id": session_id}
         plan = s.get("plan")
         uid = str(s.get("user_id", ""))
+        _has_real = _transcript_has_real_user_answer(s.get("transcript"))
         if plan == "free_trial":
+            if _has_real:
+                # DISCARD reuse hole (FINAL BUG-SWEEP Patch B): real
+                # answers consumed the trial — mark it used and mark the
+                # session refunded (stops it blocking) WITHOUT releasing
+                # anything. A fresh free_trial start must now 402.
+                s["refunded"] = True
+                s["refunded_at"] = _now()
+                if uid in _mem_users:
+                    _mem_users[uid]["free_trial_used"] = True
+                    _mem_users[uid]["trial_credits"] = 0
+                return {"status": "refunded", "session_id": session_id,
+                        "user_id": uid, "refund_type": "free_trial_consumed",
+                        "reason": "free_trial had real answers — trial consumed"}
             return {"status": "no_refund_needed", "session_id": session_id,
                     "reason": "free_trial burns nothing until scored"}
         if plan == "free_mini":
             s["refunded"] = True
             s["refunded_at"] = _now()
+            if _has_real:
+                # Real answers consumed the mini — claim stays used.
+                return {"status": "refunded", "session_id": session_id,
+                        "user_id": uid, "refund_type": "free_mini_consumed",
+                        "reason": "free_mini had real answers — claim kept",
+                        "new_total": int((_mem_users.get(uid) or {}).get("interview_credits", 0) or 0)}
             if uid in _mem_users:
                 _mem_users[uid]["free_mini_used"] = False
             return {"status": "refunded", "session_id": session_id,
@@ -1091,11 +1134,28 @@ def refund_abandoned_session(session_id: str) -> dict:
         uref = db.collection("users").document(uid)
         usnap = uref.get(transaction=transaction)
         udata = usnap.to_dict() if usnap.exists else {}
+        _has_real = _transcript_has_real_user_answer(s.get("transcript"))
         if plan == "free_trial":
+            if _has_real:
+                # DISCARD reuse hole (FINAL BUG-SWEEP Patch B): real
+                # answers consumed the trial — mark it used in the SAME
+                # transaction that marks the session refunded.
+                transaction.set(sref, {"refunded": True, "refunded_at": _now()}, merge=True)
+                transaction.set(uref, {"free_trial_used": True, "trial_credits": 0}, merge=True)
+                return {"status": "refunded", "session_id": session_id,
+                        "user_id": uid, "refund_type": "free_trial_consumed",
+                        "reason": "free_trial had real answers — trial consumed",
+                        "new_total": int(udata.get("interview_credits", 0) or 0)}
             return {"status": "no_refund_needed", "session_id": session_id,
                     "reason": "free_trial burns nothing until scored"}
         if plan == "free_mini":
             transaction.set(sref, {"refunded": True, "refunded_at": _now()}, merge=True)
+            if _has_real:
+                # Real answers consumed the mini — do NOT release the claim.
+                return {"status": "refunded", "session_id": session_id,
+                        "user_id": uid, "refund_type": "free_mini_consumed",
+                        "reason": "free_mini had real answers — claim kept",
+                        "new_total": int(udata.get("interview_credits", 0) or 0)}
             transaction.set(uref, {"free_mini_used": False}, merge=True)
             return {"status": "refunded", "session_id": session_id,
                     "user_id": uid, "refund_type": "free_mini_release",

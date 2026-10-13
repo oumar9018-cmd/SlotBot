@@ -591,6 +591,18 @@ def detect_contradictions(transcript: list[dict]):
     return store, store.contradictions
 
 
+def _has_real_answer(text) -> bool:
+    """True when a user turn carries real answer content.
+
+    Placeholder-only turns — '…', '...', '???', whitespace — are STT /
+    transcript placeholders, not answers. Any letter or digit counts as
+    real content (even a filler like 'uh' — a real utterance, however
+    poor). Used by the NO_ANSWERS gate so a session with zero real
+    answers never reaches the LLM for a fake score.
+    """
+    return any(ch.isalnum() for ch in str(text or ""))
+
+
 async def score_transcript(transcript: list[dict], test_type: str = "general",
                          nervousness_score: int = 0,
                          background_summary: str | None = None,
@@ -626,10 +638,13 @@ async def score_transcript(transcript: list[dict], test_type: str = "general",
     # state instead (no LLM call, no verdict). The frontend renders a
     # "No answers recorded" card for verdict NO_ANSWERS; the cached path
     # treats it as scored (see claim_scoring / session_end).
+    # Placeholder-only turns ('…', '...', '???') carry no answer content
+    # either — a transcript of nothing but placeholders is still
+    # NO_ANSWERS, never a fake LLM score for zero real answers.
     _user_answers = sum(
         1 for _t in (transcript or [])
         if isinstance(_t, dict) and _t.get("role") == "user"
-        and str(_t.get("text", "")).strip()
+        and _has_real_answer(_t.get("text", ""))
     )
     if _user_answers == 0:
         log.info("score_transcript: no user answers — returning NO_ANSWERS state")
