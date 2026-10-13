@@ -554,7 +554,7 @@ async def check_required_env():
     if not os.environ.get("FIREBASE_CRED_PATH"):
         log.info("FIREBASE_CRED_PATH not set — using in-memory Firestore fallback")
     if not os.environ.get("TELEGRAM_WEBHOOK_SECRET"):
-        log.info("TELEGRAM_WEBHOOK_SECRET not set — webhook secret check disabled")
+        log.warning("TELEGRAM_WEBHOOK_SECRET not set — webhook will REJECT all updates (fail-closed)")
     if missing:
         log.warning("Backend starting with missing env vars: %s", ", ".join(missing))
     else:
@@ -666,17 +666,27 @@ def verify_telegram_init_data(init_data: str, bot_token: str, max_age_sec: int =
 
     Telegram docs: https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app
     """
-    if not init_data or not bot_token:
+    if not init_data:
+        # BUG 1 logging: reason category only — never log initData contents.
+        log.warning("Telegram initData rejected: reason=missing_initdata")
+        raise HTTPException(401, "Missing initData or bot token")
+    if not bot_token:
+        # Server misconfiguration, NOT a client failure — same 401 detail
+        # kept so the error envelope/code mapping is unchanged, but the
+        # log line distinguishes it from a client-side missing initData.
+        log.warning("Telegram initData rejected: reason=missing_bot_token")
         raise HTTPException(401, "Missing initData or bot token")
 
     try:
         pairs = dict(parse_qsl(init_data, strict_parsing=True))
     except Exception:
+        log.warning("Telegram initData rejected: reason=malformed_initdata")
         raise HTTPException(401, "Malformed initData")
 
     recv_hash = pairs.pop("hash", None)
     pairs.pop("signature", None)  # not part of HMAC check (Bot API 7.0+)
     if not recv_hash:
+        log.warning("Telegram initData rejected: reason=missing_hash")
         raise HTTPException(401, "Missing hash in initData")
 
     # Data-check string: sorted key=value pairs joined by \n
@@ -688,15 +698,23 @@ def verify_telegram_init_data(init_data: str, bot_token: str, max_age_sec: int =
     calc_hash = hmac.new(secret, data_check.encode(), hashlib.sha256).hexdigest()
 
     if not hmac.compare_digest(calc_hash, recv_hash):
-        log.warning("Telegram initData HMAC verification FAILED")
+        # BUG 1 logging: reason category only — never log hashes/initData.
+        # This branch is also what a stale/wrong TELEGRAM_BOT_TOKEN on the
+        # server produces for every user, so it must stay distinguishable
+        # from missing/expired initData in the logs.
+        log.warning("Telegram initData rejected: reason=bad_signature")
         raise HTTPException(401, "Invalid initData signature")
 
     # Check auth_date freshness (default: 24h)
     try:
         auth_date = int(pairs.get("auth_date", 0))
     except ValueError:
+        log.warning("Telegram initData rejected: reason=invalid_auth_date")
         raise HTTPException(401, "Invalid auth_date")
     if auth_date + max_age_sec < time.time():
+        # age_sec is a derived number, not secret material.
+        log.warning("Telegram initData rejected: reason=expired_initdata age_sec=%s",
+                    int(time.time()) - auth_date)
         raise HTTPException(401, "initData expired — reopen the Mini App")
 
     # Parse user JSON
@@ -704,9 +722,11 @@ def verify_telegram_init_data(init_data: str, bot_token: str, max_age_sec: int =
     try:
         user = json_lib.loads(unquote(user_raw)) if user_raw else {}
     except Exception:
+        log.warning("Telegram initData rejected: reason=invalid_user_json")
         raise HTTPException(401, "Invalid user data in initData")
 
     if not user.get("id"):
+        log.warning("Telegram initData rejected: reason=missing_user_id")
         raise HTTPException(401, "No user id in initData")
 
     log.info("Telegram auth OK for user_id=%s", user["id"])
