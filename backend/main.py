@@ -1153,8 +1153,30 @@ async def session_start(req: SessionStartReq, request: Request):
     # user never got scored. 409 with a DISTINCT code the frontend routes
     # to SCORE ME NOW (score the old session) or the refund-on-abandon
     # route — never a silent re-charge.
-    ended_unscored = _db_or_503(db.find_ended_unscored_session, req.user_id)
-    if ended_unscored:
+    # GATE-LOOP FIX (parent, 2026-10-13): clear ALL blocking sessions in
+    # ONE request. The old code resolved at most ONE ended-unscored
+    # session per start attempt, so a user with N stale sessions had to
+    # SCORE/DISCARD N times — each LET'S GO re-409'd on the next one,
+    # which felt like an infinite gate loop. Now: loop the finder;
+    # auto-clearable (empty+old or NO_ANSWERS) and discard-requested
+    # sessions resolve and the loop re-checks; the FIRST scorable
+    # session without discard still 409s (fail-closed — never silently
+    # discard scorable answers). Capped at 20 passes; exhausting the
+    # cap with a block still present 409s.
+    _gate_pass = 0
+    while True:
+        ended_unscored = _db_or_503(db.find_ended_unscored_session, req.user_id)
+        if not ended_unscored:
+            break
+        _gate_pass += 1
+        if _gate_pass > 20:
+            # Pathological backlog (20 sessions resolved without ever
+            # finding none). Fail closed: do not start a new session
+            # while a block may still exist.
+            raise HTTPException(
+                409,
+                "ENDED_UNSCORED_SCORE_NOW — too many unscored interviews are "
+                "still pending; score or discard them and try again.")
         # W2 (Setup-start brick): an ended-unscored session blocks EVERY
         # new start with 409, and the only in-app escape was SCORE ME NOW
         # -> /session/end. When the old session can NEVER be scored,
@@ -1218,6 +1240,7 @@ async def session_start(req: SessionStartReq, request: Request):
             if _resolved:
                 log.info("session_start cleared ended-unscored %s for user %s (auto=%s discard=%s)",
                          _old_sid, req.user_id, _auto_clear, bool(req.discard_unscored))
+                continue  # re-check: another stale session may still block
             else:
                 raise HTTPException(
                     409,
@@ -1508,7 +1531,14 @@ async def session_end(req: SessionEndReq, request: Request):
     # so ending a free_mini session must NEVER mark the trial used — the
     # old conflation 402-looped every user whose first session was a mini.
     # Paid sessions touch no trial state.
-    if sess.get("plan") == "free_trial":
+    # Trial accounting: ONLY plan=free_trial marks the trial used — and
+    # NEVER for a NO_ANSWERS non-event. A session where no answers were
+    # recorded tested nothing, so burning the user's one free trial for
+    # it would 402-block every retry after a silent/muted interview.
+    # (Paid NO_ANSWERS self-heals via the refund-on-abandon auto-clear;
+    # free_mini self-heals via the mini-claim release there. The trial
+    # flag is one-way, so it must not be set here for NO_ANSWERS.)
+    if sess.get("plan") == "free_trial" and result.get("verdict") != "NO_ANSWERS":
         db.mark_trial_used(sess["user_id"])
     log.info("session %s scored: %s (%s) nervousness=%d", req.session_id,
              result["total"], result["verdict"], nervousness)
@@ -1535,7 +1565,8 @@ async def session_status(session_id: str, request: Request):
         ws_token=(request.query_params.get("token") or "").strip())
     return {"session_id": session_id, "plan": sess.get("plan"),
             "score": sess.get("score"), "verdict": sess.get("verdict"),
-            "denied": bool(sess.get("denied")), "ended": sess.get("ended_at") is not None,
+            "denied": bool(sess.get("denied")),
+            "ended": sess.get("ended_at") is not None or sess.get("verdict") == "NO_ANSWERS",
             "refunded": bool(sess.get("refunded")),
             **_session_timer_fields(sess)}
 
@@ -1621,7 +1652,17 @@ async def session_feedback_audio(req: FeedbackAudioReq, request: Request):
         f"Here is my honest coaching feedback. {feedback} "
         "This was a practice simulation, not an official assessment."
     )
-    audio = await deepgram_tts(script, voice_mode="friendly")
+    # TTS failure is an UPSTREAM failure (502), never a 500 and never a
+    # silent empty 200: deepgram_tts raises on empty/truncated synthesis,
+    # and the `not audio` guard covers the empty-script edge.
+    try:
+        audio = await deepgram_tts(script, voice_mode="friendly")
+    except Exception:
+        log.exception("feedback-audio TTS failed for session %s", req.session_id)
+        raise HTTPException(502, "Feedback audio unavailable — try again")
+    if not audio:
+        log.warning("feedback-audio empty synthesis for session %s", req.session_id)
+        raise HTTPException(502, "Feedback audio unavailable — empty synthesis")
     return Response(content=audio, media_type="audio/pcm")
 
 
@@ -1724,7 +1765,16 @@ async def telegram_webhook(request: Request):
     if not got or not hmac.compare_digest(got, TELEGRAM_WEBHOOK_SECRET):
         raise HTTPException(401, "Bad webhook secret")
 
-    update = await request.json()
+    # Malformed bodies are a client error (400), never a 500: an
+    # unguarded request.json() raised JSONDecodeError -> generic 500,
+    # and a non-dict JSON body (e.g. `[1,2]`) raised AttributeError on
+    # .get() below -> 500. Both are now fail-closed 400s.
+    try:
+        update = await request.json()
+    except Exception:
+        raise HTTPException(400, "Invalid JSON in webhook body")
+    if not isinstance(update, dict):
+        raise HTTPException(400, "Webhook body must be a JSON object")
     # FIX 11: per-entity rate limits on the webhook (per IP + per charge +
     # per payload). Retries of the same charge/payload are capped so a
     # replay storm cannot hammer the grant transaction.
@@ -1775,20 +1825,26 @@ async def telegram_webhook(request: Request):
 
     msg = update.get("message") or {}
 
-    # /start welcome message — must never break payment handling below
+    # /start welcome message — must never break payment handling below.
+    # Send failure is REPORTED (welcome_sent=False), never silently
+    # swallowed as a bare {"ok": true}: HTTP stays 200 (Telegram ack —
+    # a retry would fail identically) but the payload says the send
+    # failed, so logs/monitors can see it.
     text = (msg.get("text") or "").strip()
     if text.startswith("/start"):
         chat_id = (msg.get("chat") or {}).get("id")
+        welcome_sent = False
         try:
             await tg_api("sendMessage", {
                 "chat_id": chat_id,
                 "text": WELCOME_TEXT,
                 "reply_markup": WELCOME_KEYBOARD,
             })
+            welcome_sent = True
             log.info("sent /start welcome to chat %s", chat_id)
         except Exception:
             log.exception("failed to send /start welcome to chat %s", chat_id)
-        return {"ok": True}
+        return {"ok": True, "welcome_sent": welcome_sent}
 
     sp = msg.get("successful_payment")
     if sp:
