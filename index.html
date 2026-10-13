@@ -81,19 +81,62 @@
   <meta name="apple-mobile-web-app-title" content="MockGrill" />
   <meta name="msapplication-TileColor" content="#FFFBF5" />
 
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script>
+    // WORKER 4 (boot / ready ordering): Telegram helpers, defined BEFORE
+    // the telegram-web-app.js tag below so its onerror handler can use
+    // them. No auth here — ready() only tells Telegram the app has
+    // loaded; it carries no identity and creates no session.
+    // __MG_TG_READY_SENT guards our own early ready() posts (Telegram
+    // also tolerates repeats; the guard just keeps it to one).
+    window.__MG_TG_READY_SENT = false
+    window.__MG_TG_SCRIPT_FAILED = false
+    window.__MG_signalTgReady = function () {
+      try {
+        var wa = window.Telegram && window.Telegram.WebApp
+        if (wa && !window.__MG_TG_READY_SENT) {
+          window.__MG_TG_READY_SENT = true
+          wa.ready()
+        }
+      } catch (e) { /* never throw from the boot path */ }
+    }
+    // One-time retry if the Telegram CDN script fails to load (CDN
+    // blocked / network blip). Without this, window.Telegram stays
+    // undefined forever and ready()/BackButton/viewport all silently
+    // die — auth would then depend solely on the SDK URL-hash path.
+    // The retry is async (dynamic injection) but it only covers the
+    // failure case: the primary tag below is synchronous, so in the
+    // normal case the script is present before any app code runs.
+    window.__MG_TG_RETRIED = false
+    window.__MG_retryTgScript = function () {
+      try {
+        if (window.__MG_TG_RETRIED) return
+        window.__MG_TG_RETRIED = true
+        var s = document.createElement('script')
+        s.src = 'https://telegram.org/js/telegram-web-app.js'
+        s.onload = function () { window.__MG_signalTgReady() }
+        s.onerror = function () { window.__MG_TG_SCRIPT_FAILED = true }
+        document.head.appendChild(s)
+      } catch (e) { /* noop */ }
+    }
+  </script>
+  <!-- WORKER 4: NO async/defer on purpose — this tag is parser-blocking,
+       so window.Telegram.WebApp is populated BEFORE the body boot script
+       and BEFORE the deferred module bundle (main.jsx) run. Auth must
+       never race the script injection; the onerror retry above covers
+       the failure case only. -->
+  <script src="https://telegram.org/js/telegram-web-app.js" onerror="window.__MG_retryTgScript && window.__MG_retryTgScript()"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet" />
-  <script type="module" crossorigin src="./assets/index-DjL1ukuE.js"></script>
+  <script type="module" crossorigin src="./assets/index-De65mu-g.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/react-core-Baehr4Gm.js">
   <link rel="modulepreload" crossorigin href="./assets/react-dom-a-CLRV2aXt.js">
   <link rel="modulepreload" crossorigin href="./assets/react-dom-b-CyLymGSX.js">
   <link rel="modulepreload" crossorigin href="./assets/motion-vendor-CxTnz5QR.js">
   <link rel="modulepreload" crossorigin href="./assets/state-vendor-D-UHNNKl.js">
   <link rel="modulepreload" crossorigin href="./assets/tg-vendor-BcrdubQO.js">
-  <link rel="modulepreload" crossorigin href="./assets/components-VJ8XJgWw.js">
-  <link rel="stylesheet" crossorigin href="./assets/index-DxdusA3y.css">
+  <link rel="modulepreload" crossorigin href="./assets/components-B1oSgSR7.js">
+  <link rel="stylesheet" crossorigin href="./assets/index-Cq3F7682.css">
 </head>
 <body>
   <!-- SPLASH (worker 1/10): static pre-paint boot splash — see <style> above.
@@ -141,6 +184,14 @@
     </div>
   </div>
   <script>
+    // WORKER 4 (ready ordering): signal Telegram ready() at the earliest
+    // correct point — during boot parsing, BEFORE React's first render.
+    // Previously the first ready() lived in useTelegram's useEffect
+    // (post-commit), i.e. AFTER App's first render had already run the
+    // synchronous isInTelegram() gate. ready() only announces "the app
+    // has loaded"; calling it here (boot splash already painted) is
+    // correct, and the later useTelegram ready() is a harmless repeat.
+    try { if (typeof window.__MG_signalTgReady === 'function') window.__MG_signalTgReady() } catch (e) { /* noop */ }
     // SPLASH / BOOT FALLBACKS (worker 4 — timeouts / never-blank only).
     // Boot timestamp for the React splash budget.
     window.__MG_BOOT_T0 = Date.now();
