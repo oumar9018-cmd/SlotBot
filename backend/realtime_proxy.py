@@ -5,7 +5,7 @@ Frontend protocol (over this WebSocket):
   client -> server : binary PCM16 16kHz mono audio chunks (mic)
   client -> server : {"type": "interrupt"}            (barge-in)
   client -> server : {"type": "user_done"}            (frontend stop-talk hint; flushes pending utterance)
-  client -> server : {"type": "finish"} / {"type": "end_session"}
+  client -> server : {"type": "finish"}
                                                  (manual finish: flush pending utterance
                                                   + transcript to DB, then ack — the
                                                   frontend MUST wait for the "flushed"
@@ -16,6 +16,7 @@ Frontend protocol (over this WebSocket):
                                                  in DB — now call POST /session/end)
   client -> server : {"type": "playback_complete", "seq": N, "status": "ended|error|empty", "played_ms": N}  (WAVE 43: ack after examiner audio actually finished playing; backend uses it for turn timing)
   server -> client : {"type":"tts_complete","seq": N, "bytes": N, "est_duration_ms": N}  (WAVE 43: all TTS bytes sent; frontend flushes+plays accumulated audio, then acks)
+  server -> client : {"type":"tts_sentence","seq": N, "sentence": I, "sentences": M}  (LATENCY: one non-last sentence of a multi-sentence reply fully streamed; frontend flushes+plays JUST that sentence now, while the backend synthesises the rest — first audible audio arrives after the first sentence, not the whole reply. Old frontends ignore it and play everything on tts_complete.)
   server -> client : binary PCM16 24kHz mono audio chunks (examiner voice)
   server -> client : {"type":"status","state":"..."}  (connected/connecting/listening/thinking/speaking/ended)
   server -> client : {"type":"transcript_user","text":"..."}   (echo of flushed user utterance — instant "Heard you ✓")
@@ -107,6 +108,11 @@ import httpx
 import websockets
 
 import firestore_db as db
+
+# Deterministic lie detector (scoring.py is the single source of truth, so
+# the live officer and the final scorer share one extractor + one conflict
+# rule — no drift between "caught live" and "counted in scoring").
+from scoring import FactStore, detect_contradictions
 
 log = logging.getLogger("englishtest.proxy")
 
@@ -236,8 +242,9 @@ STT_PERMANENT_HTTP_STATUS = frozenset({400, 401, 403, 404})
 
 # Deepgram keepalive (WAVE 41): a single failed KeepAlive send is transient
 # (network blip / momentary DG hiccup) and must NOT end the interview.
-# Only N consecutive failures — ~15s with the 5s tick — mean the DG link is
-# actually dead, and only then does keepalive() declare failure.
+# Keepalive NEVER declares failure itself: it only flags stt_broken and
+# lets dg_listener (sole reconnect owner) run its episode budget.
+# KEEPALIVE_MAX_CONSECUTIVE_FAILURES is a log threshold only.
 KEEPALIVE_INTERVAL_SEC = 5
 KEEPALIVE_IDLE_SEC = 8
 KEEPALIVE_MAX_CONSECUTIVE_FAILURES = 3
@@ -255,6 +262,10 @@ MAX_AUDIO_BYTES_PER_WINDOW = 128 * 1024  # per AUDIO_RATE_WINDOW_SEC
 MAX_AUDIO_CHUNKS_PER_WINDOW = 200
 AUDIO_RATE_WINDOW_SEC = 1.0
 MAX_TEXT_MSG_BYTES = 4096                # control msgs are tiny JSON; larger = drop
+MAX_TEXT_MSGS_PER_WINDOW = 60            # text frames per AUDIO_RATE_WINDOW_SEC
+# (1s). Legit traffic is ~1 ping/20s + resync + a handful of control msgs
+# (user_done/finish/interrupt/playback_complete) — far below 60/s. Above
+# that is a flood (ping/pong loop, resync spam, garbage-JSON spray).
 MAX_RATE_VIOLATIONS = 3                  # drops -> close with 1008 (policy violation)
 DG_SEND_TIMEOUT_SEC = 1.0                # backpressure: drop chunk if DG won't take it
 # FIX 2 (2026-10-13): MAX_DG_SEND_TIMEOUTS no longer ends the reader.
@@ -271,12 +282,13 @@ MAX_DG_SEND_TIMEOUTS = 3                 # consecutive DG stalls (log threshold 
 # forever). Fires ONLY when a turn is actually in progress (recent mic
 # audio proves the user is speaking); a silent session with an empty turn
 # NEVER fires. First observation flags an STT reconnect + a recoverable
-# stt_failed; a second observation after a fresh reconnect still shows no
-# results -> terminal stt_failed + session close (frontend shows its
-# reconnect indicator on stt_failed; the socket close is the trigger).
+# results -> recoverable stt_failed + another reconnect flag; only
+# dg_listener's episode cap (10 episodes) ends the session, with the
+# terminal stt_failed (frontend shows its reconnect indicator on
+# stt_failed; the socket close is the trigger).
 STALL_NO_RESULT_SEC = 10.0                # no STT Results while audio flows
 STALL_AUDIO_RECENT_SEC = 3.0             # "turn in progress" = audio <3s ago
-STALL_MAX_OBSERVATIONS = 2               # observations before terminal stt_failed
+STALL_MAX_OBSERVATIONS = 2               # observations before 2nd reconnect flag (keepalive never kills; dg_listener cap owns termination)
 STALL_FAILED_THROTTLE_SEC = 10.0         # min gap between stt_failed sends
 
 # ---------- Wave 39: single-connection guard ----------
@@ -359,6 +371,133 @@ TEST_TYPE_HINTS = {
     "general": "General speaking test — probe personal background and everyday topics in depth.",
 }
 
+# ---------- Worker 16 (2026-10-13): per-visa-type officer prompts ----------
+# BUG FIXED: every visa interview previously collapsed to ONE generic prompt
+# (visa style -> backendTestType 'general' -> TEST_TYPE_HINTS["general"],
+# "General speaking test — probe personal background..."). An F1 student, a
+# B2 tourist and an H1B worker got the IDENTICAL officer: no I-20/SEVIS for
+# F1, no itinerary for B2, no employer/specialty-occupation for H1B.
+# Each visa type now gets its own DISTINCT officer prompt block, selected
+# by the Setup visa-type picker and carried on the session as `visa_type`.
+# visa_type is allowlisted (never passed to the model raw) and optional:
+# None = pre-existing behaviour (no visa block) — non-visa styles unaffected.
+ALLOWED_VISA_TYPES = frozenset({"F1", "B1", "B2", "H1B"})
+
+VISA_TYPE_PROMPTS = {
+    "F1": (
+        "VISA TYPE: F-1 STUDENT VISA. You are a consular officer deciding an F-1 "
+        "student visa. Probe: why THIS university and THIS course (not a cheaper / "
+        "better-ranked one), what the candidate knows about the campus and curriculum, "
+        "I-20 details and SEVIS, who is funding the studies and with what proof, "
+        "academic history and backlogs, English ability, and — decisively — intent to "
+        "RETURN home after studies (what job, what ties, what waits for them). "
+        "Red flags: vague course knowledge, a 'visa-mill' university choice, funding "
+        "that does not add up, no concrete post-study plan at home."
+    ),
+    "B1": (
+        "VISA TYPE: B-1 BUSINESS VISITOR VISA. You are a consular officer deciding "
+        "a B-1 business-visitor visa. Probe: the EXACT business purpose (conference, "
+        "meeting, negotiation — names, dates, organizer, invitation), who the "
+        "candidate works for and what they do there, who pays for the trip, trip "
+        "duration and itinerary, and ties to home (job to return to, family, "
+        "property). This is NOT a work visa: any hint of US employment, salary, or "
+        "staying on is an instant red flag — pounce on it. Demand specifics: "
+        "'business meeting' with no company, agenda, or dates is not an answer."
+    ),
+    "B2": (
+        "VISA TYPE: B-2 TOURIST VISA. You are a consular officer deciding a B-2 "
+        "tourist visa. Probe: the EXACT itinerary (cities, dates, what they will "
+        "see, where they will stay, who they will visit), who is paying, travel "
+        "history (have they ever travelled abroad), and — decisively — ties to home "
+        "(job, family, property, commitments that force a return). Red flags: no "
+        "itinerary, 'visiting a friend' with no details, weak ties, evasive funding, "
+        "any hint of working or settling in the US."
+    ),
+    "H1B": (
+        "VISA TYPE: H-1B SPECIALTY-OCCUPATION WORK VISA. You are a consular officer "
+        "deciding an H-1B visa. Probe: the US EMPLOYER (company, location, what it "
+        "does), the exact job title and duties, how the job is a specialty occupation "
+        "requiring the candidate's degree, the candidate's degree and how it maps to "
+        "the duties, salary and LCA terms, prior work experience with numbers, and "
+        "intent to work ONLY for the petitioning employer. Red flags: cannot describe "
+        "the job duties, degree unrelated to the role, vague employer, salary "
+        "inconsistencies, any hint of a different employer or job on arrival."
+    ),
+}
+
+# DS-160 attack vectors that make sense per visa type. B1/B2/H1B applicants
+# have no university/course to attack — the old code could pick 'university'
+# for a B2 tourist and grill them about a school they never named. F1 keeps
+# the full pool. H1B keeps 'course' out (no course) but 'sponsor' covers the
+# employer/funding probe.
+VISA_ATTACK_POOL = {
+    "F1": ("university", "sponsor", "course", "funding", "past_rejection"),
+    "B1": ("sponsor", "funding", "past_rejection"),
+    "B2": ("sponsor", "funding", "past_rejection"),
+    "H1B": ("sponsor", "funding", "past_rejection"),
+}
+
+# 214(b) re-application detection (backstop for the Setup checkbox): the
+# background summary carries the free-text pastRejection field ("214(b) in
+# 2024", "refused last year", "rejection"). A match means this session is a
+# RE-APPLICATION, not a first attempt.
+_REAPPLICANT_RE = re.compile(
+    # \b on the noun/verb forms: "No prior refusals" must NOT match
+    # ("refusals" != "refusal"), while "refused last year" / "was rejected"
+    # / "214(b) in 2024" must. Negated "never denied" still matches —
+    # accepted: the explicit Setup checkbox is the primary signal and this
+    # backstop only fires on text the user typed into pastRejection.
+    r"214\s*\(?\s*b\s*\)?|refus(?:ed|al)\b|reject(?:ed|ion)\b|denied\b|denial\b",
+    re.IGNORECASE)
+
+
+def normalize_visa_type(value) -> str | None:
+    """Allowlisted visa_type: 'F1'|'B1'|'B2'|'H1B' or None. Never raw."""
+    v = str(value or "").strip().upper()
+    return v if v in ALLOWED_VISA_TYPES else None
+
+
+_NEGATION_RE = re.compile(
+    r"\b(no|never|not|none|without|didn'?t|haven'?t|hasn'?t)\b", re.IGNORECASE)
+
+
+def detect_reapplicant(background_summary: str | None) -> bool:
+    """True if the background text mentions a prior refusal/rejection.
+
+    Negation-aware: a match preceded within ~20 chars by a negation
+    ("never denied", "not rejected", "no 214(b)") does NOT count — the
+    user is denying a refusal, not reporting one. Any non-negated match
+    counts.
+    """
+    if not background_summary:
+        return False
+    for m in _REAPPLICANT_RE.finditer(background_summary):
+        window = background_summary[max(0, m.start() - 20):m.start()]
+        if _NEGATION_RE.search(window):
+            continue
+        return True
+    return False
+
+
+# 214(b) RE-APPLICATION MODE: a re-applicant is NOT interviewed like a
+# first-timer. Section 214(b) presumes immigrant intent; the applicant bears
+# the burden of proving it wrong with NEW evidence. The officer must hammer:
+# what exactly changed since the refusal (new job, new funds, new ties),
+# why the previous answer failed, and what NEW proof exists now. A re-run
+# of the same answers = a second refusal.
+REAPPLICATION_PROMPT = (
+    "214(b) RE-APPLICATION MODE: This candidate was REFUSED before under "
+    "Section 214(b) (presumed immigrant intent). This is a re-application, "
+    "not a first interview. Your job: find out WHAT CHANGED since the refusal. "
+    "Demand specifics — what new job, new funds, new ties, or new evidence "
+    "exists that did not exist last time? Attack any answer that is just a "
+    "repeat of the refused application: 'You said the same thing last time "
+    "and were refused. What is DIFFERENT now?' Do not accept 'nothing changed "
+    "but I hope it works'. The burden is on the candidate to prove stronger "
+    "ties and a credible, changed situation. If they cannot name what changed, "
+    "say so plainly and keep pressing."
+)
+
 # ---------- Feature 1: Dynamic DS-160 Attacker ----------
 # Each session, the officer picks ONE vector to aggressively probe.
 # The last-used vector is excluded (stored per user) so the candidate
@@ -392,13 +531,19 @@ ATTACK_VECTORS = {
 }
 
 
-def pick_attack_vector(user_id: str) -> str:
-    """Pick a random attack vector, excluding the one used last session."""
+def pick_attack_vector(user_id: str, visa_type: str | None = None) -> str:
+    """Pick a random attack vector, excluding the one used last session.
+
+    The pool is visa-aware (Worker 16): B1/B2/H1B sessions never draw
+    'university'/'course' (those applicants have no school to attack).
+    """
     try:
         last = db.get_last_attack_vector(user_id)
     except Exception:
         last = None
-    pool = [v for v in ATTACK_VECTORS if v != last] or list(ATTACK_VECTORS)
+    allowed = VISA_ATTACK_POOL.get(normalize_visa_type(visa_type))
+    base = [v for v in allowed if v in ATTACK_VECTORS] if allowed else list(ATTACK_VECTORS)
+    pool = [v for v in base if v != last] or base
     chosen = random.choice(pool)
     try:
         db.set_last_attack_vector(user_id, chosen)
@@ -464,9 +609,29 @@ def wrap_background_data(text: str, max_chars: int = 2000) -> str:
 
 # ---------- Feature 2: Nervousness & Hesitation Penalty ----------
 # Filler words counted per user utterance; ratio -> 0-100 nervousness score.
+#
+# Two tiers, both counted:
+#   1. Vocalised hesitations (English): um/uh/hmm/er/ah + variants.
+#   2. Indian-English fillers: matlab, yaar, arre/arey, hai na, toh, na,
+#      kya, dekho, acha/accha, bhai — these are the hesitation particles
+#      Indian candidates actually say; the old English-only list scored
+#      them as calm, understating nervousness for the core user base.
+#
+# Deliberately NOT counted: "like", "actually", "basically", "well".
+# Those are normal discourse markers / content words ("I like CS",
+# "well, my father...") — counting every occurrence punished fluent
+# answers. "you know" stays: it carries no content in interview answers
+# and is a canonical filler phrase.
 FILLER_WORDS = {
-    "um", "uh", "umm", "uhh", "like", "you know", "actually",
-    "basically", "hmm", "er", "ah", "ahh", "well",
+    # Vocalised hesitations
+    "um", "uh", "umm", "uhh", "uhm", "ummm", "uhhh",
+    "hmm", "hmmm", "er", "erm", "ah", "ahh",
+    # Classic content-free filler phrase
+    "you know",
+    # Indian-English fillers (Hinglish hesitation particles)
+    "matlab", "matlab ki", "yaar", "arre", "arey",
+    "hai na", "haina", "toh", "na", "kya",
+    "dekho", "dekh", "acha", "accha", "bhai",
 }
 _FILLER_RE = re.compile(
     r"\b(" + "|".join(sorted(FILLER_WORDS, key=len, reverse=True)) + r")\b",
@@ -521,6 +686,33 @@ def extract_facts(text: str) -> list[str]:
     return out[:8]
 
 
+def _contradiction_sys_extra(contradictions: list[dict]) -> str:
+    """Forced cross-check block for the officer's next Groq call.
+
+    A detected contradiction is NOT a soft "ambush one soon" hint — the
+    officer MUST confront it first, before any other question. The
+    conflicting values are substrings of untrusted user speech, so they
+    stay inside <user_speech> delimiters like every other fact.
+    """
+    parts = []
+    for c in contradictions:
+        parts.append(
+            f"{c.get('field')}: earlier (turn {c.get('first_turn')}) "
+            f"{wrap_user_speech(str(c.get('first_display')))} vs now "
+            f"(turn {c.get('new_turn')}) "
+            f"{wrap_user_speech(str(c.get('new_display')))}"
+        )
+    return (
+        "\n\n[CONTRADICTION DETECTED — FORCED CROSS-CHECK. The candidate "
+        "just contradicted a fact they stated earlier: "
+        + " | ".join(parts) +
+        ". Your next reply MUST confront this contradiction FIRST, before "
+        "any other question: name both values in plain words and ask which "
+        "one is true, in ONE question. Do not move on to another topic "
+        "until the candidate resolves it.]"
+    )
+
+
 # ---------- VOICE WAVE 07/50: STT trailing-word loss (2026-10-13) ----------
 # Bug: dg_listener kept finals in `buf` and the latest interim in
 # `last_interim`, but on flush it did EITHER flush_utterance(buf) (and
@@ -532,7 +724,10 @@ def extract_facts(text: str) -> list[str]:
 # and interims accumulate via _accumulate_interim instead of overwriting
 # a disjoint continuation fragment. Word-level suffix/prefix overlap
 # de-dup prevents duplication when the interim is a cumulative
-# re-hypothesis that already contains the finals.
+# re-hypothesis that already contains the finals, and
+# _is_revision_hypothesis (similarity-based) catches re-hypotheses whose
+# first word was corrected ("Hello my name" -> "Hi my name is John"),
+# which overlap de-dup alone cannot see.
 
 
 def _longest_word_overlap(a_words: list[str], b_words: list[str]) -> int:
@@ -541,6 +736,63 @@ def _longest_word_overlap(a_words: list[str], b_words: list[str]) -> int:
         if [w.lower() for w in a_words[-k:]] == [w.lower() for w in b_words[:k]]:
             return k
     return 0
+
+
+def _norm_word(w: str) -> str:
+    """Lowercase + strip punctuation for word-level STT comparison."""
+    return re.sub(r"[^\w']", "", (w or "").lower())
+
+
+def _is_revision_hypothesis(base_words: list[str], tail_words: list[str],
+                            *, allow_short_tail: bool = False) -> bool:
+    """True when `tail` is a REVISED re-hypothesis of `base`, not new content.
+
+    Deepgram interims are cumulative re-hypotheses of the same utterance,
+    and STT can revise ANY word — including the first ("Hello my name" ->
+    "Hi my name is John", "I am from Mumbai" -> "I am from Delhi"). The
+    old code only recognised a revision when the first word matched
+    exactly, so a first-word (or middle-word) revision was APPENDED and
+    the transcript doubled: "Hello my name Hi my name is John".
+
+    Similarity rule (word-level SequenceMatcher on normalised words):
+      * longest shared contiguous block is >= 2 words (a lone shared
+        word like "I" is not a revision), AND
+      * total shared words give a SequenceMatcher ratio >= 0.50 — i.e.
+        the two strings are mostly the same words (a single-word
+        correction inside an otherwise identical sentence, "I am 22
+        years old" -> "I am 23 years old", shares 4/5 words = 0.80),
+        AND
+      * unless allow_short_tail, the tail is not much shorter than the
+        base (a short tail sharing a phrase with committed finals is a
+        fragment, not a restatement — finals must not be discarded).
+    A coincidental 2-word phrase inside a long utterance ("I am from
+    Mumbai and I want to study" -> "I want to go home", ratio 0.46) stays
+    below the threshold and is treated as new content.
+    Callers check exact suffix/prefix overlap FIRST (a true continuation
+    like base="... Delhi University" + tail="Delhi University is great"
+    merges via overlap); this fires only when overlap == 0.
+    Accepted ambiguity: a genuine new clause that restates >= half of the
+    base ("I like cricket" -> "I like football too") is treated as a
+    revision and the base is dropped — in streaming STT a restatement is
+    far more likely a re-hypothesis than a new clause, and dropping one
+    clause loses less than doubling the transcript.
+    """
+    if len(base_words) < 2 or len(tail_words) < 2:
+        return False
+    if not allow_short_tail and len(tail_words) < len(base_words) - 1:
+        return False
+    base_l = [_norm_word(w) for w in base_words]
+    tail_l = [_norm_word(w) for w in tail_words]
+    if not all(base_l) or not all(tail_l):
+        return False
+    matcher = difflib.SequenceMatcher(None, base_l, tail_l, autojunk=False)
+    blocks = [b for b in matcher.get_matching_blocks() if b.size >= 2]
+    if not blocks:
+        return False
+    # Total shared words across all blocks (a one-word correction leaves
+    # TWO shared blocks: "I am 22 years old" -> "I am 23 years old"
+    # shares [I, am] + [years, old] = 4/5 words).
+    return matcher.ratio() >= 0.50
 
 
 def _merge_transcript_text(final_text: str, interim_text: str) -> str:
@@ -555,8 +807,11 @@ def _merge_transcript_text(final_text: str, interim_text: str) -> str:
         -> "Hello my name is John"
       finals=["Hello my name"], interim="Hello my name is John"
         -> "Hello my name is John" (no duplication)
-      finals=[], interim="is John" -> "is John"
+      finals=["Hello my name"], interim="Hi my name is John"
+        -> "Hi my name is John" (first-word revision: interim restates
+        the finals with a correction — return the interim, never append)
       finals=["Hello my name"], interim="" -> "Hello my name"
+      finals=[], interim="is John" -> "is John"
     """
     base = (final_text or "").strip()
     tail = (interim_text or "").strip()
@@ -572,7 +827,13 @@ def _merge_transcript_text(final_text: str, interim_text: str) -> str:
     base_words = base.split()
     tail_words = tail.split()
     overlap = _longest_word_overlap(base_words, tail_words)
-    return " ".join(base_words + tail_words[overlap:])
+    if overlap:
+        return " ".join(base_words + tail_words[overlap:])
+    if _is_revision_hypothesis(base_words, tail_words):
+        # Revised re-hypothesis (e.g. first word corrected): the interim
+        # supersedes the finals it restates — appending would double it.
+        return tail
+    return " ".join(base_words + tail_words)
 
 
 def _accumulate_interim(prev: str, new: str) -> str:
@@ -583,7 +844,11 @@ def _accumulate_interim(prev: str, new: str) -> str:
     "Hello my name is John"): keep only the newest. But when the new
     interim is a disjoint continuation fragment (different first word,
     e.g. prev="Hello my name", new="is John"), overwriting would discard
-    the tail — so append it (with overlap de-dup).
+    the tail — so append it (with overlap de-dup). STT can also revise the
+    first word ("Hello my name" -> "Hi my name is John"): that is a
+    revision, not a continuation — _is_revision_hypothesis catches it
+    (similarity-based) so the transcript never doubles. Interims are
+    unstable, so a shorter restatement still supersedes (allow_short_tail).
     """
     prev = (prev or "").strip()
     new = (new or "").strip()
@@ -600,9 +865,15 @@ def _accumulate_interim(prev: str, new: str) -> str:
     if prev_words and new_words and prev_words[0].lower() == new_words[0].lower():
         # Same utterance start -> revised/cumulative hypothesis, keep newest.
         return new
-    # Disjoint continuation fragment -> append, stripping word overlap.
+    # Disjoint continuation fragment -> append, stripping word overlap —
+    # unless the new interim is a revised re-hypothesis of prev (e.g.
+    # first word corrected), in which case the newest supersedes prev.
     overlap = _longest_word_overlap(prev_words, new_words)
-    return " ".join(prev_words + new_words[overlap:])
+    if overlap:
+        return " ".join(prev_words + new_words[overlap:])
+    if _is_revision_hypothesis(prev_words, new_words, allow_short_tail=True):
+        return new
+    return " ".join(prev_words + new_words)
 
 
 # ---------- Wave 12: Echo-text matching ----------
@@ -624,7 +895,9 @@ def _accumulate_interim(prev: str, new: str) -> str:
 # short answer ("Yes") is never dropped on a loose resemblance.
 # Quoting-then-answering is protected: if the user transcript is much
 # longer than the examiner line (> 1.5x tokens), containment alone does
-# NOT drop it — the user added real content.
+# NOT drop it — the user added real content. PLUS the 1-word rule: a
+# single-word transcript equal to the examiner's LAST word is echo
+# (TTS tail leak), dropped even though full-text similarity is low.
 ECHO_WINDOW_SEC = 15.0
 ECHO_SIMILARITY_THRESHOLD = 0.72
 ECHO_CONTAINMENT_THRESHOLD = 0.80
@@ -663,6 +936,14 @@ def is_echo_transcript(user_text: str, examiner_text: str,
     exam_tok = exam_norm.split()
     if not user_tok or not exam_tok:
         return False
+    # 1-WORD ECHO: a single-word transcript equal to the examiner's LAST
+    # word is TTS tail leaking through the mic (examiner ends "...your
+    # university", STT hears just "university"). A genuine 1-word answer
+    # (a name / city / yes / no) almost never equals the question's last
+    # word, so this is safe to drop. Checked BEFORE the short-transcript
+    # branch below, whose full-text >= 0.90 test would miss it.
+    if len(user_tok) == 1 and user_tok[0] == exam_tok[-1]:
+        return True
     # Short transcripts are ambiguous ("Yes" vs "Yes?") — require near-exact.
     if min(len(user_tok), len(exam_tok)) < 3:
         return difflib.SequenceMatcher(None, user_norm, exam_norm).ratio() >= 0.90
@@ -901,6 +1182,88 @@ def voiced_seconds_for_chunk(data: bytes) -> float:
     return voiced
 
 
+# ---------- VOICE WAVE 22b: adaptive voiced threshold (2026-10-13) ----------
+# Fixed 400 misses quiet speakers (RMS 200-400): a long quiet ramble
+# under-counts voiced seconds and over-explain never fires for them.
+# Fix: VoicedMeter adapts the threshold DOWNWARD from 400 toward a 200
+# floor, driven by the measured room noise (10th percentile of the last
+# 500 frames ≈ 10s). It NEVER adapts upward: an upward move risks
+# speech self-suppression (a window full of loud speech would raise the
+# threshold above the speech itself), and upward adaptation is not
+# needed — the word-count gate (75 / 50 words) already stops noise-only
+# frames from ever earning a strike, since noise transcribes to ~0 words.
+# Classify-then-update ordering: each chunk is scored with the threshold
+# from the PREVIOUS window, then its frames join the window — so a chunk
+# can never suppress itself. The meter is per-connection (fresh on WS
+# reconnect); its window is room-noise history, NOT turn state, so turn
+# flush / interrupt / not_heard resets must NOT reset the meter.
+VOICED_ADAPTIVE_WINDOW_FRAMES = 500   # 10s of 20ms frames
+VOICED_ADAPTIVE_PERCENTILE = 0.10     # noise floor ≈ 10th percentile RMS
+VOICED_ADAPTIVE_FACTOR = 2.5
+VOICED_ADAPTIVE_MIN = 200.0  # floor: mic hiss (<150) must stay unvoiced
+VOICED_ADAPTIVE_MAX = 400.0  # ceiling: never above the fixed threshold
+
+
+class VoicedMeter:
+    """Per-connection adaptive voiced-speech meter.
+
+    Same 20ms-frame RMS framing as voiced_seconds_for_chunk, but the
+    threshold follows the measured room noise instead of staying fixed.
+    """
+
+    def __init__(self) -> None:
+        self._rms_window: list[float] = []
+        self.threshold = VOICED_RMS_THRESHOLD
+
+    def _update_threshold(self) -> None:
+        if not self._rms_window:
+            return
+        ordered = sorted(self._rms_window)
+        idx = min(len(ordered) - 1,
+                  max(0, int(VOICED_ADAPTIVE_PERCENTILE * len(ordered))))
+        noise_floor = ordered[idx]
+        self.threshold = min(
+            VOICED_ADAPTIVE_MAX,
+            max(VOICED_ADAPTIVE_MIN,
+                VOICED_ADAPTIVE_FACTOR * noise_floor))
+
+    def voiced_seconds(self, data: bytes) -> float:
+        """Voiced seconds in one raw PCM16 16kHz mono chunk (adaptive)."""
+        if not data or len(data) < 2:
+            return 0.0
+        if data[:4] == WEBM_MAGIC:
+            return 0.0
+        if len(data) % 2:
+            data = data[:-1]
+        frame_bytes = VOICED_FRAME_SAMPLES * 2
+        voiced = 0.0
+        frame_rms: list[float] = []
+        full_end = len(data) - len(data) % frame_bytes
+        for off in range(0, full_end, frame_bytes):
+            samples = struct.unpack_from(
+                f"<{VOICED_FRAME_SAMPLES}h", data, off)
+            rms = _frame_rms(samples)
+            frame_rms.append(rms)
+            if rms >= self.threshold:
+                voiced += VOICED_FRAME_SECONDS
+        rem = len(data) - full_end
+        if rem >= 320:  # >= 10ms trailing audio: score proportionally
+            n = rem // 2
+            samples = struct.unpack_from(f"<{n}h", data, full_end)
+            rms = _frame_rms(samples)
+            frame_rms.append(rms)
+            if rms >= self.threshold:
+                voiced += n / 16000.0
+        # Classify-then-update: this chunk's frames join the window AFTER
+        # scoring, so the chunk can never suppress itself.
+        if frame_rms:
+            self._rms_window.extend(frame_rms)
+            if len(self._rms_window) > VOICED_ADAPTIVE_WINDOW_FRAMES:
+                del self._rms_window[:-VOICED_ADAPTIVE_WINDOW_FRAMES]
+            self._update_threshold()
+        return voiced
+
+
 # ---------- Wave 27: Prompt-injection transcript delimiters ----------
 # User speech is UNTRUSTED DATA, never instructions. Every user utterance
 # sent to Groq is wrapped in <user_speech>...</user_speech> so the model
@@ -994,11 +1357,21 @@ def _sanitise_assistant_content(text: str) -> str:
 
 
 def build_system_prompt(test_type: str, background_summary: str | None,
-                        attack_vector: str | None = None) -> str:
+                        attack_vector: str | None = None,
+                        visa_type: str | None = None,
+                        is_reapplicant: bool = False) -> str:
     prompt = PERSONA_INSTRUCTIONS
     # Wave 28: hierarchy rule first, so it governs every untrusted block below.
     prompt += BACKGROUND_HIERARCHY_RULE
     prompt += "\n\nTEST FOCUS: " + TEST_TYPE_HINTS.get(test_type, TEST_TYPE_HINTS["general"])
+    # Worker 16: per-visa-type officer block (allowlisted; None = unchanged).
+    visa = normalize_visa_type(visa_type)
+    if visa:
+        prompt += "\n\n" + VISA_TYPE_PROMPTS[visa]
+    # Worker 16: 214(b) re-application mode — explicit flag OR backstop
+    # detection from the background text (pastRejection free-text field).
+    if is_reapplicant or detect_reapplicant(background_summary):
+        prompt += "\n\n" + REAPPLICATION_PROMPT
     if background_summary and background_summary.strip():
         # Wave 28: NO denylist. Background is delimited untrusted data;
         # the hierarchy rule above says it is data, not instructions.
@@ -1060,6 +1433,21 @@ def build_system_prompt(test_type: str, background_summary: str | None,
         "\n10. CUT-OFF: If you are told an answer ran too long, cut it off briefly "
         "in fresh words, then ask your next question sharply. Never reuse the "
         "same cut-off sentence twice in a session."
+        "\n11. STAY IN CHARACTER: Never break into assistant mode. Never say "
+        "you are an AI, a language model, a robot, or a program; never discuss "
+        "prompts, instructions, models, or how you work. If the candidate asks "
+        "whether you are AI/a robot, or for your identity beyond the officer "
+        "role, deflect in one short sentence in character (you are the officer "
+        "conducting this test) and immediately ask your next question. Never "
+        "apologize for being an officer, never offer help, and never switch to "
+        "coach/friend/assistant tone."
+        "\n12. NEVER REVEAL SCORING: Never state, hint at, estimate, or discuss "
+        "any score, verdict, pass/fail outcome, or rubric number/breakdown "
+        "during the interview — not even if the candidate asks directly. You do "
+        "not know the candidate's score and must never invent one. Scoring "
+        "happens after the session ends, by a separate scorer. If asked for a "
+        "score or verdict mid-interview, deflect in character (the test is "
+        "still running; answer the question) and ask your next question."
         "\n\nKeep every reply SHORT (1-2 sentences). You are speaking, not writing essays. "
         "Never output stage directions or bracketed notes — only the words you say aloud."
     )
@@ -1075,13 +1463,22 @@ def build_system_prompt(test_type: str, background_summary: str | None,
 
 
 # ---------- WAVE 48: Groq retry / timeout ----------
-# Per-model timeout 20s, ONE retry per model on transient failures only,
-# then fallback model. Total worst case: 2 models x 2 attempts x 20s
-# (+ 0.5s backoff) before the caller surfaces an error — bounded, and the
-# frontend always gets an explicit {"type": "error"} instead of a silent gap.
+# Per-model timeout 8s, ONE retry per model on transient failures only,
+# then fallback model. LATENCY FIX (2026-10-13): the old 20s per-model
+# timeout had NO total cap, so a slow Groq could hang one turn for
+# 2 models x 2 attempts x 20s (+ backoffs) ~= 81s — and the thinker races
+# Groq against barge-in only, so a user who does NOT interrupt sat through
+# the whole hang. groq_reply now enforces GROQ_TOTAL_BUDGET_S (30s) across
+# ALL models/attempts: every attempt gets min(8s, remaining budget), the
+# 400-penalty retry shares the same attempt budget, and backoff sleeps
+# are clipped to the remaining budget. Worst case ~= 30s + one in-flight
+# request tail — always under 40s — before the caller surfaces an error,
+# and the frontend always gets an explicit {"type": "error"} instead of
+# a silent gap.
 # groq_reply NEVER returns "" — an empty completion is a failure, not a
 # silent gap (previously "" fell through to thinker's silent `continue`).
-GROQ_PER_MODEL_TIMEOUT_S = 20.0
+GROQ_PER_MODEL_TIMEOUT_S = 8.0
+GROQ_TOTAL_BUDGET_S = 30.0
 GROQ_RETRY_BACKOFF_S = 0.5
 GROQ_MAX_ATTEMPTS_PER_MODEL = 2  # initial attempt + single retry
 _GROQ_TRANSIENT_STATUSES = frozenset({408, 409, 429, 500, 502, 503, 504})
@@ -1111,16 +1508,21 @@ def _is_transient_groq_failure(failure: _GroqCallFailure) -> bool:
     return msg.startswith("empty reply") or msg.startswith("malformed response")
 
 
-async def _groq_single_call(model: str, messages: list[dict]) -> str:
-    """One Groq chat-completions POST with a hard 20s per-model timeout.
+async def _groq_single_call(model: str, messages: list[dict],
+                          timeout_s: float | None = None) -> str:
+    """One Groq chat-completions POST with a hard timeout (default
+    GROQ_PER_MODEL_TIMEOUT_S; groq_reply passes min(8s, remaining total
+    budget) so the whole Groq stage can never exceed GROQ_TOTAL_BUDGET_S).
     Returns stripped non-empty content. Raises _GroqCallFailure on any
     failure (HTTP error, timeout/network error, malformed or empty reply).
     WAVE 01's repetition penalties are kept: if the endpoint rejects them
-    with HTTP 400, retry once without them rather than failing the turn."""
+    with HTTP 400, retry once without them rather than failing the turn.
+    The 400 retry shares this attempt's budget (second POST gets only the
+    time left in it), so one attempt can never cost 2x timeout."""
+    budget = timeout_s if timeout_s is not None else GROQ_PER_MODEL_TIMEOUT_S
+    started = time.monotonic()
     try:
-        async with httpx.AsyncClient(
-            timeout=httpx.Timeout(GROQ_PER_MODEL_TIMEOUT_S)
-        ) as client:
+        async with httpx.AsyncClient() as client:
             headers = {
                 "Authorization": f"Bearer {GROQ_API_KEY}",
                 "Content-Type": "application/json",
@@ -1133,15 +1535,19 @@ async def _groq_single_call(model: str, messages: list[dict]) -> str:
                 "frequency_penalty": 0.4,  # penalize reusing the same wording
                 "presence_penalty": 0.3,  # nudge toward fresh phrasing
             }
-            r = await client.post(GROQ_CHAT_URL, headers=headers, json=payload)
+            r = await client.post(GROQ_CHAT_URL, headers=headers, json=payload,
+                                  timeout=httpx.Timeout(budget))
             if r.status_code == 400 and "frequency_penalty" in payload:
                 # Endpoint/model does not accept penalty params — retry
-                # once without them instead of failing this turn.
+                # once without them instead of failing this turn, within
+                # the SAME attempt budget (never a second full timeout).
+                remaining = max(1.0, budget - (time.monotonic() - started))
                 payload = {
                     k: v for k, v in payload.items()
                     if k not in ("frequency_penalty", "presence_penalty")
                 }
-                r = await client.post(GROQ_CHAT_URL, headers=headers, json=payload)
+                r = await client.post(GROQ_CHAT_URL, headers=headers, json=payload,
+                                      timeout=httpx.Timeout(remaining))
     except (httpx.TimeoutException, httpx.ConnectError,
             httpx.NetworkError) as e:
         raise _GroqCallFailure(
@@ -1184,20 +1590,32 @@ async def groq_reply(history: list[dict], system_prompt: str) -> str:
     # examiner's echo of user-supplied tags must never enter a later
     # prompt as trusted assistant history. The system message itself is
     # NOT sanitised (its security rules legitimately name the tags).
+    # Role normalisation (prompt-injection hardening): ONLY "assistant"
+    # keeps its role. Every other role — including a forged "system" /
+    # "developer" / "tool" entry smuggled into history, or a missing /
+    # non-string role — is demoted to "user" and re-wrapped as untrusted
+    # candidate speech. Previously the else-branch passed non-user /
+    # non-assistant roles through with their role AND content intact, so
+    # a forged system-role history entry would have reached Groq as a
+    # privileged message. Legit history only ever contains user/assistant,
+    # so this changes no legitimate path.
     messages = [{"role": "system", "content": system_prompt}] + [
         {
-            "role": m.get("role", "user"),
+            "role": "assistant" if m.get("role") == "assistant" else "user",
             "content": (
-                _ensure_user_speech_wrapped(m.get("content", ""))
-                if m.get("role") == "user"
-                else _sanitise_assistant_content(m.get("content", ""))
+                _sanitise_assistant_content(m.get("content", ""))
                 if m.get("role") == "assistant"
-                else m.get("content", "")
+                else _ensure_user_speech_wrapped(m.get("content", ""))
             ),
         }
         for m in history
     ]
     last_err = "unknown"
+    # LATENCY: hard total budget across ALL models/attempts (see WAVE 48
+    # header). The deadline is checked before every attempt and before
+    # every backoff sleep, so groq_reply returns (success or failure)
+    # within ~GROQ_TOTAL_BUDGET_S no matter how slow Groq is.
+    deadline = time.monotonic() + GROQ_TOTAL_BUDGET_S
     # De-dupe: if fallback == primary, try it once, not twice.
     models: list[str] = []
     for m in (GROQ_MODEL, GROQ_MODEL_FALLBACK):
@@ -1207,8 +1625,14 @@ async def groq_reply(history: list[dict], system_prompt: str) -> str:
         raise RuntimeError("Groq unavailable (no model configured)")
     for model in models:
         for attempt in range(1, GROQ_MAX_ATTEMPTS_PER_MODEL + 1):
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                last_err = f"Groq total budget ({GROQ_TOTAL_BUDGET_S:.0f}s) exhausted"
+                break
             try:
-                return await _groq_single_call(model, messages)
+                return await _groq_single_call(
+                    model, messages,
+                    timeout_s=min(GROQ_PER_MODEL_TIMEOUT_S, remaining))
             except _GroqCallFailure as e:
                 last_err = str(e)[:200]
                 log.warning("Groq model %s attempt %d/%d failed: %s",
@@ -1216,13 +1640,19 @@ async def groq_reply(history: list[dict], system_prompt: str) -> str:
                 if (not _is_transient_groq_failure(e)
                         or attempt >= GROQ_MAX_ATTEMPTS_PER_MODEL):
                     break  # non-transient, or retry spent -> next model
-                await asyncio.sleep(GROQ_RETRY_BACKOFF_S)
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    last_err = f"Groq total budget ({GROQ_TOTAL_BUDGET_S:.0f}s) exhausted"
+                    break
+                await asyncio.sleep(min(GROQ_RETRY_BACKOFF_S, remaining))
             except Exception as e:
                 # Unexpected failure (not a classified Groq call failure):
                 # do NOT retry — fall through to the fallback model.
                 last_err = str(e)[:200]
                 log.warning("Groq model %s unexpected error: %s", model, last_err)
                 break
+        if deadline - time.monotonic() <= 0:
+            break  # budget exhausted — do not start the fallback model
     raise RuntimeError(f"Groq unavailable ({last_err})")
 
 
@@ -1379,7 +1809,8 @@ def _expected_min_tts_bytes(text: str) -> int:
     return int(len((text or "").strip()) * TTS_MIN_BYTES_PER_CHAR)
 
 
-async def deepgram_tts_stream(text: str, voice_mode: str = "strict"):
+async def deepgram_tts_stream(text: str, voice_mode: str = "strict",
+                             on_sentence_complete=None):
     """Deepgram TTS as an async generator yielding PCM16 chunks.
 
     One Deepgram request per sentence (see sentence-chunking note above);
@@ -1392,35 +1823,42 @@ async def deepgram_tts_stream(text: str, voice_mode: str = "strict"):
     across chunks would click. A lone trailing byte (half a sample) is
     dropped per sentence.
 
-    Truncation rule (VOICE WAVE 05): a stream that ends with NO exception
-    is NOT automatically success. The old code returned as soon as any
-    chunk arrived, so a connection that died mid-sentence silently
-    delivered clipped examiner audio (user hears half a question, then
-    silence). Now each attempt is buffered, validated, and only then
-    yielded:
+    LATENCY — TRUE STREAMING (2026-10-13 fix): chunks are yielded AS
+    Deepgram produces them, NOT buffered until the sentence completes.
+    The previous buffer-then-validate design held the first chunk until
+    the whole sentence was fetched + validated, which made the old
+    "~300ms first audio" claim FALSE end-to-end (first audio actually
+    arrived after full-sentence synthesis). Now the first chunk leaves
+    the backend ~as soon as Deepgram emits it, and the thinker forwards
+    it immediately; the frontend plays sentence-by-sentence (see
+    on_sentence_complete), so first audible audio arrives after the
+    FIRST sentence's synthesis, not the whole reply's.
+
+    Truncation rule (VOICE WAVE 05, kept): a stream that ends with NO
+    exception is NOT automatically success. Validation now runs at
+    stream END, after the chunks were already yielded:
     - 0 bytes -> failure, retry.
     - bytes < Content-Length (when the header is present) -> truncated,
       failure, retry.
     - bytes < _expected_min_tts_bytes(sentence) -> truncated, failure, retry.
+    A failed attempt's already-yielded audio stays heard (it cannot be
+    retracted), and the retry RESUMES after it (see offset tracking
+    below) instead of replaying it — so truncation costs a brief
+    continuation, not clipped audio and not a restart. Truncation is
+    rare; first-chunk latency affects every turn, so streaming wins.
 
-    Buffering is intentional: once a chunk is yielded the caller forwards
-    it to the frontend immediately, so a mid-stream truncation could not
-    be retracted. Buffer-then-validate makes a retry atomic — the caller
-    never sees partial audio from a failed attempt. Cost: first audio no
-    longer arrives in ~300ms; it arrives after the full sentence is
-    fetched + validated. For a 1-2 sentence examiner reply this is the
-    correct trade — clipped audio is worse than ~1s extra latency, and
-    truncation is rare.
-
-    VOICE WAVE 04 — TTS retry duplicate-audio fix (2026-10-13):
-    A retry after a mid-stream failure must not re-yield bytes already
-    delivered. This version tracks the exact offset already delivered
-    for this sentence (bytes_yielded) and, on retry, discards that many
-    leading bytes from the fresh synthesis before buffering anything, so
-    the consumer hears each byte exactly once. (With buffer-then-validate
-    a failed attempt yields nothing, so the offset is normally 0 and the
-    skip is a safety net for the case where a previous attempt's audio
-    was already yielded before a later failure in the same sentence.)
+    VOICE WAVE 04 — TTS retry duplicate-audio fix (2026-10-13; offset
+    skip RESTORED by the latency worker): a retry after a mid-stream
+    failure must not re-yield bytes already delivered. This version
+    tracks the exact offset already delivered for this sentence
+    (bytes_yielded) and, on retry, discards that many leading bytes
+    from the fresh synthesis before yielding anything, so the consumer
+    hears each byte exactly once. The skip was (rightly) removed while
+    the generator buffered-then-validated, because a failed attempt
+    then yielded nothing and the skip could never fire with a nonzero
+    offset. It is reachable AGAIN now that yields happen while
+    streaming — a failed attempt may already have delivered bytes —
+    so do NOT remove it while streaming yields inside the try.
     NOTE: Deepgram Speak has no offset/range parameter, so resume is a
     client-side skip, not a server-side seek. It assumes the same text +
     model yields a byte-identical prefix on retry (true in practice for
@@ -1430,11 +1868,19 @@ async def deepgram_tts_stream(text: str, voice_mode: str = "strict"):
     sample by 1 byte and garble the tail. A retry chunk that straddles
     the offset is sliced (chunk[to_skip:]) rather than dropped whole.
 
-    Success-path yielding happens OUTSIDE the try: a consumer break
-    (barge-in) raises GeneratorExit at the yield, which must NOT be
-    caught and retried — it is a deliberate stop, not a truncated
-    stream. Only Exception is caught; GeneratorExit / CancelledError
-    are BaseExceptions and propagate without triggering a retry.
+    on_sentence_complete: optional async callback awaited after each
+    NON-LAST sentence's audio (+ gap) has been yielded. The thinker
+    passes one that sends {"type": "tts_sentence"} so the frontend can
+    flush + play that sentence while the next one synthesises
+    (sentence pipelining). Callback failures are swallowed — they must
+    never fail the sentence. The last sentence has no callback: the
+    caller's tts_complete flush covers it.
+
+    Yielding happens INSIDE the try: a consumer break (barge-in) raises
+    GeneratorExit at the yield, which must NOT be caught and retried —
+    it is a deliberate stop, not a truncated stream. Only Exception is
+    caught; GeneratorExit / CancelledError are BaseExceptions and
+    propagate without triggering a retry.
     """
     url = DG_TTS_FRIENDLY_URL if voice_mode == "friendly" else DG_TTS_STRICT_URL
     sentences = _split_tts_sentences(text)
@@ -1442,15 +1888,18 @@ async def deepgram_tts_stream(text: str, voice_mode: str = "strict"):
         return
     for idx, sentence in enumerate(sentences):
         expected_min = _expected_min_tts_bytes(sentence)
-        # Offset tracking (04): survives across attempts for this sentence.
+        # Offset tracking (WAVE 04): survives across attempts for this
+        # sentence. Counts EVERY byte yielded to the consumer (this
+        # attempt + earlier attempts), so it is also the delivered_total
+        # used by the truncation checks below.
         bytes_yielded = 0
         ok = False
         last_err = None
         for attempt in range(2):
-            buf: list[bytes] = []
-            total_bytes = 0
             try:
-                async with httpx.AsyncClient(timeout=60) as client:
+                async with httpx.AsyncClient(
+                    timeout=httpx.Timeout(15.0, connect=5.0)
+                ) as client:
                     async with client.stream(
                         "POST",
                         url,
@@ -1495,9 +1944,13 @@ async def deepgram_tts_stream(text: str, voice_mode: str = "strict"):
                                 even = len(pending) & ~1
                                 if even:
                                     out, pending = pending[:even], pending[even:]
-                                    buf.append(out)
-                                    total_bytes += len(out)
-                        # Drop a lone trailing byte: half a 16-bit sample.
+                                    # LATENCY: yield NOW — the caller forwards
+                                    # this chunk immediately; it is not held
+                                    # for end-of-sentence validation.
+                                    bytes_yielded += len(out)
+                                    yield out
+                        # Drop a lone trailing byte: half a 16-bit sample
+                        # (still held in `pending`, never yielded).
                         if to_skip > 0:
                             # Retry synthesis was shorter than the prefix already
                             # delivered (should not happen for identical
@@ -1509,17 +1962,18 @@ async def deepgram_tts_stream(text: str, voice_mode: str = "strict"):
                                 f"already-yielded prefix ({bytes_yielded} bytes delivered)"
                             )
                         # Stream ended with no exception — validate, don't trust.
-                        delivered_total = bytes_yielded + total_bytes
-                        if total_bytes == 0 and bytes_yielded == 0:
+                        # bytes_yielded is the delivered total (this attempt +
+                        # earlier attempts' yielded bytes, after skip).
+                        if bytes_yielded == 0:
                             raise RuntimeError("empty audio stream")
-                        if content_length is not None and delivered_total < content_length:
+                        if content_length is not None and bytes_yielded < content_length:
                             raise RuntimeError(
-                                f"truncated TTS stream: got {delivered_total} bytes, "
+                                f"truncated TTS stream: got {bytes_yielded} bytes, "
                                 f"expected {content_length} (Content-Length)"
                             )
-                        if delivered_total < expected_min:
+                        if bytes_yielded < expected_min:
                             raise RuntimeError(
-                                f"truncated TTS stream: got {delivered_total} bytes, "
+                                f"truncated TTS stream: got {bytes_yielded} bytes, "
                                 f"expected at least {expected_min} for "
                                 f"{len((sentence or '').strip())} chars"
                             )
@@ -1534,13 +1988,6 @@ async def deepgram_tts_stream(text: str, voice_mode: str = "strict"):
                 if attempt + 1 < 2:
                     await asyncio.sleep(0.5)
                 continue
-            # Success path is OUTSIDE the try: yielding here means a consumer
-            # break (barge-in) raises GeneratorExit at the yield, which must
-            # NOT be caught and retried — it is a deliberate stop, not a
-            # truncated stream.
-            for chunk in buf:
-                bytes_yielded += len(chunk)
-                yield chunk
             ok = True
             break
         if not ok:
@@ -1551,6 +1998,16 @@ async def deepgram_tts_stream(text: str, voice_mode: str = "strict"):
         # Natural pause between sentences — not after the last one.
         if idx < len(sentences) - 1:
             yield b"\x00" * TTS_SENTENCE_GAP_BYTES
+            # LATENCY: sentence pipelining — this sentence's audio is
+            # fully yielded; let the caller tell the frontend to play it
+            # NOW while the next sentence synthesises, instead of waiting
+            # for the whole reply's tts_complete. A callback failure must
+            # never fail the sentence.
+            if on_sentence_complete is not None:
+                try:
+                    await on_sentence_complete(idx, len(sentences))
+                except Exception:
+                    pass
 
 
 async def deepgram_tts(text: str, voice_mode: str = "strict") -> bytes:
@@ -1787,6 +2244,38 @@ async def voice_proxy(ws: WebSocket, session_id: str, verified_user_id: str | No
         except Exception:
             pass
         return
+    # OVER-EXPLAIN: a denied session is TERMINAL — a WS reconnect must
+    # never resurrect it (denial dodge). The frontend also stops
+    # reconnecting on visa_denied / session_ended; this is the server-side
+    # enforcement, so even a crafted client cannot keep a denied interview
+    # alive (and burning Groq/TTS). ended_at alone is NOT a guard:
+    # teardown marks EVERY disconnect ended, including network blips
+    # that must resume. `denied` is set ONLY by the 3-strike deny path
+    # (thinker) / mark_session_denied, so it is the true terminal signal.
+    if sess.get("denied"):
+        log.warning("voice_proxy: rejected reconnect to denied session %s",
+                    session_id)
+        try:
+            await ws.accept()
+        except Exception:
+            return
+        try:
+            await ws.send_json({
+                "type": "visa_denied",
+                "reason": sess.get("denied_reason")
+                or "Over-explaining / Vague Answers",
+                "over_explain_count": int(
+                    sess.get("over_explain_count") or OVEREXPLAIN_LIMIT),
+            })
+            await ws.send_json({"type": "session_ended"})
+            await ws.send_json({"type": "status", "state": "ended"})
+        except Exception:
+            pass
+        try:
+            await ws.close()
+        except Exception:
+            pass
+        return
     # WAVE 39: claim this session_id BEFORE accept(). Second concurrent join
     # evicts the first (newest wins) — see _claim_session for rationale.
     _owner = await _claim_session(session_id, ws)
@@ -1799,6 +2288,9 @@ async def voice_proxy(ws: WebSocket, session_id: str, verified_user_id: str | No
     max_dur = int(sess.get("max_duration_sec", 120))
     test_type = sess.get("test_type", "general")
     background = sess.get("background_summary")
+    # Worker 16: per-visa-type prompt + 214(b) mode ride on the session.
+    visa_type = normalize_visa_type(sess.get("visa_type"))
+    is_reapplicant = bool(sess.get("is_reapplicant")) or detect_reapplicant(background)
     user_id = str(verified_user_id)  # ownership proven above; no "temp" fallback
 
     try:
@@ -1837,11 +2329,23 @@ async def voice_proxy(ws: WebSocket, session_id: str, verified_user_id: str | No
     # Feature 1: pick this session's attack vector (excludes last session's).
     # On resume, REUSE the stored vector — picking a new one mid-interview
     # would change the interrogation and burn the per-user rotation.
+    # Worker 16: a 214(b) re-applicant ALWAYS gets the past_rejection vector
+    # (forced, not 1-in-5 random) — unless resuming a session that already
+    # has a stored vector. The rotation record is updated so the NEXT
+    # session rotates away from past_rejection.
     if resumed and _prior_attack_vector in ATTACK_VECTORS:
         attack_vector = _prior_attack_vector
+    elif is_reapplicant:
+        attack_vector = "past_rejection"
+        try:
+            db.set_last_attack_vector(user_id, "past_rejection")
+        except Exception:
+            pass
     else:
-        attack_vector = pick_attack_vector(user_id)
-    system_prompt = build_system_prompt(test_type, background, attack_vector)
+        attack_vector = pick_attack_vector(user_id, visa_type=visa_type)
+    system_prompt = build_system_prompt(
+        test_type, background, attack_vector,
+        visa_type=visa_type, is_reapplicant=is_reapplicant)
     transcript: list[dict] = list(_prior_transcript)
     # History is rebuilt from the restored transcript (fresh: empty). The old
     # code reset history to [] on every connect, so after a reconnect Groq
@@ -1886,6 +2390,19 @@ async def voice_proxy(ws: WebSocket, session_id: str, verified_user_id: str | No
     for _f in list(sess.get("facts_mentioned") or []) + _recomputed_facts:
         if _f and _f.lower() not in {x.lower() for x in facts_mentioned}:
             facts_mentioned.append(_f)
+    # Deterministic lie detector: rebuild the fact store from the restored
+    # transcript (source of truth) so facts + contradictions survive a
+    # reconnect. Also merge contradictions persisted by _persist_progress
+    # for turns whose transcript flush was lost (deduped by field+turns) —
+    # those flags still count at scoring time via sess["contradictions"].
+    fact_store, _restored_contradictions = detect_contradictions(transcript)
+    for _c in (sess.get("contradictions") or []):
+        if not isinstance(_c, dict) or not _c.get("field"):
+            continue
+        _key = (_c.get("field"), _c.get("first_turn"), _c.get("new_turn"))
+        if not any((_x.get("field"), _x.get("first_turn"), _x.get("new_turn")) == _key
+                   for _x in fact_store.contradictions):
+            fact_store.contradictions.append(dict(_c))
     over_explain_count = int(sess.get("over_explain_count") or 0)
     # WAVE 23: warning must precede any strike; good answers reset both.
     # FIX 19-backend: warned flag + good streak are SESSION state, not
@@ -1901,6 +2418,10 @@ async def voice_proxy(ws: WebSocket, session_id: str, verified_user_id: str | No
     turn_speech_seconds: float = 0.0  # VOICE WAVE 22: sum of VOICED seconds
     # in the current turn (silent frames add 0). Replaces turn_audio_start
     # (wall-clock), which wrongly counted silence toward the 20s limit.
+    # WAVE 22b: per-connection adaptive meter (threshold follows room
+    # noise, 200-400). Never reset on turn boundaries — its window is
+    # room-noise history, not turn state.
+    voiced_meter = VoicedMeter()
     last_examiner_text: str = ""  # Wave 12: just-spoken examiner text (echo match)
     last_examiner_ts: float = 0.0  # Wave 12: when it was spoken (time.time())
     # FIX 14-backend: persist + restore elapsed interview time. A
@@ -1917,7 +2438,7 @@ async def voice_proxy(ws: WebSocket, session_id: str, verified_user_id: str | No
     closed = asyncio.Event()
     barge = asyncio.Event()       # set on barge-in; checked during TTS streaming
     flush_req = asyncio.Event()   # set on user_done; flushes pending utterance
-    finish_req = asyncio.Event()  # set on {"type": "finish"} / {"type": "end_session"},
+    finish_req = asyncio.Event()  # set on {"type": "finish"},
     # or by POST /session/end via request_session_flush(); finisher() flushes
     # the pending utterance + transcript to DB, acks {"type": "flushed"}, ends.
     register_session_flush(session_id, finish_req)
@@ -2062,6 +2583,7 @@ async def voice_proxy(ws: WebSocket, session_id: str, verified_user_id: str | No
             ],
             "state": current_state,
             "over_explain_count": over_explain_count,
+            "contradictions": fact_store.contradictions,
             "is_reconnect": resumed,
             "session_id": session_id,
         }
@@ -2085,6 +2607,8 @@ async def voice_proxy(ws: WebSocket, session_id: str, verified_user_id: str | No
                 "filler_count": filler_count,
                 "word_count": word_count,
                 "facts_mentioned": facts_mentioned,
+                "fact_store": fact_store.to_dict(),
+                "contradictions": fact_store.contradictions,
                 "over_explain_count": over_explain_count,
                 "over_explain_warned": over_explain_warned,
                 "good_streak": good_streak,
@@ -2693,6 +3217,11 @@ async def voice_proxy(ws: WebSocket, session_id: str, verified_user_id: str | No
         window_start = time.monotonic()
         window_bytes = 0
         window_chunks = 0
+        # Text-frame window (same 1s window length as audio). Counted
+        # separately from audio bytes/chunks: a ping flood must not hide
+        # behind an idle mic, and vice versa.
+        text_window_start = time.monotonic()
+        text_window_count = 0
         violations = 0
         # FIX 2: no dg_timeouts teardown counter — STT stalls never end
         # the reader (see the WAVE 40 (3) send block below).
@@ -2706,9 +3235,9 @@ async def voice_proxy(ws: WebSocket, session_id: str, verified_user_id: str | No
                 session_id, violations, MAX_RATE_VIOLATIONS, reason)
             if violations >= MAX_RATE_VIOLATIONS:
                 await safe_send({"type": "error",
-                                 "message": "Audio rate limit exceeded — connection closed."})
+                                 "message": "Rate limit exceeded — connection closed."})
                 try:
-                    await ws.close(code=1008, reason="audio rate limit exceeded")
+                    await ws.close(code=1008, reason="rate limit exceeded")
                 except Exception:
                     pass
                 return True
@@ -2718,23 +3247,18 @@ async def voice_proxy(ws: WebSocket, session_id: str, verified_user_id: str | No
             while not closed.is_set():
                 msg = await ws.receive()
                 if closed.is_set():
-                    # CLOSE-WHILE-QUEUED (VOICE WAVE 47/50): the socket
-                    # dropped with an answer still in the queue. Preserve it
-                    # in the transcript so the socket-close flush (and
-                    # scoring) still sees it — but never answer it (no
-                    # Groq/TTS after close). This branch has no awaits, so
-                    # teardown cancellation cannot lose the turn mid-append.
-                    # overexplain turns keep their text only: the denied
-                    # logic must not fire post-close, so over_explain_count
-                    # is deliberately NOT incremented here.
-                    if kind in ("user", "overexplain"):
-                        text = payload[0] if kind == "overexplain" else payload
-                        transcript.append({"role": "user", "text": text})
-                        filler_count += count_fillers(text)
-                        word_count += len(text.split())
-                        for f in extract_facts(text):
-                            if f.lower() not in {x.lower() for x in facts_mentioned}:
-                                facts_mentioned.append(f)
+                    # The session already ended (finisher / enforcer /
+                    # teardown set `closed`). Any message arriving now —
+                    # e.g. the frontend's post-`flushed` user_done — is
+                    # stale: the transcript was already flushed by the
+                    # ending path, and this reader never sees turn
+                    # payloads (turns live in user_turns, consumed by
+                    # the thinker / teardown drain). Just drop it.
+                    # NOTE: an earlier version copy-pasted the thinker's
+                    # CLOSE-WHILE-QUEUED turn-preservation block here,
+                    # referencing `kind`/`payload` that do not exist in
+                    # this scope — a NameError ("client_reader crashed")
+                    # on essentially every clean finish.
                     break
                 if "bytes" in msg and msg["bytes"]:
                     data = msg["bytes"]
@@ -2812,21 +3336,44 @@ async def voice_proxy(ws: WebSocket, session_id: str, verified_user_id: str | No
                             "flagging reconnect (session stays alive)",
                             session_id)
                         continue
-                    # VOICE WAVE 22: accumulate ONLY voiced frames in this
-                    # chunk. Silent chunks add 0.0 and never start/inflate
-                    # the timer. (Bytes dropped by the TTS echo guard above
-                    # never reach here, so examiner audio can't count.)
-                    turn_speech_seconds += voiced_seconds_for_chunk(data)
+                    # VOICE WAVE 22/22b: accumulate ONLY voiced frames in
+                    # this chunk via the adaptive meter. Silent chunks add
+                    # 0.0 and never start/inflate the timer. (Bytes dropped
+                    # by the TTS echo guard above never reach here, so
+                    # examiner audio can't count.)
+                    turn_speech_seconds += voiced_meter.voiced_seconds(data)
                     last_audio_ts = time.time()
                     # FIX 22-backend: mic audio is client signal.
                     signal_state["last_signal"] = time.time()
                 elif "text" in msg and msg["text"]:
+                    # TEXT-FLOOD CAP (2026-10-13): every text frame counts
+                    # toward a per-second cap BEFORE any parsing/handling.
+                    # The old code only size-capped text frames and dropped
+                    # oversize ones without a violation, so an unbounded
+                    # stream of small frames (ping loop, resync spam,
+                    # garbage-JSON spray) got free json.loads + pong /
+                    # resync work forever. Violations share the audio
+                    # counter: 3 violations -> close 1008.
+                    _tnow = time.monotonic()
+                    if _tnow - text_window_start >= AUDIO_RATE_WINDOW_SEC:
+                        text_window_start = _tnow
+                        text_window_count = 0
+                    text_window_count += 1
+                    if text_window_count > MAX_TEXT_MSGS_PER_WINDOW:
+                        if await _rate_violation(
+                                f"text flood {text_window_count} frames/s"):
+                            break
+                        continue
                     # WAVE 40: cap control-message size — a huge text frame
                     # must not reach json.loads / handler logic unbounded.
+                    # Oversized frames count as a violation (old code just
+                    # dropped them, so an infinite oversize spray only cost
+                    # a log line each and never disconnected).
                     if len(msg["text"]) > MAX_TEXT_MSG_BYTES:
-                        log.warning(
-                            "session %s: oversized text frame %dB dropped",
-                            session_id, len(msg["text"]))
+                        if await _rate_violation(
+                                f"oversized text frame {len(msg['text'])}B"
+                                f" > {MAX_TEXT_MSG_BYTES}B"):
+                            break
                         continue
                     try:
                         ctl = json.loads(msg["text"])
@@ -2884,14 +3431,13 @@ async def voice_proxy(ws: WebSocket, session_id: str, verified_user_id: str | No
                         flush_req.clear()
                         await send_status("listening")
                         await safe_send({"type": "interrupted"})
-                    elif t in ("finish", "end_session"):
+                    elif t == "finish":
                         # MANUAL FINISH (VOICE WAVE 47/50): don't close yet —
                         # finisher() flushes the pending utterance + transcript
                         # to DB, acks {"type": "flushed"}, then ends the session.
                         # The frontend must wait for the ack before calling
                         # POST /session/end, so scoring never 409s on an
-                        # empty (unflushed) transcript. "end_session" is an
-                        # alias so the resync task (26) can use either name.
+                        # empty (unflushed) transcript.
                         finish_req.set()
                     elif t == "playback_complete":
                         # WAVE 43: frontend confirms examiner audio actually
@@ -2961,15 +3507,18 @@ async def voice_proxy(ws: WebSocket, session_id: str, verified_user_id: str | No
     #   - Transient failure: log, count it, keep the session alive, retry on
     #     the next tick. A successful send (or fresh mic audio, which proves
     #     the DG link is alive) resets the counter.
-    #   - Persistent failure (>= KEEPALIVE_MAX_CONSECUTIVE_FAILURES): the DG
-    #     link is dead. Send a terminal stt_failed to the frontend FIRST
-    #     (FIX 22-backend: frontend shows its reconnect indicator on
-    #     stt_failed), then closed.set() so siblings exit cooperatively,
-    #     then return so the existing FIRST_COMPLETED teardown runs
-    #     (transcript flush + socket close). The socket close is what
-    #     triggers the frontend's onclose -> exponential-backoff reconnect
-    #     path (useVoice.js `drop()`), which opens a fresh WS / fresh DG
-    #     link. Never send `session_ended` here — that would end the
+    #   - Persistent failure: keepalive NEVER kills the session itself.
+    #     STT reconnect is owned SOLELY by dg_listener (Wave 24): keepalive
+    #     only flags breakage via stt_broken and lets dg_listener run its
+    #     full reconnect budget (5 attempts/episode x 10 episodes). A
+    #     keepalive-side kill after 3 failed KeepAlives (~15s) used to
+    #     truncate that budget mid-reconnect — e.g. a 20s Deepgram outage
+    #     that dg_listener would have survived ended the interview at
+    #     15s. When the episode cap is finally exhausted, dg_listener
+    #     sends the terminal stt_failed and ends the interview; the
+    #     socket close then triggers the frontend's onclose ->
+    #     exponential-backoff reconnect path (useVoice.js `drop()`).
+    #     Never send `session_ended` here — that would end the
     #     interview in the UI instead of reconnecting it.
     #   - If `closed` is already set (session ending via another path, e.g.
     #     timeup / client disconnect / dg_listener), exit quietly: no
@@ -2981,9 +3530,10 @@ async def voice_proxy(ws: WebSocket, session_id: str, verified_user_id: str | No
     #     progress (recent mic audio) — a silent session with an empty
     #     turn never fires. First observation flags an STT reconnect +
     #     a recoverable stt_failed; a second observation after a fresh
-    #     reconnect still shows no results -> terminal stt_failed +
-    #     close. A reconnect resets the observation count (the new socket
-    #     gets a grace tick before it can be judged).
+    #     reconnect still shows no results -> another reconnect flag
+    #     (keepalive never kills; dg_listener's episode cap owns
+    #     termination). A reconnect resets the observation count (the
+    #     new socket gets a grace tick before it can be judged).
     async def keepalive():
         consecutive_failures = 0
         stall_observations = 0
@@ -3020,14 +3570,28 @@ async def voice_proxy(ws: WebSocket, session_id: str, verified_user_id: str | No
                         stall_observations, session_id,
                         _now - signal_state["last_result"])
                     if stall_observations >= STALL_MAX_OBSERVATIONS:
-                        await safe_send({
-                            "type": "stt_failed",
-                            "terminal": True,
-                            "code": "stt_stall",
-                            "message": "Voice recognition stalled. Please reconnect.",
-                        })
-                        closed.set()
-                        return
+                        # STT still wedged after a fresh reconnect: do NOT
+                        # kill the session here. Flag another reconnect
+                        # and let dg_listener (sole reconnect owner)
+                        # decide termination via its episode cap — a
+                        # keepalive-side closed.set() here used to kill
+                        # the session while a reconnect was still in
+                        # flight. Send a recoverable (not terminal)
+                        # stt_failed so the frontend keeps its
+                        # reconnect indicator up; dg_listener sends the
+                        # terminal stt_failed only when the episode
+                        # budget is exhausted.
+                        stt_broken.set()  # dg_listener reconnects the socket
+                        if _now - last_stt_failed_sent >= STALL_FAILED_THROTTLE_SEC:
+                            last_stt_failed_sent = _now
+                            await safe_send({
+                                "type": "stt_failed",
+                                "terminal": False,
+                                "recoverable": True,
+                                "code": "stt_stall",
+                                "message": "Voice recognition stalled. Reconnecting…",
+                            })
+                        continue
                     stt_broken.set()  # dg_listener reconnects the socket
                     if _now - last_stt_failed_sent >= STALL_FAILED_THROTTLE_SEC:
                         last_stt_failed_sent = _now
@@ -3046,10 +3610,23 @@ async def voice_proxy(ws: WebSocket, session_id: str, verified_user_id: str | No
                 # flags reconnect — it must NOT break keepalive (old code)
                 # or the STT socket would go silent with no one noticing.
                 # 41's consecutive-failure counting is preserved.
+                # WAVE 24 / STT-RECONNECT FIX: keepalive awaits reconnect —
+                # it NEVER kills the session. While a reconnect is already
+                # flagged/in flight (stt_broken set, or holder empty /
+                # not open), do not count a KeepAlive failure: dg_listener
+                # owns the reconnect and its episode budget. Counting
+                # here used to kill the session after 3 ticks (~15s)
+                # while dg_listener was still mid-reconnect.
+                if stt_broken.is_set():
+                    continue  # reconnect in flight — dg_listener owns it
                 try:
                     _conn = dg_holder["ws"]
                     if _conn is None or not _stt_is_open(_conn):
-                        raise ConnectionError("STT socket not open")
+                        # Socket down / being swapped by dg_listener:
+                        # flag reconnect, do NOT count this as a
+                        # KeepAlive failure — it is the reconnect gap.
+                        stt_broken.set()
+                        continue
                     await _conn.send(json.dumps({"type": "KeepAlive"}))
                 except asyncio.CancelledError:
                     raise
@@ -3059,29 +3636,19 @@ async def voice_proxy(ws: WebSocket, session_id: str, verified_user_id: str | No
                         return
                     consecutive_failures += 1
                     log.warning(
-                        "keepalive: KeepAlive send failed (%d/%d) for %s: %s",
+                        "keepalive: KeepAlive send failed (%d/%d) for %s: %s "
+                        "(flagging reconnect; dg_listener owns termination)",
                         consecutive_failures,
                         KEEPALIVE_MAX_CONSECUTIVE_FAILURES,
                         session_id,
                         str(e)[:150],
                     )
-                    if consecutive_failures < KEEPALIVE_MAX_CONSECUTIVE_FAILURES:
-                        continue  # transient — keep interview alive, retry
-                    log.error(
-                        "keepalive: Deepgram link dead after %d consecutive "
-                        "KeepAlive failures for %s — signalling reconnect",
-                        consecutive_failures, session_id,
-                    )
-                    # FIX 22-backend: terminal stt_failed (not a generic
-                    # error) so the frontend shows its reconnect indicator.
-                    await safe_send({
-                        "type": "stt_failed",
-                        "terminal": True,
-                        "code": "deepgram_keepalive_failed",
-                        "message": "Voice connection lost. Reconnecting…",
-                    })
-                    closed.set()
-                    return
+                    # Never closed.set() here: dg_listener runs the full
+                    # reconnect budget (5 attempts/episode x 10 episodes)
+                    # and sends the terminal stt_failed only when that
+                    # budget is exhausted. KEEPALIVE_MAX_CONSECUTIVE_FAILURES
+                    # is now a log threshold only.
+                    continue
                 consecutive_failures = 0
         except asyncio.CancelledError:
             pass
@@ -3171,16 +3738,22 @@ async def voice_proxy(ws: WebSocket, session_id: str, verified_user_id: str | No
                     # Wave 12: this line will be spoken — echo of it is droppable.
                     last_examiner_text = reply
                     last_examiner_ts = time.time()
-                    # FIX 2026-10-13 (Bug #3): set tts_active during not_heard
-                    # TTS too — otherwise echo guard is off during this playback.
+                    # FIX 2026-10-13 (Bug #3): tts_active must cover not_heard
+                    # TTS too — otherwise echo guard is off during playback.
+                    # Set from the FIRST TTS CHUNK (inside the loop below),
+                    # NOT before streaming: while Deepgram is still
+                    # synthesising, no examiner audio is playing yet, so
+                    # dropping mic bytes then would eat the user's early
+                    # words (they can read the already-sent transcript and
+                    # start answering before audio plays).
                     # WAVE 42: re-check right before the expensive TTS call.
                     if not is_client_alive():
                         break
-                    tts_active.set()
                     # WAVE 43: count bytes so the ack wait can be bounded by
-                    # the audio's real duration. tts_active stays set until
-                    # the ack (or fallback) so the echo guard covers the
-                    # whole playback, not just the byte-streaming phase.
+                    # the audio's real duration. Once set (first chunk),
+                    # tts_active stays set until the ack (or fallback) so
+                    # the echo guard covers the whole playback, not just
+                    # the byte-streaming phase.
                     not_heard_bytes = 0
                     try:
                         async for audio_chunk in deepgram_tts_stream(reply, voice_mode="strict"):
@@ -3189,6 +3762,10 @@ async def voice_proxy(ws: WebSocket, session_id: str, verified_user_id: str | No
                             # break before sending another chunk — no stale replay.
                             if barge.is_set() or barge_seq > my_seq or my_seq != seq or not is_client_alive():
                                 break
+                            # SELF-ECHO GUARD: first TTS chunk arrived —
+                            # examiner audio is now really on its way.
+                            if not_heard_bytes == 0:
+                                tts_active.set()
                             try:
                                 await ws.send_bytes(audio_chunk)
                             except Exception:
@@ -3231,6 +3808,19 @@ async def voice_proxy(ws: WebSocket, session_id: str, verified_user_id: str | No
                     for f in extract_facts(payload):
                         if f.lower() not in {x.lower() for x in facts_mentioned}:
                             facts_mentioned.append(f)
+                    # Deterministic lie detector: record THIS turn's
+                    # structured facts (turn# = user-turn index in the
+                    # transcript — the same numbering scoring recomputes
+                    # from) and catch any contradiction vs stored facts.
+                    # A hit is a FORCED cross-check, not a soft hint.
+                    _user_turn_no = sum(1 for _t in transcript
+                                         if _t.get("role") == "user")
+                    _new_contradictions = fact_store.record(payload, _user_turn_no)
+                    if _new_contradictions:
+                        log.info("session %s: contradiction detected: %s",
+                                 session_id, _new_contradictions)
+                        await safe_send({"type": "contradiction_flagged",
+                                         "contradictions": _new_contradictions})
                     # WAVE 23: consecutive concise answers reset strikes +
                     # warning. A single good answer is not enough — it takes
                     # GOOD_STREAK_TO_RESET in a row, so one short answer
@@ -3260,6 +3850,8 @@ async def voice_proxy(ws: WebSocket, session_id: str, verified_user_id: str | No
                             "\n\n[FACTS THE CANDIDATE MENTIONED EARLIER — ambush one soon: "
                             + wrap_user_speech("; ".join(facts_mentioned[-5:])) + "]"
                         )
+                    if _new_contradictions:
+                        sys_extra += _contradiction_sys_extra(_new_contradictions)
                 elif kind == "overexplain":
                     # Feature 4: the candidate rambled past the limit.
                     # WAVE 23: deny ONLY after (warning + 3 genuine strikes),
@@ -3274,6 +3866,18 @@ async def voice_proxy(ws: WebSocket, session_id: str, verified_user_id: str | No
                     for f in extract_facts(text):
                         if f.lower() not in {x.lower() for x in facts_mentioned}:
                             facts_mentioned.append(f)
+                    # Deterministic lie detector (same as the "user"
+                    # branch): a contradiction in a rambling turn still
+                    # forces a cross-check — the flag is sent now so it
+                    # survives even the visa-denied path below.
+                    _user_turn_no = sum(1 for _t in transcript
+                                         if _t.get("role") == "user")
+                    _new_contradictions = fact_store.record(text, _user_turn_no)
+                    if _new_contradictions:
+                        log.info("session %s: contradiction detected: %s",
+                                 session_id, _new_contradictions)
+                        await safe_send({"type": "contradiction_flagged",
+                                         "contradictions": _new_contradictions})
                     # Defence in depth: re-validate here even though
                     # flush_utterance already routed on the same check. A
                     # pause-inflated / slow-but-concise turn must NEVER
@@ -3349,6 +3953,8 @@ async def voice_proxy(ws: WebSocket, session_id: str, verified_user_id: str | No
                                         "filler_count": filler_count,
                                         "word_count": word_count,
                                         "facts_mentioned": facts_mentioned,
+                                        "fact_store": fact_store.to_dict(),
+                                        "contradictions": fact_store.contradictions,
                                         "over_explain_count": over_explain_count,
                                         # FIX 14 + 19: persist warned flag,
                                         # good streak, elapsed.
@@ -3379,6 +3985,8 @@ async def voice_proxy(ws: WebSocket, session_id: str, verified_user_id: str | No
                             "CUT THEM OFF aggressively in your own words (do NOT reuse "
                             "a canned cut-off line). Then ask your next question sharply.]"
                         )
+                    if _new_contradictions:
+                        sys_extra += _contradiction_sys_extra(_new_contradictions)
                 elif kind == "opening":
                     sys_extra = ("\n\n[The candidate just connected. Deliver your opening line now — "
                                  "demand their full name, sternly. Keep it short.]")
@@ -3519,26 +4127,56 @@ async def voice_proxy(ws: WebSocket, session_id: str, verified_user_id: str | No
                 # Wave 12: this line is about to be spoken — echo of it is droppable.
                 last_examiner_text = reply
                 last_examiner_ts = time.time()
-                # SELF-ECHO GUARD: mark TTS active so incoming mic bytes are
-                # dropped (examiner's own voice must not reach Deepgram).
-                tts_active.set()
+                # SELF-ECHO GUARD: tts_active is set from the FIRST TTS
+                # CHUNK (inside the loop below), NOT before streaming:
+                # while Deepgram is still synthesising, no examiner audio
+                # is playing yet, so dropping mic bytes then would eat the
+                # user's early words (they can read the already-sent
+                # transcript and start answering before audio plays).
                 # WAVE 42: final gate before the expensive TTS call.
-                # NOTE: tts_active was just set above; clear it before
-                # breaking so a dead-client exit never leaves it latched.
+                # tts_active is NOT set yet at this point (first chunk
+                # hasn't arrived); the clear is a defensive no-op.
                 if not is_client_alive():
                     tts_active.clear()
                     break
-                # Stream TTS audio chunks as Deepgram generates them — first
-                # audio hits the frontend in ~300ms, not after the full file.
-                # WAVE 43: count bytes for the ack wait (see B2). tts_active
-                # stays set until the ack (or fallback) so the echo guard
-                # covers playback, not just streaming. If barge-in hit
-                # mid-stream, skip tts_complete/wait — interrupt already
-                # sent listening and cleared tts_active.
+                # LATENCY — TRUE STREAMING + SENTENCE PIPELINING
+                # (2026-10-13, supersedes the TTS worker's 2026-10-13
+                # deferral note that was here): deepgram_tts_stream now
+                # yields chunks AS Deepgram produces them (no full-sentence
+                # buffering), and after each non-last sentence it fires
+                # on_sentence_complete -> {"type": "tts_sentence"} so the
+                # frontend flushes + plays JUST that sentence while the
+                # next one synthesises. First audible audio therefore
+                # arrives after the FIRST sentence's synthesis, not the
+                # whole reply's. The old "~300ms first audio" claim was
+                # false under buffering; with streaming + pipelining the
+                # honest statement is: first chunk leaves the backend
+                # ~as soon as Deepgram emits it, and first audible audio
+                # follows the first sentence (multi-sentence replies) or
+                # the single sentence (1-sentence replies — the remaining
+                # floor without chunked playback, which would need MSE
+                # and is out of scope). WAVE 05 truncation validation
+                # still runs at stream end, with retry-resume.
+                # WAVE 43: count bytes for the ack wait (see B2). Once set
+                # (first chunk), tts_active stays set until the ack (or
+                # fallback) so the echo guard covers playback, not just
+                # streaming. If barge-in hit mid-stream, skip
+                # tts_complete/wait — interrupt already sent listening and
+                # cleared tts_active.
+                async def _on_sentence_complete(_idx: int, _total: int) -> None:
+                    # Frontend plays this sentence NOW; the final
+                    # tts_complete below still covers the last sentence
+                    # + the playback ack. Best-effort: a failed send
+                    # just means the frontend falls back to playing
+                    # everything on tts_complete.
+                    await safe_send({"type": "tts_sentence", "seq": my_seq,
+                                     "sentence": _idx, "sentences": _total})
                 tts_bytes = 0
                 try:
                     chunk_idx = 0
-                    async for audio_chunk in deepgram_tts_stream(reply, voice_mode="strict"):
+                    async for audio_chunk in deepgram_tts_stream(
+                            reply, voice_mode="strict",
+                            on_sentence_complete=_on_sentence_complete):
                         # WAVE 16: any pending barge here is just-arrived
                         # (stale ones were consumed at the gate above), so
                         # break before sending another chunk — no stale replay.
@@ -3546,6 +4184,10 @@ async def voice_proxy(ws: WebSocket, session_id: str, verified_user_id: str | No
                         # send_bytes may still land; that is bounded, not a replay.
                         if barge.is_set() or barge_seq > my_seq or my_seq != seq or not is_client_alive():
                             break
+                        # SELF-ECHO GUARD: first TTS chunk arrived —
+                        # examiner audio is now really on its way.
+                        if chunk_idx == 0:
+                            tts_active.set()
                         try:
                             await ws.send_bytes(audio_chunk)
                         except Exception:
@@ -3602,6 +4244,8 @@ async def voice_proxy(ws: WebSocket, session_id: str, verified_user_id: str | No
                         "filler_count": filler_count,
                         "word_count": word_count,
                         "facts_mentioned": facts_mentioned,
+                        "fact_store": fact_store.to_dict(),
+                        "contradictions": fact_store.contradictions,
                         "over_explain_count": over_explain_count,
                         # FIX 14 + 19: persist warned flag, good streak,
                         # elapsed so a reconnect restores them.
@@ -3666,6 +4310,8 @@ async def voice_proxy(ws: WebSocket, session_id: str, verified_user_id: str | No
                         "filler_count": filler_count,
                         "word_count": word_count,
                         "facts_mentioned": facts_mentioned,
+                        "fact_store": fact_store.to_dict(),
+                        "contradictions": fact_store.contradictions,
                         "over_explain_count": over_explain_count,
                         # FIX 14 + 19: persist warned flag, good streak,
                         # elapsed so a reconnect restores them.
@@ -3780,6 +4426,8 @@ async def voice_proxy(ws: WebSocket, session_id: str, verified_user_id: str | No
                 "filler_count": filler_count,
                 "word_count": word_count,
                 "facts_mentioned": facts_mentioned,
+                "fact_store": fact_store.to_dict(),
+                "contradictions": fact_store.contradictions,
                 "over_explain_count": over_explain_count,
                 # FIX 14 + 19: persist warned flag, good streak,
                 # elapsed so a reconnect restores them.

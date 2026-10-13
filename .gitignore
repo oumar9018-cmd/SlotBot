@@ -1,0 +1,9 @@
+# env / secrets
+.env
+.env.*
+!.env.example
+# deps / build
+node_modules/
+dist/
+# os
+.DS_Store

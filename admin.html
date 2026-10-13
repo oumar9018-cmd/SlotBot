@@ -1,0 +1,955 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>MockGrill — CEO Dashboard</title>
+<style>
+  :root{
+    --bg:#f6f7fb; --card:#ffffff; --ink:#14121f; --muted:#6b6a7a; --line:#e9e7f2;
+    --pink:#ff4d8d; --violet:#7c5cff; --sky:#0ea5e9; --mint:#059669; --amber:#d97706;
+    --pink-soft:#ffe4f1; --violet-soft:#ede9fe; --sky-soft:#e0f2fe; --mint-soft:#dcfce7; --amber-soft:#fef3c7;
+    --radius:16px; --radius-sm:10px;
+    --shadow:0 8px 28px rgba(20,18,31,.07);
+    --focus:0 0 0 3px rgba(124,92,255,.35);
+  }
+  *{box-sizing:border-box}
+  html{ -webkit-text-size-adjust:100% }
+  body{margin:0;font-family:ui-sans-system,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
+  a{color:var(--violet)}
+  .wrap{max-width:1180px;margin:0 auto;padding:16px}
+  /* Header */
+  header.top{display:flex;gap:14px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;margin:6px 0 16px}
+  .brand{display:flex;gap:12px;align-items:center;min-width:0}
+  .logo{width:48px;height:48px;flex:0 0 48px;border-radius:14px;display:grid;place-items:center;
+    background:linear-gradient(135deg,#ff4d8d,#7c5cff 55%,#0ea5e9);color:#fff;font-weight:800;font-size:22px;letter-spacing:.02em}
+  .brand h1{margin:0;font-size:22px;line-height:1.15;letter-spacing:-.01em}
+  .brand p{margin:2px 0 0;color:var(--muted);font-size:13.5px}
+  .top-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .api-chip{font-size:12.5px;color:var(--muted);background:#fff;border:1px solid var(--line);border-radius:999px;padding:8px 12px;max-width:100%;overflow-wrap:anywhere}
+  .api-chip strong{color:var(--ink);font-weight:600}
+  /* Cards / sections */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
+  .section{margin-top:16px}
+  .section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  .section-head h2{margin:0;font-size:18px;letter-spacing:-.01em}
+  .section-head p{margin:3px 0 0;color:var(--muted);font-size:13.5px}
+  .muted{color:var(--muted)}
+  .small{font-size:13px}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;word-break:break-all}
+  /* Forms & buttons — 44px tap targets */
+  label{display:block;font-size:13.5px;font-weight:600;margin:0 0 6px}
+  input[type="password"],input[type="text"],input[type="search"],select{
+    width:100%;min-height:44px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;
+    font:inherit;background:#fff;color:var(--ink);outline:none;
+  }
+  input:focus,select:focus,button:focus-visible{outline:none;box-shadow:var(--focus);border-color:var(--violet)}
+  button{font:inherit;cursor:pointer}
+  .btn{min-height:44px;border-radius:12px;border:1px solid transparent;padding:10px 16px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#fff;color:var(--ink);border-color:var(--line)}
+  .btn-primary{background:linear-gradient(135deg,#ff4d8d,#7c5cff);color:#fff;border-color:transparent}
+  .btn-ghost{background:#fff;color:var(--ink)}
+  .btn-danger{background:#fff;color:#b91c1c;border-color:#fecaca}
+  .btn:disabled{opacity:.55;cursor:not-allowed}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+  .field{flex:1 1 220px;min-width:0}
+  .field-narrow{flex:0 1 220px}
+  .hint{font-size:12.5px;color:var(--muted);margin-top:8px}
+  .key-status{display:flex;gap:10px;align-items:flex-start;background:#f8f7ff;border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:12px}
+  .key-status .dot{width:10px;height:10px;border-radius:50%;margin-top:6px;flex:0 0 10px;background:#a3a3b2}
+  .key-status[data-state="ok"] .dot{background:var(--mint)}
+  .key-status[data-state="error"] .dot{background:#dc2626}
+  .key-status[data-state="loading"] .dot{background:var(--amber)}
+  .key-status p{margin:0;font-size:13.5px}
+  .key-status strong{display:block;font-size:13.5px}
+  /* Banner */
+  .banner{display:none;border-radius:12px;padding:12px 14px;font-size:14px;margin-top:12px;border:1px solid var(--line);background:#fff}
+  .banner.show{display:block}
+  .banner.error{background:#fef2f2;border-color:#fecaca;color:#7f1d1d}
+  .banner.info{background:#eff6ff;border-color:#bfdbfe;color:#1e3a8a}
+  .banner.success{background:#f0fdf4;border-color:#bbf7d0;color:#14532d}
+  .banner .actions{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+  /* Stat cards */
+  .stats{display:grid;grid-template-columns:repeat(4, minmax(0,1fr));gap:12px}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:var(--shadow);min-width:0}
+  .stat .label{font-size:12.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:8px}
+  .stat .value{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1.15;margin-top:6px;font-variant-numeric:tabular-nums}
+  .stat .sub{font-size:12.5px;color:var(--muted);margin-top:2px}
+  .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700;line-height:1.4}
+  .pill-pink{background:var(--pink-soft);color:#9d174d}
+  .pill-violet{background:var(--violet-soft);color:#5b21b6}
+  .pill-sky{background:var(--sky-soft);color:#075985}
+  .pill-mint{background:var(--mint-soft);color:#065f46}
+  .pill-amber{background:var(--amber-soft);color:#92400e}
+  .pill-grey{background:#f1f0f7;color:#444}
+  .pill-red{background:#fee2e2;color:#991b1b}
+  /* Charts */
+  .charts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+  .chart-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow);min-width:0}
+  .chart-card h3{margin:0 0 4px;font-size:15px}
+  .chart-card p{margin:0;color:var(--muted);font-size:13px}
+  .chart-body{margin-top:12px}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:13px;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .swatch{width:12px;height:12px;border-radius:4px;display:inline-block}
+  .bar-row{display:grid;grid-template-columns:110px 1fr 56px;gap:10px;align-items:center;margin:10px 0;font-size:13.5px}
+  .bar-track{height:18px;background:#f1f0f7;border-radius:999px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#ff4d8d,#7c5cff)}
+  .bar-fill.sky{background:linear-gradient(90deg,#38bdf8,#0ea5e9)}
+  .bar-fill.mint{background:linear-gradient(90deg,#34d399,#059669)}
+  .bar-value{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+  /* Toolbar */
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+  .toolbar .field{flex:1 1 180px}
+  .toolbar .field.search{flex:2 1 260px}
+  /* Table */
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:12px}
+  table{border-collapse:collapse;width:100%;min-width:820px;font-size:14px}
+  thead th{background:#faf9ff;text-align:left;padding:12px 12px;border-bottom:1px solid var(--line);font-size:12.5px;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+  thead th button{background:none;border:0;padding:0;font:inherit;font-weight:700;color:inherit;cursor:pointer;min-height:28px;display:inline-flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:.03em}
+  thead th button:focus-visible{box-shadow:var(--focus);border-radius:6px}
+  tbody td{padding:12px;border-bottom:1px solid #f0eff5;vertical-align:top}
+  tbody tr:last-child td{border-bottom:0}
+  tbody tr:hover td{background:#fdfcff}
+  .user-cell{display:flex;flex-direction:column;gap:1px;min-width:150px}
+  .user-cell strong{font-size:14px}
+  .user-cell span{font-size:12.5px;color:var(--muted)}
+  .num{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+  .nowrap{white-space:nowrap}
+  .pager{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:12px}
+  .pager .info{font-size:13.5px;color:var(--muted)}
+  /* Feedback */
+  .feedback-list{display:grid;gap:10px}
+  .fb-item{border:1px solid var(--line);border-radius:12px;padding:14px;background:#fff}
+  .fb-top{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+  .fb-meta{font-size:12.5px;color:var(--muted);margin-top:6px;display:flex;gap:10px;flex-wrap:wrap}
+  .fb-msg{margin:8px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
+  .empty{border:1px dashed var(--line);border-radius:12px;padding:22px;text-align:center;color:var(--muted);background:#fcfbff}
+  .empty strong{color:var(--ink);display:block;font-size:15px;margin-bottom:4px}
+  .skeleton{color:var(--muted)}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  footer{margin:22px 0 8px;color:var(--muted);font-size:12.5px;text-align:center}
+  /* Responsive */
+  @media (max-width:900px){ .stats{grid-template-columns:repeat(2, minmax(0,1fr))} .charts{grid-template-columns:1fr} }
+  @media (max-width:560px){
+    .wrap{padding:12px}
+    .brand h1{font-size:19px}
+    .brand p{font-size:12.5px}
+    .stats{grid-template-columns:1fr 1fr;gap:10px}
+    .stat{padding:12px}
+    .stat .value{font-size:24px}
+    .card{padding:12px}
+    .top-actions{width:100%}
+    .top-actions .btn{flex:1 1 auto}
+    .api-chip{width:100%}
+    .bar-row{grid-template-columns:86px 1fr 48px}
+    .field,.field-narrow{flex:1 1 100%}
+    .row .btn{width:100%}
+  }
+  @media (max-width:360px){
+    .stats{grid-template-columns:1fr}
+    .bar-row{grid-template-columns:1fr;gap:4px}
+    .bar-value{text-align:left}
+  }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">M</div>
+      <div>
+        <h1>MockGrill &middot; CEO Dashboard</h1>
+        <p>Live business numbers — every value comes from the API. No sample data.</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <span class="api-chip">API: <strong id="apiBaseLabel">—</strong></span>
+      <button class="btn btn-ghost" id="refreshAllBtn" type="button">Refresh all</button>
+      <button class="btn btn-ghost" id="clearKeyBtn" type="button">Clear key</button>
+    </div>
+  </header>
+
+  <!-- (1) Header + key entry -->
+  <section class="card" aria-labelledby="key-heading">
+    <div class="section-head" style="margin-bottom:0">
+      <div>
+        <h2 id="key-heading">Admin access</h2>
+        <p>Paste your admin key once. It is stored in this browser&rsquo;s localStorage only and sent only as the <span class="mono">X-Admin-Key</span> header to the API above.</p>
+      </div>
+      <span class="pill pill-violet" id="keyBadge">Key not entered</span>
+    </div>
+
+    <form id="keyForm" style="margin-top:14px" autocomplete="off">
+      <div class="row">
+        <div class="field">
+          <label for="adminKeyInput">Admin key</label>
+          <input id="adminKeyInput" name="adminKey" type="password" inputmode="text" autocomplete="off" placeholder="Paste ADMIN_API_KEY" aria-describedby="keyHint" />
+          <div class="hint" id="keyHint">Never share this key. It is never sent anywhere except to the API above as a header.</div>
+        </div>
+        <div class="field-narrow">
+          <label for="showKeyToggle" class="sr-only">Show key</label>
+          <button class="btn btn-ghost" id="showKeyToggle" type="button" aria-pressed="false" aria-controls="adminKeyInput">Show key</button>
+        </div>
+        <div class="field-narrow">
+          <button class="btn btn-primary" id="saveKeyBtn" type="submit">Save &amp; load dashboard</button>
+        </div>
+      </div>
+    </form>
+
+    <div class="key-status" id="keyStatus" data-state="idle" aria-live="polite">
+      <span class="dot" aria-hidden="true"></span>
+      <div>
+        <strong id="keyStatusTitle">Enter your admin key to load the dashboard.</strong>
+        <p id="keyStatusText">Stats, users and feedback stay empty until a valid key is saved.</p>
+      </div>
+    </div>
+
+    <div class="banner info" id="globalBanner" role="status" aria-live="polite">
+      <span id="globalBannerText"></span>
+      <div class="actions" id="globalBannerActions" hidden>
+        <button class="btn btn-primary" id="retryBtn" type="button">Retry</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- (2) Stat cards -->
+  <section class="section" aria-labelledby="stats-heading">
+    <div class="section-head">
+      <div>
+        <h2 id="stats-heading">Today&rsquo;s business</h2>
+        <p id="statsUpdated">Not loaded yet.</p>
+      </div>
+      <button class="btn btn-ghost" id="refreshStatsBtn" type="button">Refresh stats</button>
+    </div>
+
+    <div id="statsError" class="banner error" role="alert" style="display:none">
+      <span id="statsErrorText"></span>
+      <div class="actions"><button class="btn btn-primary" id="retryStatsBtn" type="button">Retry stats</button></div>
+    </div>
+
+    <div class="stats" id="statGrid" aria-live="polite">
+      <div class="stat"><div class="label"><span class="pill pill-violet">Users</span> Total users</div><div class="value" data-stat="users_total">—</div><div class="sub">All registered users</div></div>
+      <div class="stat"><div class="label"><span class="pill pill-sky">Trial</span> Free-trial users</div><div class="value" data-stat="free_trial_users">—</div><div class="sub">Currently on free trial</div></div>
+      <div class="stat"><div class="label"><span class="pill pill-mint">Paid</span> Paid users</div><div class="value" data-stat="paid_users">—</div><div class="sub">Have paid at least once</div></div>
+      <div class="stat"><div class="label"><span class="pill pill-pink">Sessions</span> Sessions total</div><div class="value" data-stat="sessions_total">—</div><div class="sub">All interviews started</div></div>
+      <div class="stat"><div class="label"><span class="pill pill-amber">Today</span> Sessions today</div><div class="value" data-stat="sessions_today">—</div><div class="sub">Interviews started today</div></div>
+      <div class="stat"><div class="label"><span class="pill pill-mint">Revenue</span> Paid sessions</div><div class="value" data-stat="paid_sessions">—</div><div class="sub">Sessions paid for with credits / Stars</div></div>
+      <div class="stat"><div class="label"><span class="pill pill-violet">Credits</span> Credits in circulation</div><div class="value" data-stat="credits_in_circulation">—</div><div class="sub">Sum of unused credits across users</div></div>
+      <div class="stat"><div class="label"><span class="pill pill-grey">Paid share</span> Paid / total users</div><div class="value" id="paidShareValue">—</div><div class="sub" id="paidShareSub">Needs stats from the API.</div></div>
+    </div>
+
+    <div class="charts">
+      <div class="chart-card" aria-labelledby="plan-chart-title">
+        <h3 id="plan-chart-title">Plan mix</h3>
+        <p>Free-trial vs paid vs other, from live stats.</p>
+        <div class="chart-body" id="planChartBody">
+          <div class="empty"><strong>No chart yet</strong><span>Load stats with a valid admin key to draw this chart from real data.</span></div>
+        </div>
+        <div class="legend" id="planLegend" hidden>
+          <span><i class="swatch" style="background:#0ea5e9"></i> Free trial — <strong id="legendFree">—</strong></span>
+          <span><i class="swatch" style="background:#059669"></i> Paid — <strong id="legendPaid">—</strong></span>
+          <span><i class="swatch" style="background:#e9e7f2"></i> Other — <strong id="legendOther">—</strong></span>
+        </div>
+      </div>
+      <div class="chart-card" aria-labelledby="sessions-chart-title">
+        <h3 id="sessions-chart-title">Sessions</h3>
+        <p>Total, today and paid — scaled to the largest value.</p>
+        <div class="chart-body" id="sessionsChartBody">
+          <div class="empty"><strong>No chart yet</strong><span>Load stats with a valid admin key to draw this chart from real data.</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- (3) Users table -->
+  <section class="section card" aria-labelledby="users-heading">
+    <div class="section-head">
+      <div>
+        <h2 id="users-heading">Users</h2>
+        <p id="usersCount">Not loaded yet.</p>
+      </div>
+      <button class="btn btn-ghost" id="refreshUsersBtn" type="button">Refresh users</button>
+    </div>
+
+    <div class="toolbar" role="search">
+      <div class="field search">
+        <label for="userSearch">Search users</label>
+        <input id="userSearch" type="search" placeholder="Search username, first name or Telegram ID" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label for="planFilter">Plan filter</label>
+        <select id="planFilter">
+          <option value="all">All plans</option>
+          <option value="free_trial">Free trial</option>
+          <option value="free">Free</option>
+          <option value="paid">Paid</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="sortSelect">Sort by</label>
+        <select id="sortSelect">
+          <option value="created_at_desc">Newest first</option>
+          <option value="created_at_asc">Oldest first</option>
+          <option value="last_active_desc">Last active — recent first</option>
+          <option value="credits_desc">Credits — high to low</option>
+          <option value="sessions_count_desc">Sessions — high to low</option>
+          <option value="interviews_used_desc">Interviews used — high to low</option>
+          <option value="username_asc">Username A–Z</option>
+        </select>
+      </div>
+      <div class="field-narrow">
+        <button class="btn btn-ghost" id="resetUsersBtn" type="button">Reset filters</button>
+      </div>
+    </div>
+
+    <div class="banner error" id="usersError" role="alert" style="display:none">
+      <span id="usersErrorText"></span>
+      <div class="actions"><button class="btn btn-primary" id="retryUsersBtn" type="button">Retry users</button></div>
+    </div>
+
+    <div id="usersLoading" class="empty" style="display:none;margin-top:12px"><strong>Loading users…</strong><span>Fetching the current page from the API.</span></div>
+    <div id="usersEmpty" class="empty" style="display:none;margin-top:12px"><strong>No users yet</strong><span>No data yet — no users match these filters, or no users exist.</span></div>
+
+    <div class="table-wrap" style="margin-top:12px">
+      <table id="usersTable">
+        <caption class="sr-only">Users: username, name, Telegram ID, plan, credits, interviews used, sessions, joined and last active.</caption>
+        <thead>
+          <tr>
+            <th scope="col"><button type="button" data-sort="username" aria-label="Sort by username">User</button></th>
+            <th scope="col"><button type="button" data-sort="telegram_id" aria-label="Sort by Telegram ID">Telegram ID</button></th>
+            <th scope="col"><button type="button" data-sort="plan" aria-label="Sort by plan">Plan</button></th>
+            <th scope="col"><button type="button" data-sort="credits" aria-label="Sort by credits">Credits</button></th>
+            <th scope="col"><button type="button" data-sort="interviews_used" aria-label="Sort by interviews used">Interviews used</button></th>
+            <th scope="col"><button type="button" data-sort="sessions_count" aria-label="Sort by sessions">Sessions</button></th>
+            <th scope="col"><button type="button" data-sort="created_at" aria-label="Sort by joined date">Joined</button></th>
+            <th scope="col"><button type="button" data-sort="last_active" aria-label="Sort by last active">Last active</button></th>
+          </tr>
+        </thead>
+        <tbody id="usersTbody">
+          <tr><td colspan="8" class="muted">Enter your admin key and press “Save &amp; load dashboard” to load users.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pager">
+      <span class="info" id="usersPageInfo">Page 1 · showing 0 users from the API</span>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-ghost" id="prevUsersBtn" type="button" disabled>Previous page</button>
+        <button class="btn btn-primary" id="nextUsersBtn" type="button" disabled>Next page</button>
+      </div>
+    </div>
+    <p class="hint">Pagination uses the API cursor (<span class="mono">next_cursor</span>). Search, plan filter and sorting apply to the current page in this browser.</p>
+  </section>
+
+  <!-- (4) Feedback / bug reports -->
+  <section class="section card" aria-labelledby="feedback-heading">
+    <div class="section-head">
+      <div>
+        <h2 id="feedback-heading">Feedback &amp; bug reports</h2>
+        <p id="feedbackCount">Not loaded yet.</p>
+      </div>
+      <button class="btn btn-ghost" id="refreshFeedbackBtn" type="button">Refresh feedback</button>
+    </div>
+
+    <div class="toolbar">
+      <div class="field">
+        <label for="feedbackStatus">Status filter</label>
+        <select id="feedbackStatus">
+          <option value="new">New</option>
+          <option value="read">Read</option>
+          <option value="fixed">Fixed</option>
+          <option value="all">All statuses</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="feedbackType">Type filter</label>
+        <select id="feedbackType">
+          <option value="all">All types</option>
+          <option value="bug">Bug</option>
+          <option value="error">Error</option>
+          <option value="suggestion">Suggestion</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="field-narrow">
+        <button class="btn btn-ghost" id="resetFeedbackBtn" type="button">Show new only</button>
+      </div>
+    </div>
+
+    <div class="banner error" id="feedbackError" role="alert" style="display:none">
+      <span id="feedbackErrorText"></span>
+      <div class="actions"><button class="btn btn-primary" id="retryFeedbackBtn" type="button">Retry feedback</button></div>
+    </div>
+
+    <div id="feedbackLoading" class="empty" style="display:none;margin-top:12px"><strong>Loading feedback…</strong><span>Fetching reports from the API.</span></div>
+    <div id="feedbackEmpty" class="empty" style="display:none;margin-top:12px"><strong>No feedback yet</strong><span>No data yet — no reports match this status filter.</span></div>
+    <div class="feedback-list" id="feedbackList" style="margin-top:12px" aria-live="polite">
+      <div class="empty"><strong>Feedback will appear here</strong><span>Enter your admin key and press “Save &amp; load dashboard” to load reports.</span></div>
+    </div>
+  </section>
+
+  <footer>
+    MockGrill CEO Dashboard · Data comes only from the MockGrill backend API. Admin key is stored in this browser&rsquo;s localStorage only.
+  </footer>
+</main>
+
+<script>
+(function(){
+  'use strict';
+  var DEFAULT_API_BASE = 'https://visaenglish-backend.onrender.com';
+  var STORAGE_KEY = 'mockgrill_admin_key';
+  var LIMIT = 50;
+
+  function qs(sel){ return document.querySelector(sel); }
+  // No ?api= override by design: the admin key must only ever be sent
+  // to our own backend, never to a host named in a crafted link.
+  function getApiBase(){
+    return DEFAULT_API_BASE;
+  }
+  var API_BASE = getApiBase();
+
+  // State
+  var adminKey = '';
+  var cursorStack = [];       // cursors for pages already visited; cursorStack[0] = null (first page)
+  var currentPageIndex = 0;
+  var currentNextCursor = null;
+  var currentUsersRaw = [];   // raw page from API (before client-side filter/sort)
+  var currentFeedbackRaw = [];
+
+  // Elements
+  var apiBaseLabel = qs('#apiBaseLabel');
+  var keyForm = qs('#keyForm');
+  var keyInput = qs('#adminKeyInput');
+  var showKeyToggle = qs('#showKeyToggle');
+  var saveKeyBtn = qs('#saveKeyBtn');
+  var keyBadge = qs('#keyBadge');
+  var keyStatus = qs('#keyStatus');
+  var keyStatusTitle = qs('#keyStatusTitle');
+  var keyStatusText = qs('#keyStatusText');
+  var globalBanner = qs('#globalBanner');
+  var globalBannerText = qs('#globalBannerText');
+  var globalBannerActions = qs('#globalBannerActions');
+  var retryBtn = qs('#retryBtn');
+
+  apiBaseLabel.textContent = API_BASE;
+
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+  function fmtNum(v){
+    if(v == null || v === '' || isNaN(Number(v))) return '—';
+    return Number(v).toLocaleString('en-US');
+  }
+  function fmtDate(v){
+    if(!v) return '—';
+    var d = new Date(v);
+    if(isNaN(d.getTime())) return esc(v);
+    return d.toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  }
+  function fmtDateOnly(v){
+    if(!v) return '—';
+    var d = new Date(v);
+    if(isNaN(d.getTime())) return esc(v);
+    return d.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+  }
+  function setKeyStatus(state, title, text){
+    keyStatus.setAttribute('data-state', state);
+    keyStatusTitle.textContent = title;
+    keyStatusText.textContent = text;
+    if(state === 'ok'){
+      keyBadge.textContent = 'Key saved';
+      keyBadge.className = 'pill pill-mint';
+    } else if(state === 'error'){
+      keyBadge.textContent = 'Key issue';
+      keyBadge.className = 'pill pill-red';
+    } else if(state === 'loading'){
+      keyBadge.textContent = 'Checking key…';
+      keyBadge.className = 'pill pill-amber';
+    } else {
+      keyBadge.textContent = 'Key not entered';
+      keyBadge.className = 'pill pill-violet';
+    }
+  }
+  function showBanner(kind, text, showRetry){
+    globalBanner.className = 'banner show ' + kind;
+    globalBannerText.textContent = text;
+    globalBannerActions.hidden = !showRetry;
+  }
+  function hideBanner(){
+    globalBanner.className = 'banner info';
+    globalBannerText.textContent = '';
+    globalBannerActions.hidden = true;
+  }
+  function showInlineError(el, textEl, text){
+    el.style.display = 'block';
+    textEl.textContent = text;
+  }
+  function hideInlineError(el){
+    el.style.display = 'none';
+  }
+
+  function authErrorMessage(status, endpointLabel){
+    if(status === 401) return 'Wrong key (401). That key was rejected by the server. Paste the current ADMIN_API_KEY from the Render dashboard and try again.';
+    if(status === 404) return 'Key not set on server (404). Set ADMIN_API_KEY in Render dashboard → service → Environment, then redeploy.';
+    if(status === 403) return 'Access denied (403) for ' + endpointLabel + '. Check that the key has admin access.';
+    return 'Server error (' + status + ') for ' + endpointLabel + '. Please retry.';
+  }
+
+  async function apiFetch(path){
+    var url = API_BASE + path;
+    var res;
+    try{
+      res = await fetch(url, {
+        method: 'GET',
+        headers: { 'X-Admin-Key': adminKey, 'Accept': 'application/json' }
+      });
+    }catch(err){
+      var e = new Error('Network error: could not reach the API. Check your connection and that the backend is running, then retry.');
+      e.kind = 'network';
+      throw e;
+    }
+    if(!res.ok){
+      var e2 = new Error(authErrorMessage(res.status, path));
+      e2.kind = 'http';
+      e2.status = res.status;
+      throw e2;
+    }
+    return res.json();
+  }
+
+  // ---------- Stats ----------
+  async function loadStats(){
+    hideInlineError(qs('#statsError'));
+    var cells = document.querySelectorAll('[data-stat]');
+    cells.forEach(function(c){ c.textContent = '…'; });
+    qs('#statsUpdated').textContent = 'Loading…';
+    try{
+      var data = await apiFetch('/admin/stats');
+      var fields = ['users_total','free_trial_users','paid_users','sessions_total','sessions_today','paid_sessions','credits_in_circulation'];
+      fields.forEach(function(f){
+        var el = document.querySelector('[data-stat="' + f + '"]');
+        if(el) el.textContent = fmtNum(data[f]);
+      });
+      // Paid share (derived only from real stats)
+      var total = Number(data.users_total || 0);
+      var paid = Number(data.paid_users || 0);
+      var shareEl = qs('#paidShareValue');
+      var shareSub = qs('#paidShareSub');
+      if(total > 0){
+        shareEl.textContent = ((paid / total) * 100).toFixed(1) + '%';
+        shareSub.textContent = fmtNum(paid) + ' paid of ' + fmtNum(total) + ' total users.';
+      } else {
+        shareEl.textContent = '—';
+        shareSub.textContent = 'No users yet — no data to compute a share from.';
+      }
+      qs('#statsUpdated').textContent = 'Updated ' + new Date().toLocaleString('en-IN', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }) + ' · from live API';
+      renderPlanChart(data);
+      renderSessionsChart(data);
+      return true;
+    }catch(err){
+      cells.forEach(function(c){ c.textContent = '—'; });
+      qs('#paidShareValue').textContent = '—';
+      qs('#paidShareSub').textContent = 'Could not load stats.';
+      qs('#statsUpdated').textContent = 'Stats failed to load.';
+      showInlineError(qs('#statsError'), qs('#statsErrorText'), err.message);
+      if(err.status === 401) setKeyStatus('error', 'Wrong key.', 'The server rejected this key (401). Paste the current ADMIN_API_KEY and try again.');
+      if(err.status === 404) setKeyStatus('error', 'Key not set on server.', 'Set ADMIN_API_KEY in Render dashboard → service → Environment, then redeploy.');
+      if(err.kind === 'network') showBanner('error', err.message, true);
+      renderPlanChart(null);
+      renderSessionsChart(null);
+      return false;
+    }
+  }
+
+  function donutSVG(parts, total){
+    // parts: [{label, value, color}] — draws a ring from real values only.
+    var R = 52, C = 2 * Math.PI * R;
+    var offset = 0;
+    var segs = '';
+    parts.forEach(function(p){
+      var frac = total > 0 ? (p.value / total) : 0;
+      var len = frac * C;
+      // Skip zero segments; use a tiny gap between segments.
+      if(len > 0.5){
+        segs += '<circle cx="70" cy="70" r="' + R + '" fill="none" stroke="' + p.color + '" stroke-width="22" stroke-dasharray="' + (len - 1.5) + ' ' + (C - len + 1.5) + '" stroke-dashoffset="' + (-offset) + '" transform="rotate(-90 70 70)" />';
+      }
+      offset += len;
+    });
+    return '<svg viewBox="0 0 140 140" width="150" height="150" role="img" aria-label="Plan mix donut chart">' + segs +
+      '<text x="70" y="66" text-anchor="middle" font-size="20" font-weight="800" fill="#14121f">' + esc(fmtNum(total)) + '</text>' +
+      '<text x="70" y="86" text-anchor="middle" font-size="11" fill="#6b6a7a">total users</text></svg>';
+  }
+
+  function renderPlanChart(data){
+    var body = qs('#planChartBody');
+    var legend = qs('#planLegend');
+    if(!data){
+      body.innerHTML = '<div class="empty"><strong>No chart yet</strong><span>Stats failed to load. Fix the key / connection and retry.</span></div>';
+      legend.hidden = true;
+      return;
+    }
+    var total = Number(data.users_total || 0);
+    var free = Number(data.free_trial_users || 0);
+    var paid = Number(data.paid_users || 0);
+    var other = Math.max(0, total - free - paid);
+    if(total <= 0){
+      body.innerHTML = '<div class="empty"><strong>No data yet</strong><span>No users yet — nothing to chart.</span></div>';
+      legend.hidden = true;
+      return;
+    }
+    body.innerHTML = '<div style="display:flex;justify-content:center">' + donutSVG([
+      { value: free, color: '#0ea5e9' },
+      { value: paid, color: '#059669' },
+      { value: other, color: '#e9e7f2' }
+    ], total) + '</div>';
+    qs('#legendFree').textContent = fmtNum(free);
+    qs('#legendPaid').textContent = fmtNum(paid);
+    qs('#legendOther').textContent = fmtNum(other);
+    legend.hidden = false;
+  }
+
+  function renderSessionsChart(data){
+    var body = qs('#sessionsChartBody');
+    if(!data){
+      body.innerHTML = '<div class="empty"><strong>No chart yet</strong><span>Stats failed to load. Fix the key / connection and retry.</span></div>';
+      return;
+    }
+    var rows = [
+      { label: 'Sessions total', value: Number(data.sessions_total || 0), cls: '' },
+      { label: 'Sessions today', value: Number(data.sessions_today || 0), cls: 'sky' },
+      { label: 'Paid sessions', value: Number(data.paid_sessions || 0), cls: 'mint' }
+    ];
+    var max = Math.max.apply(null, rows.map(function(r){ return r.value; }));
+    if(max <= 0){
+      body.innerHTML = '<div class="empty"><strong>No data yet</strong><span>No sessions yet — nothing to chart.</span></div>';
+      return;
+    }
+    body.innerHTML = rows.map(function(r){
+      var pct = Math.max(2, (r.value / max) * 100);
+      return '<div class="bar-row"><span>' + esc(r.label) + '</span>' +
+        '<div class="bar-track"><div class="bar-fill ' + r.cls + '" style="width:' + pct + '%"></div></div>' +
+        '<span class="bar-value">' + esc(fmtNum(r.value)) + '</span></div>';
+    }).join('');
+  }
+
+  // ---------- Users ----------
+  function normalizePlan(plan){
+    var p = String(plan == null ? '' : plan).toLowerCase().trim();
+    if(p === 'free_trial' || p === 'free-trial' || p === 'trial') return 'free_trial';
+    if(p === 'paid' || p === 'premium' || p === 'pro' || p === 'subscriber') return 'paid';
+    if(p === 'free') return 'free';
+    return p || 'unknown';
+  }
+  function planLabel(plan){
+    var n = normalizePlan(plan);
+    if(n === 'free_trial') return 'Free trial';
+    if(n === 'paid') return 'Paid';
+    if(n === 'free') return 'Free';
+    if(n === 'unknown') return '—';
+    return String(plan);
+  }
+  function planPill(plan){
+    var n = normalizePlan(plan);
+    if(n === 'free_trial') return '<span class="pill pill-sky">Free trial</span>';
+    if(n === 'paid') return '<span class="pill pill-mint">Paid</span>';
+    if(n === 'free') return '<span class="pill pill-grey">Free</span>';
+    if(n === 'unknown') return '<span class="pill pill-grey">—</span>';
+    return '<span class="pill pill-grey">' + esc(plan) + '</span>';
+  }
+
+  function getFilteredSortedUsers(){
+    var q = qs('#userSearch').value.trim().toLowerCase();
+    var planFilter = qs('#planFilter').value;
+    var sortVal = qs('#sortSelect').value;
+    var list = currentUsersRaw.slice();
+    if(planFilter !== 'all'){
+      list = list.filter(function(u){ return normalizePlan(u.plan) === planFilter; });
+    }
+    if(q){
+      list = list.filter(function(u){
+        var hay = [u.username, u.first_name, String(u.telegram_id == null ? '' : u.telegram_id)].join(' ').toLowerCase();
+        return hay.indexOf(q) !== -1;
+      });
+    }
+    function num(v){ var n = Number(v); return isNaN(n) ? 0 : n; }
+    function time(v){ var t = new Date(v).getTime(); return isNaN(t) ? 0 : t; }
+    var sorters = {
+      'created_at_desc': function(a,b){ return time(b.created_at) - time(a.created_at); },
+      'created_at_asc': function(a,b){ return time(a.created_at) - time(b.created_at); },
+      'last_active_desc': function(a,b){ return time(b.last_active) - time(a.last_active); },
+      'credits_desc': function(a,b){ return num(b.credits) - num(a.credits); },
+      'sessions_count_desc': function(a,b){ return num(b.sessions_count) - num(a.sessions_count); },
+      'interviews_used_desc': function(a,b){ return num(b.interviews_used) - num(a.interviews_used); },
+      'username_asc': function(a,b){ return String(a.username||'').localeCompare(String(b.username||'')); }
+    };
+    var fn = sorters[sortVal] || sorters.created_at_desc;
+    list.sort(fn);
+    return list;
+  }
+
+  function renderUsers(){
+    var list = getFilteredSortedUsers();
+    var tbody = qs('#usersTbody');
+    qs('#usersCount').textContent = list.length + ' matching on this page · ' + currentUsersRaw.length + ' fetched from API on this page';
+    qs('#usersPageInfo').textContent = 'Page ' + (currentPageIndex + 1) + ' · showing ' + list.length + ' users from the API';
+    qs('#prevUsersBtn').disabled = currentPageIndex === 0;
+    qs('#nextUsersBtn').disabled = !currentNextCursor;
+    qs('#usersEmpty').style.display = list.length === 0 ? 'block' : 'none';
+    if(list.length === 0){
+      tbody.innerHTML = '<tr><td colspan="8" class="muted">No users match these filters on this page.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = list.map(function(u){
+      var uname = u.username ? '@' + String(u.username) : '—';
+      var first = u.first_name ? esc(u.first_name) : '—';
+      return '<tr>' +
+        '<td><div class="user-cell"><strong>' + esc(uname) + '</strong><span>' + first + '</span></div></td>' +
+        '<td class="mono nowrap">' + esc(u.telegram_id == null ? '—' : u.telegram_id) + '</td>' +
+        '<td>' + planPill(u.plan) + '</td>' +
+        '<td class="num">' + esc(fmtNum(u.credits)) + '</td>' +
+        '<td class="num">' + esc(fmtNum(u.interviews_used)) + '</td>' +
+        '<td class="num">' + esc(fmtNum(u.sessions_count)) + '</td>' +
+        '<td class="nowrap">' + esc(fmtDateOnly(u.created_at)) + '</td>' +
+        '<td class="nowrap">' + esc(fmtDate(u.last_active)) + '</td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  async function loadUsers(cursor, pageIndex){
+    hideInlineError(qs('#usersError'));
+    qs('#usersLoading').style.display = 'block';
+    qs('#usersEmpty').style.display = 'none';
+    try{
+      var path = '/admin/users?limit=' + LIMIT + (cursor ? '&cursor=' + encodeURIComponent(cursor) : '');
+      var data = await apiFetch(path);
+      currentUsersRaw = Array.isArray(data.users) ? data.users : [];
+      currentNextCursor = data.next_cursor || null;
+      currentPageIndex = pageIndex;
+      qs('#usersLoading').style.display = 'none';
+      renderUsers();
+      return true;
+    }catch(err){
+      qs('#usersLoading').style.display = 'none';
+      showInlineError(qs('#usersError'), qs('#usersErrorText'), err.message);
+      qs('#usersTbody').innerHTML = '<tr><td colspan="8" class="muted">Users failed to load.</td></tr>';
+      if(err.kind === 'network') showBanner('error', err.message, true);
+      return false;
+    }
+  }
+  function resetUsersPaging(){
+    cursorStack = [null];
+    currentPageIndex = 0;
+    currentNextCursor = null;
+  }
+
+  // ---------- Feedback ----------
+  function feedbackStatusPill(status){
+    var s = String(status == null ? '' : status).toLowerCase();
+    if(s === 'new') return '<span class="pill pill-amber">New</span>';
+    if(s === 'read') return '<span class="pill pill-violet">Read</span>';
+    if(s === 'fixed' || s === 'closed' || s === 'done') return '<span class="pill pill-mint">Fixed</span>';
+    return '<span class="pill pill-grey">' + esc(status || '—') + '</span>';
+  }
+  function feedbackTypePill(type){
+    var t = String(type == null ? '' : type).toLowerCase();
+    if(t === 'bug') return '<span class="pill pill-red">Bug</span>';
+    if(t === 'error') return '<span class="pill pill-red">Error</span>';
+    if(t === 'suggestion') return '<span class="pill pill-violet">Suggestion</span>';
+    if(t) return '<span class="pill pill-grey">' + esc(type) + '</span>';
+    return '<span class="pill pill-grey">—</span>';
+  }
+  function getFilteredFeedback(){
+    var typeFilter = qs('#feedbackType').value;
+    if(typeFilter === 'all') return currentFeedbackRaw.slice();
+    return currentFeedbackRaw.filter(function(f){
+      var t = String(f.type == null ? '' : f.type).toLowerCase();
+      return t === typeFilter;
+    });
+  }
+  function renderFeedback(){
+    var list = getFilteredFeedback();
+    var el = qs('#feedbackList');
+    var statusVal = qs('#feedbackStatus').value;
+    qs('#feedbackCount').textContent = list.length + ' report(s) · status: ' + (statusVal === 'all' ? 'all' : statusVal);
+    qs('#feedbackEmpty').style.display = list.length === 0 ? 'block' : 'none';
+    if(list.length === 0){
+      el.innerHTML = '';
+      return;
+    }
+    el.innerHTML = list.map(function(f){
+      var meta = [];
+      if(f.user_id != null && f.user_id !== '') meta.push('User: <span class="mono">' + esc(f.user_id) + '</span>');
+      if(f.screen) meta.push('Screen: ' + esc(f.screen));
+      if(f.session_id != null && f.session_id !== '') meta.push('Session: <span class="mono">' + esc(f.session_id) + '</span>');
+      if(f.id != null && f.id !== '') meta.push('ID: <span class="mono">' + esc(f.id) + '</span>');
+      return '<article class="fb-item">' +
+        '<div class="fb-top"><div style="display:flex;gap:8px;flex-wrap:wrap">' + feedbackTypePill(f.type) + feedbackStatusPill(f.status) + '</div>' +
+        '<span class="muted small nowrap">' + esc(fmtDate(f.created_at)) + '</span></div>' +
+        '<p class="fb-msg">' + esc(f.message || '(no message)') + '</p>' +
+        (meta.length ? '<div class="fb-meta">' + meta.map(function(m){ return '<span>' + m + '</span>'; }).join('') + '</div>' : '') +
+        '</article>';
+    }).join('');
+  }
+  async function loadFeedback(){
+    hideInlineError(qs('#feedbackError'));
+    qs('#feedbackLoading').style.display = 'block';
+    qs('#feedbackEmpty').style.display = 'none';
+    try{
+      var statusVal = qs('#feedbackStatus').value;
+      var path = '/admin/feedback?limit=100' + (statusVal !== 'all' ? '&status=' + encodeURIComponent(statusVal) : '');
+      var data = await apiFetch(path);
+      currentFeedbackRaw = Array.isArray(data.feedback) ? data.feedback : [];
+      qs('#feedbackLoading').style.display = 'none';
+      renderFeedback();
+      return true;
+    }catch(err){
+      qs('#feedbackLoading').style.display = 'none';
+      showInlineError(qs('#feedbackError'), qs('#feedbackErrorText'), err.message);
+      qs('#feedbackList').innerHTML = '<div class="empty"><strong>Feedback failed to load</strong><span>Fix the key / connection and retry.</span></div>';
+      if(err.kind === 'network') showBanner('error', err.message, true);
+      return false;
+    }
+  }
+
+  // ---------- Load all ----------
+  async function loadAll(){
+    if(!adminKey){
+      setKeyStatus('idle', 'Enter your admin key to load the dashboard.', 'Stats, users and feedback stay empty until a valid key is saved.');
+      return;
+    }
+    hideBanner();
+    setKeyStatus('loading', 'Checking key…', 'Contacting the API with your key.');
+    resetUsersPaging();
+    var okStats = await loadStats();
+    if(okStats){
+      setKeyStatus('ok', 'Key accepted. Dashboard loaded from live API.', 'Stats, users and feedback below are real values from the backend.');
+    }
+    await loadUsers(null, 0);
+    await loadFeedback();
+  }
+
+  // ---------- Key handling ----------
+  function loadKeyFromStorage(){
+    try{ return window.localStorage.getItem(STORAGE_KEY) || ''; }catch(e){ return ''; }
+  }
+  function saveKeyToStorage(k){
+    try{ window.localStorage.setItem(STORAGE_KEY, k); }catch(e){}
+  }
+  function clearKeyFromStorage(){
+    try{ window.localStorage.removeItem(STORAGE_KEY); }catch(e){}
+  }
+
+  keyForm.addEventListener('submit', function(e){
+    e.preventDefault();
+    var k = keyInput.value.trim();
+    if(!k){
+      setKeyStatus('error', 'No key entered.', 'Paste your ADMIN_API_KEY into the field, then press “Save & load dashboard”.');
+      keyInput.focus();
+      return;
+    }
+    adminKey = k;
+    saveKeyToStorage(k);
+    loadAll();
+  });
+
+  showKeyToggle.addEventListener('click', function(){
+    var showing = keyInput.type === 'text';
+    keyInput.type = showing ? 'password' : 'text';
+    showKeyToggle.textContent = showing ? 'Show key' : 'Hide key';
+    showKeyToggle.setAttribute('aria-pressed', String(!showing));
+    keyInput.focus();
+  });
+
+  qs('#clearKeyBtn').addEventListener('click', function(){
+    adminKey = '';
+    keyInput.value = '';
+    clearKeyFromStorage();
+    hideBanner();
+    setKeyStatus('idle', 'Key cleared.', 'The admin key was removed from this browser. Enter it again to reload the dashboard.');
+    // Reset panels to empty states — never show stale numbers after clearing.
+    document.querySelectorAll('[data-stat]').forEach(function(c){ c.textContent = '—'; });
+    qs('#paidShareValue').textContent = '—';
+    qs('#paidShareSub').textContent = 'Needs stats from the API.';
+    qs('#statsUpdated').textContent = 'Not loaded yet.';
+    renderPlanChart(null);
+    renderSessionsChart(null);
+    currentUsersRaw = [];
+    currentFeedbackRaw = [];
+    resetUsersPaging();
+    qs('#usersTbody').innerHTML = '<tr><td colspan="8" class="muted">Enter your admin key and press “Save &amp; load dashboard” to load users.</td></tr>';
+    qs('#usersCount').textContent = 'Not loaded yet.';
+    qs('#feedbackList').innerHTML = '<div class="empty"><strong>Feedback will appear here</strong><span>Enter your admin key and press “Save &amp; load dashboard” to load reports.</span></div>';
+    qs('#feedbackCount').textContent = 'Not loaded yet.';
+    keyInput.focus();
+  });
+
+  // ---------- Refresh / retry wiring ----------
+  qs('#refreshAllBtn').addEventListener('click', loadAll);
+  qs('#refreshStatsBtn').addEventListener('click', loadStats);
+  qs('#retryStatsBtn').addEventListener('click', loadStats);
+  qs('#refreshUsersBtn').addEventListener('click', function(){ resetUsersPaging(); loadUsers(null, 0); });
+  qs('#retryUsersBtn').addEventListener('click', function(){ resetUsersPaging(); loadUsers(null, 0); });
+  qs('#refreshFeedbackBtn').addEventListener('click', loadFeedback);
+  qs('#retryFeedbackBtn').addEventListener('click', loadFeedback);
+  retryBtn.addEventListener('click', loadAll);
+
+  // Users: live client-side filter/sort
+  qs('#userSearch').addEventListener('input', renderUsers);
+  qs('#planFilter').addEventListener('change', renderUsers);
+  qs('#sortSelect').addEventListener('change', renderUsers);
+  qs('#resetUsersBtn').addEventListener('click', function(){
+    qs('#userSearch').value = '';
+    qs('#planFilter').value = 'all';
+    qs('#sortSelect').value = 'created_at_desc';
+    renderUsers();
+  });
+  // Column-header sort buttons map to the sort select
+  document.querySelectorAll('thead th button[data-sort]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var col = btn.getAttribute('data-sort');
+      var map = {
+        username: 'username_asc', credits: 'credits_desc',
+        interviews_used: 'interviews_used_desc', sessions_count: 'sessions_count_desc',
+        created_at: 'created_at_desc', last_active: 'last_active_desc'
+      };
+      if(map[col]){
+        qs('#sortSelect').value = map[col];
+        renderUsers();
+      }
+    });
+  });
+  qs('#nextUsersBtn').addEventListener('click', function(){
+    if(!currentNextCursor) return;
+    cursorStack[currentPageIndex + 1] = currentNextCursor;
+    loadUsers(currentNextCursor, currentPageIndex + 1);
+  });
+  qs('#prevUsersBtn').addEventListener('click', function(){
+    if(currentPageIndex === 0) return;
+    var prevCursor = cursorStack[currentPageIndex - 1] || null;
+    loadUsers(prevCursor, currentPageIndex - 1);
+  });
+
+  // Feedback filters
+  qs('#feedbackStatus').addEventListener('change', loadFeedback);
+  qs('#feedbackType').addEventListener('change', renderFeedback);
+  qs('#resetFeedbackBtn').addEventListener('click', function(){
+    qs('#feedbackStatus').value = 'new';
+    qs('#feedbackType').value = 'all';
+    loadFeedback();
+  });
+
+  // ---------- Init: restore saved key (localStorage only) ----------
+  var saved = loadKeyFromStorage();
+  if(saved){
+    adminKey = saved;
+    keyInput.value = saved;
+    setKeyStatus('ok', 'Saved key found in this browser.', 'Loading the dashboard with your saved key. Use “Clear key” to remove it.');
+    loadAll();
+  }
+})();
+</script>
+</body>
+</html>

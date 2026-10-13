@@ -271,11 +271,19 @@ def create_session(user_id: str, test_type: str, plan: str,
                    max_duration_sec: int, affiliate_code: str | None = None,
                    background_summary: str | None = None,
                    idempotency_key: str | None = None,
-                   credit_consumed: bool = False) -> str:
+                   credit_consumed: bool = False,
+                   visa_type: str | None = None,
+                   is_reapplicant: bool = False) -> str:
     sid = uuid.uuid4().hex[:16]
     data = {
         "user_id": str(user_id),
         "test_type": test_type,
+        # Worker 16: per-visa-type officer prompt + 214(b) mode. Stored
+        # verbatim-safe: visa_type allowlisted by the caller (main.py),
+        # is_reapplicant is a bool. Older sessions simply lack these keys.
+        "visa_type": visa_type if visa_type in ("F1", "B1", "B2", "H1B") else None,
+        "is_reapplicant": bool(is_reapplicant),
+        "plan": plan,
         "plan": plan,
         "max_duration_sec": max_duration_sec,
         # FIX 17: timer alias — frontend resyncs from maxSeconds.
@@ -518,12 +526,31 @@ def mark_session_ended(session_id: str, duration_sec: int):
 
 
 def update_session_scored(session_id: str, score: int, verdict: str,
-                          breakdown: dict, weaknesses: list, feedback: str):
+                          breakdown: dict, weaknesses: list, feedback: str,
+                          corrections: list | None = None,
+                          nervousness_score: int | None = None,
+                          nervousness_level: str | None = None,
+                          contradictions: list | None = None):
+    """Persist a scored session. corrections + nervousness MUST be stored:
+    the cached-score path (/session/end re-call, RETRY SCORING) rebuilds
+    the Results payload from the session doc — anything not stored here
+    (previously: corrections, nervousness) silently vanished on retry.
+    Same for contradictions (deterministic lie-detector findings)."""
+    extra = {}
+    if corrections is not None:
+        extra["corrections"] = corrections
+    if nervousness_score is not None:
+        extra["nervousness_score"] = nervousness_score
+    if nervousness_level is not None:
+        extra["nervousness_level"] = nervousness_level
+    if contradictions is not None:
+        extra["contradictions"] = contradictions
     if not is_db_available():
         if session_id in _mem_sessions:
             _mem_sessions[session_id].update({
                 "score": score, "verdict": verdict, "breakdown": breakdown,
                 "weaknesses": weaknesses, "feedback": feedback,
+                **extra,
             })
             _mem_sessions[session_id].pop("scoring_in_progress", None)
             _mem_sessions[session_id].pop("claimed_at", None)
@@ -537,6 +564,7 @@ def update_session_scored(session_id: str, score: int, verdict: str,
         "feedback": feedback,
         "scoring_in_progress": False,
         "claimed_at": _fs.DELETE_FIELD,
+        **extra,
     })
 
 
@@ -1299,10 +1327,17 @@ def get_affiliate_stats(code: str) -> dict | None:
 
 # ---------- feedback / bug reports (MockGrill Support) ----------
 
+_FEEDBACK_FIELDS = ("id", "user_id", "type", "message", "screen", "session_id",
+                    "app_version", "user_agent", "first_name", "username",
+                    "status", "created_at")
+
+
 def _normalize_feedback(d: dict) -> dict:
-    """Copy a feedback doc, converting Firestore datetimes to ISO strings
-    so the JSON API never leaks a non-serializable value."""
-    out = dict(d or {})
+    """Allowlisted copy of a feedback doc, converting Firestore datetimes
+    to ISO strings. Explicit field list so a future extra field on a
+    feedback doc can never leak through the admin/feedback APIs."""
+    src = d or {}
+    out = {k: src.get(k) for k in _FEEDBACK_FIELDS}
     created = out.get("created_at")
     if isinstance(created, datetime):
         out["created_at"] = created.isoformat()
@@ -1350,3 +1385,278 @@ def list_feedback(status: str | None = None, limit: int = 100) -> list[dict]:
         q = q.where("status", "==", status)
     q = q.order_by("created_at", direction="DESCENDING").limit(limit)
     return [_normalize_feedback(doc.to_dict()) for doc in q.stream()]
+
+
+# ---------- admin dashboard (GET /admin/*) ----------
+# All admin reads aggregate from Firestore only — no invented numbers.
+# Empty collections yield zeros / empty lists, never errors. The in-memory
+# fallback (no Firestore configured) reads the same _mem_* stores, so
+# local-dev behaviour matches production shape. Responses are built from
+# an explicit allowlist — user docs are never spread wholesale, so no
+# token/secret/key field can ever leak through these endpoints.
+# NOTE on scale: the aggregates below scan the users + sessions
+# collections in Python (one stream each). Correct and deterministic
+# across mixed created_at types; revisit with cursor-based Firestore
+# queries if the user base grows past ~10k.
+
+import base64 as _admin_b64
+import json as _admin_json
+
+
+def _admin_epoch(value) -> float:
+    """Epoch seconds for a Firestore datetime / ms-epoch int / ISO string /
+    Timestamp-like object. None / unparseable -> 0.0 (sorts as oldest)."""
+    if value is None:
+        return 0.0
+    if isinstance(value, datetime):
+        try:
+            return value.timestamp()
+        except Exception:
+            return 0.0
+    if isinstance(value, (int, float)):
+        try:
+            v = float(value)
+            return v / 1000.0 if v > 1e12 else v
+        except Exception:
+            return 0.0
+    ts = getattr(value, "timestamp", None)
+    if callable(ts):
+        try:
+            return float(ts())
+        except Exception:
+            return 0.0
+    if isinstance(value, str):
+        try:
+            s = value.strip()
+            if not s:
+                return 0.0
+            if s.endswith("Z"):
+                s = s[:-1] + "+00:00"
+            return datetime.fromisoformat(s).timestamp()
+        except Exception:
+            return 0.0
+    return 0.0
+
+
+def _admin_iso(value) -> str | None:
+    """Best-effort ISO string for a created_at-style value, else None."""
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        try:
+            return value.isoformat()
+        except Exception:
+            return None
+    if isinstance(value, (int, float)):
+        try:
+            sec = float(value) / 1000.0 if float(value) > 1e12 else float(value)
+            return datetime.fromtimestamp(sec, tz=timezone.utc).isoformat()
+        except Exception:
+            return None
+    ts = getattr(value, "timestamp", None)
+    if callable(ts):
+        try:
+            return datetime.fromtimestamp(ts(), tz=timezone.utc).isoformat()
+        except Exception:
+            return None
+    if isinstance(value, str):
+        return value
+    return None
+
+
+def _admin_plan(u: dict) -> str:
+    """plan ∈ free_trial/paid/free. paid = unlimited `paid` flag OR a real
+    Stars charge on record (credited_charges). Referral-only credits do NOT
+    count as paid. free_trial = trial not yet used. Else free."""
+    if u.get("paid") or (u.get("credited_charges") or []):
+        return "paid"
+    if not u.get("free_trial_used"):
+        return "free_trial"
+    return "free"
+
+
+def _admin_fetch_users() -> list[dict]:
+    """All user docs (telegram_id always filled from the doc id when the
+    field itself is missing). Firestore failure -> DBUnavailableError
+    (caller 503s via main._db_or_503, never a false empty list)."""
+    if not is_db_available():
+        return [dict(u) for u in _mem_users.values()]
+    try:
+        out = []
+        for doc in get_db().collection("users").stream():
+            d = doc.to_dict() or {}
+            d.setdefault("telegram_id", doc.id)
+            out.append(d)
+        return out
+    except Exception as e:
+        log.warning("admin fetch users failed: %s", str(e)[:100])
+        raise DBUnavailableError("admin users query failed") from e
+
+
+def _admin_session_aggregates() -> dict:
+    """One scan of the sessions collection. Returns:
+    {"total": int, "today": int, "paid": int,
+     "per_user": {uid: {"sessions_count": int, "interviews_used": int,
+                         "last_active_epoch": float}}}.
+    sessions_today counts sessions created today (UTC). paid counts
+    sessions with plan == "paid". interviews_used counts COMPLETED
+    sessions (scored, denied, or ended); sessions_count counts ALL
+    sessions including live/unscored ones. last_active_epoch is the max
+    of created_at / ended_at across the user's sessions (0.0 = none)."""
+    if not is_db_available():
+        sessions = list(_mem_sessions.values())
+    else:
+        try:
+            sessions = []
+            for doc in get_db().collection("sessions").stream():
+                sessions.append(doc.to_dict() or {})
+        except Exception as e:
+            log.warning("admin session aggregates failed: %s", str(e)[:100])
+            raise DBUnavailableError("admin sessions query failed") from e
+    today = _now().date()
+    per_user: dict[str, dict] = {}
+    total = 0
+    today_count = 0
+    paid_count = 0
+    for s in sessions:
+        total += 1
+        if s.get("plan") == "paid":
+            paid_count += 1
+        created_epoch = _admin_epoch(s.get("created_at"))
+        if created_epoch:
+            try:
+                if datetime.fromtimestamp(created_epoch, tz=timezone.utc).date() == today:
+                    today_count += 1
+            except Exception:
+                pass
+        uid = str(s.get("user_id", "") or "")
+        if not uid:
+            continue
+        agg = per_user.setdefault(uid, {"sessions_count": 0,
+                                        "interviews_used": 0,
+                                        "last_active_epoch": 0.0})
+        agg["sessions_count"] += 1
+        if (s.get("score") is not None or s.get("denied")
+                or s.get("ended_at") is not None):
+            agg["interviews_used"] += 1
+        ended_epoch = _admin_epoch(s.get("ended_at"))
+        agg["last_active_epoch"] = max(agg["last_active_epoch"],
+                                       created_epoch, ended_epoch)
+    return {"total": total, "today": today_count, "paid": paid_count,
+            "per_user": per_user}
+
+
+def get_admin_stats() -> dict:
+    """Admin dashboard counters, all from Firestore. Empty DB -> zeros.
+    free_trial_users / paid_users partition users_total by the same
+    _admin_plan() rule as /admin/users (free = the remainder).
+    credits_in_circulation = sum of interview_credits + trial_credits
+    across all users (usable credits outstanding, not spent)."""
+    users = _admin_fetch_users()
+    agg = _admin_session_aggregates()
+    free_trial_users = 0
+    paid_users = 0
+    credits = 0
+    for u in users:
+        if _admin_plan(u) == "paid":
+            paid_users += 1
+        elif _admin_plan(u) == "free_trial":
+            free_trial_users += 1
+        try:
+            credits += int(u.get("interview_credits", 0) or 0)
+            credits += int(u.get("trial_credits", 0) or 0)
+        except (TypeError, ValueError):
+            pass
+    return {
+        "users_total": len(users),
+        "free_trial_users": free_trial_users,
+        "paid_users": paid_users,
+        "sessions_total": agg["total"],
+        "sessions_today": agg["today"],
+        "paid_sessions": agg["paid"],
+        "credits_in_circulation": credits,
+    }
+
+
+def _encode_admin_cursor(created_epoch: float, telegram_id: str) -> str:
+    """Opaque pagination cursor: base64url JSON of the last row's
+    (created_at epoch, telegram_id) sort key. No DB internals leak."""
+    raw = _admin_json.dumps({"c": created_epoch, "t": str(telegram_id)},
+                            separators=(",", ":")).encode()
+    return _admin_b64.urlsafe_b64encode(raw).decode().rstrip("=")
+
+
+def _decode_admin_cursor(cursor: str) -> tuple[float, str]:
+    """Decode a cursor from _encode_admin_cursor. Raises ValueError on
+    ANY malformed input (caller maps it to 400)."""
+    try:
+        padded = cursor + "=" * (-len(cursor) % 4)
+        data = _admin_json.loads(_admin_b64.urlsafe_b64decode(padded.encode()))
+        epoch = float(data["c"])
+        tid = str(data["t"])
+        if not tid:
+            raise ValueError("empty telegram_id in cursor")
+        return epoch, tid
+    except Exception as e:
+        raise ValueError("invalid cursor") from e
+
+
+def list_admin_users(limit: int = 50, cursor: str | None = None) -> dict:
+    """Newest users first, paginated. Returns {"users": [...],
+    "next_cursor": str | None}. Each user row carries ONLY allowlisted
+    fields: telegram_id, username, first_name, plan, credits,
+    interviews_used, sessions_count, created_at, last_active.
+    Rows sort by (created_at epoch, telegram_id) DESC; the cursor is the
+    last row's sort key and the next page keeps rows strictly below it,
+    so no row repeats or is skipped even with equal created_at values.
+    last_active = latest session activity (created/ended) when the user
+    has sessions, else the user's created_at. credits = interview_credits
+    + trial_credits (total usable)."""
+    after = _decode_admin_cursor(cursor) if cursor else None
+    users = _admin_fetch_users()
+    agg = _admin_session_aggregates()
+    per_user = agg["per_user"]
+    rows = []
+    for u in users:
+        tid = str(u.get("telegram_id", "") or "")
+        if not tid:
+            continue
+        created_epoch = _admin_epoch(u.get("created_at"))
+        try:
+            credits = int(u.get("interview_credits", 0) or 0) \
+                + int(u.get("trial_credits", 0) or 0)
+        except (TypeError, ValueError):
+            credits = 0
+        ua = per_user.get(tid) or {}
+        last_epoch = ua.get("last_active_epoch") or 0.0
+        if not last_epoch:
+            last_epoch = created_epoch
+        rows.append({
+            "telegram_id": tid,
+            "username": u.get("username", "") or "",
+            "first_name": u.get("first_name", "") or "",
+            "plan": _admin_plan(u),
+            "credits": credits,
+            "interviews_used": int(ua.get("interviews_used", 0) or 0),
+            "sessions_count": int(ua.get("sessions_count", 0) or 0),
+            "created_at": _admin_iso(u.get("created_at")),
+            "last_active": _admin_iso(
+                datetime.fromtimestamp(last_epoch, tz=timezone.utc)
+                if last_epoch else None),
+            "_sort_key": (created_epoch, tid),
+        })
+    rows.sort(key=lambda r: r["_sort_key"], reverse=True)
+    if after is not None:
+        rows = [r for r in rows if r["_sort_key"] < after]
+    page = rows[:limit + 1]
+    has_more = len(page) > limit
+    page = page[:limit]
+    next_cursor = None
+    if has_more and page:
+        last = page[-1]
+        next_cursor = _encode_admin_cursor(last["_sort_key"][0],
+                                           last["_sort_key"][1])
+    for r in page:
+        r.pop("_sort_key", None)
+    return {"users": page, "next_cursor": next_cursor}
+

@@ -65,7 +65,7 @@ from pydantic import BaseModel, Field
 
 import firestore_db as db
 import scoring
-from realtime_proxy import request_session_flush, wait_for_flush_completion, voice_proxy
+from realtime_proxy import request_session_flush, wait_for_flush_completion, voice_proxy, detect_reapplicant
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("englishtest")
@@ -461,6 +461,38 @@ def _session_timer_fields(sess: dict) -> dict:
             "elapsed_sec": elapsed, "remaining_sec": remaining}
 
 
+def _nervousness_fields(sess: dict) -> dict:
+    """Nervousness payload for /session/end responses — present on EVERY
+    return path (denied, cached, race-winner, fresh), so the Results
+    meter always shows the real value instead of vanishing on a retry /
+    re-fetch. Level uses scoring.nervousness_level (Low/Medium/High);
+    the old denied branch hardcoded High-or-Medium, so a calm candidate
+    wrongly showed 'Medium'. Penalty is recomputed deterministically
+    from the stored score (same function scoring applies)."""
+    score = int(sess.get("nervousness_score", 0) or 0)
+    return {
+        "nervousness_score": score,
+        "nervousness_level": scoring.nervousness_level(score),
+        "nervousness_penalty": scoring.nervousness_penalty(score),
+    }
+
+
+def _scored_detail_fields(sess: dict) -> dict:
+    """Categories + corrections for cached-score /session/end returns.
+    The frontend reads result.categories (never a bare breakdown dict),
+    so categories are rebuilt from the stored breakdown via
+    scoring.build_categories. Corrections come from the stored session
+    doc (persisted by update_session_scored). Sessions scored before
+    corrections existed return [] and the frontend falls back to its
+    transcript heuristic — a safe degradation, never a crash."""
+    return {
+        "categories": scoring.build_categories(sess.get("breakdown") or {}),
+        "corrections": sess.get("corrections") or [],
+        "contradictions": sess.get("contradictions") or [],
+        "contradiction_count": len(sess.get("contradictions") or []),
+    }
+
+
 def _rate_check(key: str, limit: int, window_sec: int = _RATE_WINDOW_SEC) -> tuple[bool, int]:
     """Sliding-window check. Returns (allowed, retry_after_sec). Records the
     hit when allowed. Prunes stale timestamps on every call."""
@@ -538,6 +570,14 @@ class SessionStartReq(BaseModel):
     affiliate_code: str | None = None
     background_summary: str | None = Field(None, max_length=2000,
         description="Optional applicant background for sharper examiner questions")
+    # Worker 16: per-visa-type officer prompt. Optional + allowlisted —
+    # None = pre-existing behaviour (no visa block). Only the Setup visa
+    # picker sends this, and only for visa-style sessions.
+    visa_type: str | None = Field(None, pattern="^(F1|B1|B2|H1B)$",
+        description="Visa type for visa-style sessions: F1|B1|B2|H1B")
+    is_reapplicant: bool = Field(False,
+        description="True when the applicant was refused before (214(b) "
+        "re-application mode). Also auto-detected from background text.")
     initData: str | None = Field(None,
         description="REQUIRED raw Telegram WebApp initData. It is HMAC-verified "
         "BEFORE any credit is consumed, its user id must equal user_id, and a "
@@ -716,6 +756,46 @@ def mint_session_token(session_id: str, user_id: str, ttl_sec: int) -> str:
     return base64.urlsafe_b64encode(raw.encode()).decode().rstrip("=")
 
 
+def decode_session_token(token: str, session_id: str) -> str | None:
+    """Verify a WS session token WITHOUT knowing the session owner.
+
+    Checks the token's self-consistency only: well-formed base64url + 4
+    dot-separated parts, token's session_id equals the URL session_id,
+    token not expired, HMAC matches (constant-time compare). Returns the
+    token's embedded user_id on success, None on ANY failure (never raises).
+
+    This exists so ws_voice can verify the credential BEFORE touching the
+    DB: a caller with a garbage token must get 4401 whether or not the
+    session_id exists, otherwise 4404-vs-4401 would leak session existence
+    to unauthenticated probers. Ownership (token uid == session owner) is
+    still checked separately, AFTER the session is loaded.
+    """
+    if not token or not session_id:
+        return None
+    if not _ws_signing_key():
+        return None
+    try:
+        padded = token + "=" * (-len(token) % 4)
+        raw = base64.urlsafe_b64decode(padded.encode()).decode()
+        tok_sid, tok_uid, exp_s, sig = raw.split(".", 3)
+    except Exception:
+        return None
+    if tok_sid != session_id:
+        return None
+    try:
+        exp = int(exp_s)
+    except ValueError:
+        return None
+    if exp < time.time():
+        return None
+    expected_sig = hmac.new(
+        _ws_signing_key(), f"{tok_sid}.{tok_uid}.{exp_s}".encode(),
+        hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expected_sig, sig):
+        return None
+    return str(tok_uid)
+
+
 def verify_session_token(token: str, session_id: str, expected_user_id: str) -> bool:
     """Verify a WS session token. Returns False on ANY failure (never raises).
 
@@ -725,26 +805,10 @@ def verify_session_token(token: str, session_id: str, expected_user_id: str) -> 
     """
     if not token or not session_id or expected_user_id is None:
         return False
-    if not _ws_signing_key():
+    tok_uid = decode_session_token(token, session_id)
+    if tok_uid is None:
         return False
-    try:
-        padded = token + "=" * (-len(token) % 4)
-        raw = base64.urlsafe_b64decode(padded.encode()).decode()
-        tok_sid, tok_uid, exp_s, sig = raw.split(".", 3)
-    except Exception:
-        return False
-    if tok_sid != session_id or str(tok_uid) != str(expected_user_id):
-        return False
-    try:
-        exp = int(exp_s)
-    except ValueError:
-        return False
-    if exp < time.time():
-        return False
-    expected_sig = hmac.new(
-        _ws_signing_key(), f"{tok_sid}.{tok_uid}.{exp_s}".encode(),
-        hashlib.sha256).hexdigest()
-    return hmac.compare_digest(expected_sig, sig)
+    return tok_uid == str(expected_user_id)
 
 
 class TelegramAuthReq(BaseModel):
@@ -1039,6 +1103,11 @@ async def session_start(req: SessionStartReq, request: Request):
             consumed_credit = True
         max_dur = PAID_MAX_SEC
 
+    # Worker 16: 214(b) backstop — a pastRejection mention in the
+    # background ("214(b) in 2024", "refused last year") triggers
+    # re-application mode even if the Setup checkbox was left unticked.
+    _bg = req.background_summary or ""
+    _reapplicant = bool(req.is_reapplicant) or detect_reapplicant(_bg)
     try:
         session_id = db.create_session(
             user_id=req.user_id,
@@ -1049,6 +1118,8 @@ async def session_start(req: SessionStartReq, request: Request):
             background_summary=req.background_summary,
             idempotency_key=req.idempotency_key,
             credit_consumed=consumed_credit,
+            visa_type=req.visa_type,
+            is_reapplicant=_reapplicant,
         )
     except Exception:
         # Session creation failed after we consumed a credit / claimed the
@@ -1162,14 +1233,15 @@ async def session_end(req: SessionEndReq, request: Request):
             "feedback": ("The officer stopped the interview. " + reason + ". "
                          "In a real interview, long stories get cut off — answer directly, "
                          "with facts, in under 20 seconds."),
-            "nervousness_score": int(sess.get("nervousness_score", 0) or 0),
-            "nervousness_level": "High" if int(sess.get("nervousness_score", 0) or 0) > 60 else "Medium",
+            **_nervousness_fields(sess),
             "over_explain_count": int(sess.get("over_explain_count", 0) or 0),
             **_session_timer_fields(sess),
         }
 
     if sess.get("score") is not None:
-        # Already scored — idempotent (must include "total": frontend reads res.total)
+        # Already scored — idempotent (must include "total": frontend reads res.total).
+        # Must also include nervousness fields: without them the Results
+        # meter vanished on any re-fetch/retry of /session/end.
         return {
             "session_id": req.session_id,
             "score": sess["score"],
@@ -1177,6 +1249,8 @@ async def session_end(req: SessionEndReq, request: Request):
             "verdict": sess["verdict"],
             "weaknesses": sess.get("weaknesses", []),
             "feedback": sess.get("feedback", ""),
+            **_scored_detail_fields(sess),
+            **_nervousness_fields(sess),
             **_session_timer_fields(sess),
         }
 
@@ -1192,6 +1266,8 @@ async def session_end(req: SessionEndReq, request: Request):
             "verdict": sess["verdict"],
             "weaknesses": sess.get("weaknesses", []),
             "feedback": sess.get("feedback", ""),
+            **_scored_detail_fields(sess),
+            **_nervousness_fields(sess),
             **_session_timer_fields(sess),
         }
     if claim == "in_progress":
@@ -1208,6 +1284,8 @@ async def session_end(req: SessionEndReq, request: Request):
                     "verdict": sess["verdict"],
                     "weaknesses": sess.get("weaknesses", []),
                     "feedback": sess.get("feedback", ""),
+                    **_scored_detail_fields(sess),
+                    **_nervousness_fields(sess),
                     **_session_timer_fields(sess),
                 }
         raise HTTPException(409, "SCORING_IN_PROGRESS: Scoring in progress — retry shortly")
@@ -1228,12 +1306,23 @@ async def session_end(req: SessionEndReq, request: Request):
         db.release_scoring(req.session_id)
         raise HTTPException(409, "No transcript captured — session had no audio")
 
-    # Feature 2: pass the filler-word nervousness score into scoring
+    # Feature 2: pass the filler-word nervousness score into scoring,
+    # plus the applicant's background + stated facts so CONSISTENCY is
+    # cross-checked against real data instead of guessed from the
+    # transcript alone (scoring sanitises + delimits both as DATA).
     nervousness = int(sess.get("nervousness_score", 0) or 0)
+    # Deterministic lie detector: pass the contradictions the live officer
+    # already caught (persisted per turn). None/empty -> scoring recomputes
+    # them from the transcript with the same extractor + conflict rule.
+    contradictions = sess.get("contradictions") or None
     try:
         result = await scoring.score_transcript(
             transcript, sess.get("test_type", "general"),
-            nervousness_score=nervousness)
+            nervousness_score=nervousness,
+            background_summary=sess.get("background_summary"),
+            facts_mentioned=sess.get("facts_mentioned"),
+            visa_type=sess.get("visa_type"),
+            contradictions=contradictions)
     except Exception:
         # Scoring crashed — release the claim so a retry isn't stuck behind
         # a stale in_progress flag.
@@ -1246,6 +1335,13 @@ async def session_end(req: SessionEndReq, request: Request):
         breakdown={k: result[k] for k in ("clarity", "ties", "financial", "consistency", "composure")},
         weaknesses=result.get("weaknesses", []),
         feedback=result.get("feedback", ""),
+        # Persist corrections + nervousness: the cached-score path rebuilds
+        # the Results payload from the session doc, so anything not stored
+        # here (previously both) vanished on RETRY SCORING / re-fetch.
+        corrections=result.get("corrections", []),
+        nervousness_score=result.get("nervousness_score"),
+        nervousness_level=result.get("nervousness_level"),
+        contradictions=result.get("contradictions", []),
     )
     # Trial accounting: ONLY plan=free_trial marks the trial used.
     # free_mini is claimed atomically at /session/start (claim_free_mini),
@@ -1781,6 +1877,71 @@ async def feedback_list(request: Request, status: str | None = None):
     return {"ok": True, "feedback": db.list_feedback(status=status, limit=100)}
 
 
+# ---------- Admin dashboard (GET /admin/*) ----------
+# Same gate as GET /feedback/list: 404 when ADMIN_API_KEY is unset
+# (endpoint stays hidden), 401 on X-Admin-Key mismatch (constant-time
+# compare). Responses contain only allowlisted fields — never tokens,
+# secrets, or keys. All numbers come from Firestore via firestore_db —
+# never invented; an empty DB yields zeros / empty lists.
+
+def _require_admin(request: Request):
+    """Admin gate, same pattern as /feedback/list and /test-keys."""
+    expected = os.environ.get("ADMIN_API_KEY", "")
+    if not expected:
+        raise HTTPException(404, "Not found")
+    provided = request.headers.get("X-Admin-Key", "")
+    if not provided or not hmac.compare_digest(provided, expected):
+        raise HTTPException(401, "Invalid admin key")
+
+
+def _parse_admin_limit(raw: str | None, default: int) -> int:
+    """Parse ?limit=, clamped to 1..100. Non-integer -> 400."""
+    if raw is None:
+        return default
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        raise HTTPException(400, "limit must be an integer")
+    return max(1, min(100, value))
+
+
+@app.get("/admin/stats")
+async def admin_stats(request: Request):
+    """Dashboard counters from Firestore only (see db.get_admin_stats
+    for exact definitions). Empty DB -> all zeros, not errors."""
+    _require_admin(request)
+    return {"ok": True, **_db_or_503(db.get_admin_stats)}
+
+
+@app.get("/admin/users")
+async def admin_users(request: Request, limit: str | None = None,
+                      cursor: str | None = None):
+    """Paginated user list, newest first. ?limit= clamps to 1..100
+    (default 50). ?cursor= is the opaque next_cursor from the previous
+    page; malformed -> 400. Rows carry only allowlisted fields."""
+    _require_admin(request)
+    lim = _parse_admin_limit(limit, 50)
+    try:
+        page = _db_or_503(db.list_admin_users, limit=lim, cursor=cursor)
+    except ValueError:
+        raise HTTPException(400, "invalid cursor")
+    return {"ok": True, **page}
+
+
+@app.get("/admin/feedback")
+async def admin_feedback(request: Request, status: str | None = None,
+                         limit: str | None = None):
+    """Admin-gated feedback list — same data as GET /feedback/list
+    (newest first, reuses db.list_feedback), plus ?limit= (default 100,
+    clamped 1..100). ?status=new|read|fixed filters; omitted = all."""
+    _require_admin(request)
+    if status is not None and status not in ("new", "read", "fixed"):
+        raise HTTPException(400, "status must be one of: new, read, fixed")
+    lim = _parse_admin_limit(limit, 100)
+    return {"ok": True,
+            "feedback": _db_or_503(db.list_feedback, status=status, limit=lim)}
+
+
 # ---------- Feature 5: Daily Grilly Push (retention loop) ----------
 # Cron (Render cron job or external scheduler) hits this endpoint once a day.
 # It messages users who used their free trial but never bought Stars.
@@ -1919,6 +2080,20 @@ async def ws_voice(ws: WebSocket, session_id: str):
     # without accepting them; Starlette allows close() before accept().
     # Close codes: 4401 = missing/invalid credential, 4403 = session belongs
     # to another user, 4404 = unknown session / lookup failed.
+    #
+    # ORDERING (existence-leak fix, 2026-10-13): the credential is verified
+    # BEFORE any DB lookup, so an unauthenticated prober always gets 4401
+    # regardless of whether session_id exists — the old order (DB lookup
+    # first, 4404 for unknown) let garbage-token probes distinguish live
+    # session_ids (4401) from nonexistent ones (4404). 4404 is now
+    # reachable ONLY with an already-valid credential: a token minted for
+    # that session_id (proves prior authorized /session/start) or valid
+    # initData (proves a real Telegram identity). Residual: a valid-
+    # initData holder can still distinguish unknown (4404) from
+    # other-owner (4403); session_ids are 64-bit random (uuid4 hex[:16]),
+    # so guessing a live id is infeasible, and conflating the codes would
+    # mislead legitimate clients. A second benefit: invalid-credential
+    # probes never cost a Firestore read.
     params = ws.query_params
     token = (params.get("token") or "").strip()
     init_data = (params.get("initData") or "").strip()
@@ -1926,6 +2101,33 @@ async def ws_voice(ws: WebSocket, session_id: str):
         log.warning("ws_voice: rejected session %s — no token or initData", session_id)
         await ws.close(code=4401, reason="missing ws auth: token or initData required")
         return
+    # STEP 1 — verify the credential, before any session lookup.
+    # If ?token= is present it is authoritative. A bad token is rejected even
+    # when initData is also supplied (fail-closed: no silent downgrade to the
+    # weaker/fallback credential, and no oracle for which credential failed
+    # beyond the close code).
+    tok_uid: str | None = None
+    tg_uid: str | None = None
+    if token:
+        tok_uid = decode_session_token(token, session_id)
+        if tok_uid is None:
+            log.warning("ws_voice: rejected session %s — invalid/expired token", session_id)
+            await ws.close(code=4401, reason="invalid or expired session token")
+            return
+    else:
+        if not TELEGRAM_BOT_TOKEN:
+            log.error("ws_voice: initData auth impossible — TELEGRAM_BOT_TOKEN not configured")
+            await ws.close(code=4401, reason="telegram auth not configured")
+            return
+        try:
+            tg_user = verify_telegram_init_data(init_data, TELEGRAM_BOT_TOKEN)
+        except HTTPException:
+            log.warning("ws_voice: rejected session %s — invalid initData", session_id)
+            await ws.close(code=4401, reason="invalid initData")
+            return
+        tg_uid = str(tg_user.get("id"))
+    # STEP 2 — credential valid: now load the session. 4404 here reveals
+    # existence only to a caller who already proved a valid credential.
     try:
         sess = db.get_session(session_id)
     except Exception as e:
@@ -1941,28 +2143,16 @@ async def ws_voice(ws: WebSocket, session_id: str):
         log.warning("ws_voice: rejected session %s — no owner", session_id)
         await ws.close(code=4403, reason="session has no owner")
         return
-    # If ?token= is present it is authoritative. A bad token is rejected even
-    # when initData is also supplied (fail-closed: no silent downgrade to the
-    # weaker/fallback credential, and no oracle for which credential failed
-    # beyond the close code).
+    # STEP 3 — ownership: the verified credential's user must equal the
+    # session owner.
     if token:
-        if not verify_session_token(token, session_id, owner):
-            log.warning("ws_voice: rejected session %s — invalid/expired token", session_id)
-            await ws.close(code=4401, reason="invalid or expired session token")
+        if tok_uid != owner:
+            log.warning("ws_voice: rejected session %s — token user != owner", session_id)
+            await ws.close(code=4403, reason="session belongs to another user")
             return
         verified_user_id = owner
     else:
-        if not TELEGRAM_BOT_TOKEN:
-            log.error("ws_voice: initData auth impossible — TELEGRAM_BOT_TOKEN not configured")
-            await ws.close(code=4401, reason="telegram auth not configured")
-            return
-        try:
-            tg_user = verify_telegram_init_data(init_data, TELEGRAM_BOT_TOKEN)
-        except HTTPException:
-            log.warning("ws_voice: rejected session %s — invalid initData", session_id)
-            await ws.close(code=4401, reason="invalid initData")
-            return
-        if str(tg_user.get("id")) != owner:
+        if tg_uid != owner:
             log.warning("ws_voice: rejected session %s — initData user != owner", session_id)
             await ws.close(code=4403, reason="session belongs to another user")
             return

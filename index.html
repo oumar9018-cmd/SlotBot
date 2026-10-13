@@ -14,10 +14,12 @@
        wordmark, tagline, three dots). It HOLDS (no CSS auto-fade) until
        React's SplashScreen removes this node on mount — so on a slow
        bundle there is never a blank gap between boot fade and React
-       splash, and the two never stack. Fallback: the inline script
-       below removes it after 1600ms if React never mounts. Total
-       choreographed splash budget is 1400ms from boot T0 (the React
-       splash plays only the remaining budget after boot). */
+       splash, and the two never stack. Fallbacks (inline script below):
+       a 1600ms checkpoint that removes it only once React has mounted,
+       and a 15s hard cap that swaps in a load-error state if the bundle
+       never mounts. Total choreographed splash budget is 1400ms from
+       boot T0 (the React splash plays only the remaining budget after
+       boot). */
     html, body { background: #4C1D95; }
     body { margin: 0; }
     #boot-splash {
@@ -37,6 +39,12 @@
     .boot-sub { margin: 8px 0 0; font-family: system-ui, sans-serif; font-weight: 800; font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; color: #DDD6FE; }
     .boot-dots { display: flex; gap: 10px; margin-top: 24px; }
     .boot-dots i { width: 10px; height: 10px; border-radius: 9999px; background: #EDE9FE; display: block; }
+    /* Boot-load failure state (worker 4): swapped in by the inline script
+       below when the JS bundle fails/hangs — never a white page. */
+    .boot-error-title { margin-top: 18px; font-family: "Quicksand", system-ui, sans-serif; font-weight: 800; font-size: 24px; line-height: 1.25; color: #fff; }
+    .boot-error-text { margin: 10px 0 0; font-family: system-ui, sans-serif; font-weight: 600; font-size: 15px; line-height: 1.5; color: #EDE9FE; max-width: 320px; }
+    .boot-error-btn { margin-top: 22px; padding: 14px 28px; min-height: 52px; border: 0; border-radius: 9999px; background: #fff; color: #4C1D95; font-family: system-ui, sans-serif; font-weight: 800; font-size: 15px; cursor: pointer; }
+    .boot-error-link { display: block; margin-top: 14px; font-family: system-ui, sans-serif; font-weight: 700; font-size: 14px; color: #DDD6FE; }
   </style>
   <title>MockGrill — AI Visa Interview Coach</title>
   <meta name="description" content="MockGrill — a strict AI interview coach. Practice US visa, job and university interviews by voice with a brutal AI examiner who interrupts, pressures and scores you. Free 2-min trial inside Telegram." />
@@ -77,15 +85,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet" />
-  <script type="module" crossorigin src="./assets/index-C8rOcG3u.js"></script>
+  <script type="module" crossorigin src="./assets/index-BgWQfb4u.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/react-core-Baehr4Gm.js">
   <link rel="modulepreload" crossorigin href="./assets/react-dom-a-CLRV2aXt.js">
   <link rel="modulepreload" crossorigin href="./assets/react-dom-b-CyLymGSX.js">
-  <link rel="modulepreload" crossorigin href="./assets/motion-vendor-BxPH-uI2.js">
+  <link rel="modulepreload" crossorigin href="./assets/motion-vendor-CxTnz5QR.js">
   <link rel="modulepreload" crossorigin href="./assets/state-vendor-D-UHNNKl.js">
   <link rel="modulepreload" crossorigin href="./assets/tg-vendor-BcrdubQO.js">
-  <link rel="modulepreload" crossorigin href="./assets/components-B11qRRjE.js">
-  <link rel="stylesheet" crossorigin href="./assets/index-hbDPt7s6.css">
+  <link rel="modulepreload" crossorigin href="./assets/components-CIrM465Q.js">
+  <link rel="stylesheet" crossorigin href="./assets/index-DxdusA3y.css">
 </head>
 <body>
   <!-- SPLASH (worker 1/10): static pre-paint boot splash — see <style> above.
@@ -133,25 +141,91 @@
     </div>
   </div>
   <script>
-    // SPLASH: boot timestamp for the React splash budget. The boot node
-    // HOLDS until React's SplashScreen removes it on mount (no CSS
-    // auto-fade — that left a blank gap on slow bundles). Fallbacks:
-    // animationend (no-op now) + 1600ms removal if React never mounts.
-    // Theme-color restores to cream after the splash.
+    // SPLASH / BOOT FALLBACKS (worker 4 — timeouts / never-blank only).
+    // Boot timestamp for the React splash budget.
     window.__MG_BOOT_T0 = Date.now();
+    // Set to true by main.jsx the moment React starts rendering. The
+    // fallbacks below key off it so they can never kill a live app.
+    window.__MG_REACT_MOUNTED = false;
     (function () {
       var s = document.getElementById('boot-splash');
       if (!s) return;
-      var done = false;
-      function remove() { if (done) return; done = true; if (s.parentNode) s.parentNode.removeChild(s); }
-      s.addEventListener('animationend', remove);
-      setTimeout(remove, 1600);
+      var failed = false;
+      // Bundle-load failure UI: replaces the boot splash content with a
+      // visible error + reload (never a white page). The #boot-splash
+      // node itself is KEPT (same id) so React's SplashScreen can still
+      // remove it if the bundle mounts late — a late mount clears this
+      // error state instead of leaving it stuck.
+      function showBootError() {
+        if (failed) return;
+        failed = true;
+        try {
+          s.innerHTML = '<div class="boot-inner">'
+            + '<div class="boot-word">Mock<span>Grill</span></div>'
+            + '<div class="boot-error-title">Couldn\u2019t load the app</div>'
+            + '<p class="boot-error-text">The app files didn\u2019t finish loading. Check your connection and try again — your credits are safe.</p>'
+            + '<button type="button" class="boot-error-btn" onclick="window.location.reload()">RELOAD APP</button>'
+            + '<a class="boot-error-link" href="https://t.me/mockgrillbot">Open in Telegram</a>'
+            + '</div>';
+        } catch (e) { /* noop — never throw inside the fallback */ }
+      }
+      function removeBootSplash() {
+        if (s.parentNode) s.parentNode.removeChild(s);
+      }
+      // 1) Resource-load failure (bundle 404 / chunk 404): capture-phase
+      // error events fire on the failing <script>/<link> element. Only
+      // SAME-ORIGIN scripts count — a Telegram CDN / font failure must
+      // never nuke the app (the app degrades to WebLanding without them).
+      // If React already mounted, React owns the screen — ignore.
+      window.addEventListener('error', function (ev) {
+        if (window.__MG_REACT_MOUNTED) return;
+        var t = ev && ev.target;
+        if (t && t.tagName === 'SCRIPT' && t.src) {
+          try {
+            if (new URL(t.src, window.location.href).origin === window.location.origin) showBootError();
+          } catch (e) { /* unparsable src — ignore */ }
+        }
+      }, true);
+      // 2) Uncaught runtime error before React mounts (e.g. syntax error
+      // in the bundle): boot failed — show the error state instead of
+      // hanging on the splash. A late React mount still clears it.
+      window.onerror = function () {
+        if (!window.__MG_REACT_MOUNTED) showBootError();
+        return false; // let the error also reach the console
+      };
+      // 3) 1600ms checkpoint (was: unconditional removal — that left a
+      // BLANK GAP on slow 3G when the bundle had not arrived yet). Now
+      // it only removes the boot splash when React has actually mounted
+      // (SplashScreen normally removes it itself; this is the fallback
+      // if that removal failed). While the bundle is still loading the
+      // boot splash HOLDS — no blank gap. This timer targets
+      // #boot-splash ONLY; the React splash is a separate node
+      // (.splash-screen) that only React unmounts via onDone, so this
+      // fallback can never remove the React splash prematurely.
+      setTimeout(function () {
+        if (window.__MG_REACT_MOUNTED) removeBootSplash();
+      }, 1600);
+      // 4) Hard cap: if React still has not mounted after 15s the bundle
+      // is hung/failed (slow-3G loads finish well before this; the React
+      // splash's own 4s cap only starts AFTER mount). Show the error
+      // state — never hang on the splash forever.
+      setTimeout(function () {
+        if (!window.__MG_REACT_MOUNTED) showBootError();
+      }, 15000);
       setTimeout(function () {
         var m = document.querySelector('meta[name="theme-color"]');
         if (m) m.setAttribute('content', '#FFFBF5');
       }, 1500);
     })();
   </script>
+  <noscript>
+    <div style="position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;text-align:center;color:#fff;background:linear-gradient(165deg,#2E1065 0%,#4C1D95 38%,#6D28D9 68%,#7C3AED 100%);font-family:system-ui,sans-serif;padding:0 32px;">
+      <div>
+        <div style="font-weight:800;font-size:32px;">MockGrill</div>
+        <p style="font-weight:600;font-size:15px;line-height:1.5;color:#EDE9FE;max-width:320px;margin:12px auto 0;">This app needs JavaScript. Please enable JavaScript in your browser and reload.</p>
+      </div>
+    </div>
+  </noscript>
   <div id="root"></div>
 </body>
 </html>

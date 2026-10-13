@@ -1,1 +1,0 @@
-import{j as r}from"./react-core-Baehr4Gm.js";import t from"./Bundles-2zjKBhen.js";import"./components-NpN3RbaS.js";import"./motion-vendor-BxPH-uI2.js";import"./state-vendor-D-UHNNKl.js";import"./tg-vendor-BcrdubQO.js";function e(){return r.jsx(t,{})}export{e as default};
