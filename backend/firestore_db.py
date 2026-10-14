@@ -333,8 +333,6 @@ def grant_daily_trial(user_id: str) -> dict:
 
 
 def consume_trial_credit(user_id: str) -> bool:
-    """Spend today's trial grant (sets trial_credits=0). Returns True if a
-    credit was actually consumed."""
     uid = str(user_id)
     if not is_db_available():
         u = _mem_users.get(uid)
@@ -870,39 +868,26 @@ def mark_session_denied(session_id: str, reason: str):
 
 
 def get_daily_push_targets(limit: int = 100) -> list[dict]:
-    """Users for the daily Grilly push, trial-aware (daily trial model):
-    - Users with an ACTIVE trial who haven't claimed today's free interview
-      -> nudged with "your FREE interview today is waiting".
-    - Users whose trial expired and never paid -> the brutal-question nudge.
-    Returns [{telegram_id, first_name, trial_nudge:bool}]. Best-effort,
-    capped at limit."""
+    """Users for the daily Grilly push: trial used but never paid (no Stars purchase).
+    Returns [{telegram_id, first_name}]. Best-effort, capped at limit."""
     targets = []
     try:
         if not is_db_available():
             for uid, u in _mem_users.items():
-                if u.get("paid"):
-                    continue
-                st = trial_status(u)
-                if st["trial_available_today"] or st["trial_expired"]:
+                if u.get("free_trial_used") and not u.get("paid"):
                     targets.append({"telegram_id": str(uid),
-                                    "first_name": u.get("first_name", ""),
-                                    "trial_nudge": st["trial_available_today"]})
+                                    "first_name": u.get("first_name", "")})
                     if len(targets) >= limit:
                         break
             return targets
-        # Active-trial users first (they have a free interview waiting).
         q = (get_db().collection("users")
+             .where("free_trial_used", "==", True)
              .where("paid", "==", False)
-             .limit(limit * 2).stream())
+             .limit(limit).stream())
         for doc in q:
             d = doc.to_dict() or {}
-            st = trial_status(d)
-            if st["trial_available_today"] or st["trial_expired"]:
-                targets.append({"telegram_id": doc.id,
-                                "first_name": d.get("first_name", ""),
-                                "trial_nudge": st["trial_available_today"]})
-                if len(targets) >= limit:
-                    break
+            targets.append({"telegram_id": doc.id,
+                            "first_name": d.get("first_name", "")})
     except Exception as e:
         log.warning("get_daily_push_targets failed: %s", str(e)[:100])
     return targets
