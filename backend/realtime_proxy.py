@@ -1866,7 +1866,7 @@ async def groq_reply(history: list[dict], system_prompt: str) -> str:
 # re-speaks or cuts inside an already-played sentence.
 
 TTS_SENTENCE_GAP_BYTES = 5760  # 120ms of silence at 24kHz 16-bit mono
-TTS_QUESTION_GAP_BYTES = 11520  # 240ms — longer beat before a question
+TTS_QUESTION_GAP_BYTES = 5760   # 120ms — beat before a question (was 240ms; LATENCY 2026-10-14: 120ms still reads as a natural beat, saves 120ms/turn)
 
 
 def _tts_gap_before(next_sentence: str) -> int:

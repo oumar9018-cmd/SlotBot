@@ -29,31 +29,31 @@
        never mounts. Total choreographed splash budget is 1400ms from
        boot T0 (the React splash plays only the remaining budget after
        boot). */
-    html, body { background: #4C1D95; }
+    html, body { background: #FFFBF2; }
     body { margin: 0; }
     #boot-splash {
       position: fixed; inset: 0; z-index: 100;
       display: flex; align-items: center; justify-content: center;
-      overflow: hidden; text-align: center; color: #fff;
-      background: linear-gradient(165deg, #2E1065 0%, #4C1D95 38%, #6D28D9 68%, #7C3AED 100%);
+      overflow: hidden; text-align: center; color: #3A3350;
+      background: linear-gradient(165deg, #FFFBF2 0%, #FFF6EA 42%, #FFEEDD 72%, #FFE7D2 100%);
     }
-    .boot-glow { position: absolute; width: 240px; height: 240px; border-radius: 9999px; filter: blur(60px); opacity: 0.5; }
-    .boot-glow-pink { top: -70px; left: -70px; background: #F472B6; }
-    .boot-glow-sky { right: -80px; bottom: -60px; background: #38BDF8; }
+    .boot-glow { position: absolute; width: 240px; height: 240px; border-radius: 9999px; filter: blur(60px); opacity: 0.55; }
+    .boot-glow-pink { top: -70px; left: -70px; background: #F9A8D4; }
+    .boot-glow-sky { right: -80px; bottom: -60px; background: #7DD3FC; }
     .boot-inner { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; padding: 0 32px; }
-    .boot-grilly { filter: drop-shadow(0 18px 28px rgba(0, 0, 0, 0.35)); }
-    .boot-word { margin-top: 18px; font-family: "Quicksand", system-ui, sans-serif; font-weight: 800; font-size: 42px; line-height: 1.1; letter-spacing: -0.02em; color: #fff; }
-    .boot-word span { color: #FBCFE8; }
-    .boot-tag { margin: 10px 0 0; font-family: system-ui, sans-serif; font-weight: 700; font-size: 17px; line-height: 1.45; color: #EDE9FE; }
-    .boot-sub { margin: 8px 0 0; font-family: system-ui, sans-serif; font-weight: 800; font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; color: #DDD6FE; }
+    .boot-grilly { filter: drop-shadow(0 14px 24px rgba(180, 120, 80, 0.22)); background: #fff; border-radius: 9999px; padding: 14px; box-shadow: 0 0 0 6px rgba(255,255,255,0.85), 0 0 0 10px rgba(244,114,182,0.28); }
+    .boot-word { margin-top: 22px; font-family: "Quicksand", system-ui, sans-serif; font-weight: 800; font-size: 42px; line-height: 1.1; letter-spacing: -0.02em; color: #3A3350; }
+    .boot-word span { color: #EC4899; }
+    .boot-tag { margin: 10px 0 0; font-family: system-ui, sans-serif; font-weight: 700; font-size: 17px; line-height: 1.45; color: #5B5470; }
+    .boot-sub { margin: 8px 0 0; font-family: system-ui, sans-serif; font-weight: 800; font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; color: #9A93A8; }
     .boot-dots { display: flex; gap: 10px; margin-top: 24px; }
-    .boot-dots i { width: 10px; height: 10px; border-radius: 9999px; background: #EDE9FE; display: block; }
+    .boot-dots i { width: 10px; height: 10px; border-radius: 9999px; background: #EC4899; display: block; opacity: 0.7; }
     /* Boot-load failure state (worker 4): swapped in by the inline script
        below when the JS bundle fails/hangs — never a white page. */
-    .boot-error-title { margin-top: 18px; font-family: "Quicksand", system-ui, sans-serif; font-weight: 800; font-size: 24px; line-height: 1.25; color: #fff; }
-    .boot-error-text { margin: 10px 0 0; font-family: system-ui, sans-serif; font-weight: 600; font-size: 15px; line-height: 1.5; color: #EDE9FE; max-width: 320px; }
-    .boot-error-btn { margin-top: 22px; padding: 14px 28px; min-height: 52px; border: 0; border-radius: 9999px; background: #fff; color: #4C1D95; font-family: system-ui, sans-serif; font-weight: 800; font-size: 15px; cursor: pointer; }
-    .boot-error-link { display: block; margin-top: 14px; font-family: system-ui, sans-serif; font-weight: 700; font-size: 14px; color: #DDD6FE; }
+    .boot-error-title { margin-top: 18px; font-family: "Quicksand", system-ui, sans-serif; font-weight: 800; font-size: 24px; line-height: 1.25; color: #3A3350; }
+    .boot-error-text { margin: 10px 0 0; font-family: system-ui, sans-serif; font-weight: 600; font-size: 15px; line-height: 1.5; color: #5B5470; max-width: 320px; }
+    .boot-error-btn { margin-top: 22px; padding: 14px 28px; min-height: 52px; border: 0; border-radius: 9999px; background: #6D28D9; color: #fff; font-family: system-ui, sans-serif; font-weight: 800; font-size: 15px; cursor: pointer; }
+    .boot-error-link { display: block; margin-top: 14px; font-family: system-ui, sans-serif; font-weight: 700; font-size: 14px; color: #8B5CF6; }
   </style>
   <title>MockGrill — AI Visa Interview Coach</title>
   <meta name="description" content="MockGrill — a strict AI interview coach. Practice US visa, job and university interviews by voice with a brutal AI examiner who interrupts, pressures and scores you. Free 2-min trial inside Telegram." />
@@ -137,15 +137,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet" />
-  <script type="module" crossorigin src="./assets/index-pKKbLrLo.js"></script>
+  <script type="module" crossorigin src="./assets/index-BVVwJR_g.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/react-core-Baehr4Gm.js">
   <link rel="modulepreload" crossorigin href="./assets/react-dom-a-CLRV2aXt.js">
   <link rel="modulepreload" crossorigin href="./assets/react-dom-b-CyLymGSX.js">
   <link rel="modulepreload" crossorigin href="./assets/motion-vendor-CxTnz5QR.js">
   <link rel="modulepreload" crossorigin href="./assets/state-vendor-D-UHNNKl.js">
   <link rel="modulepreload" crossorigin href="./assets/tg-vendor-BcrdubQO.js">
-  <link rel="modulepreload" crossorigin href="./assets/components-BHXciBj9.js">
-  <link rel="stylesheet" crossorigin href="./assets/index-DSCouAbb.css">
+  <link rel="modulepreload" crossorigin href="./assets/components-FEDFwHpi.js">
+  <link rel="stylesheet" crossorigin href="./assets/index-DMpV_Gjn.css">
 </head>
 <body>
   <!-- SPLASH (worker 1/10): static pre-paint boot splash — see <style> above.

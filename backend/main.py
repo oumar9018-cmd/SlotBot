@@ -110,7 +110,7 @@ BUNDLES = {
 # Time limits (seconds)
 FREE_TRIAL_MAX_SEC = 120   # 2 min hard cutoff
 FREE_MINI_MAX_SEC = 120    # free_mini: same 2 min cap as the free trial
-PAID_MAX_SEC = 900         # 15 min
+PAID_MAX_SEC = 120          # 2 min — every grilling is 2 minutes, paid or free (brand promise)
 
 # CORS allowlist: comma-separated env, credentials OFF (the old "*" +
 # allow_credentials=True let any site read credentialed responses).
