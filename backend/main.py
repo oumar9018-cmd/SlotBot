@@ -1785,6 +1785,9 @@ WELCOME_KEYBOARD = {
     }]]
 }
 
+# Grilly mascot GIF shown with the /start welcome (same mascot as the app).
+WELCOME_GIF_URL = "https://oumar9018-cmd.github.io/SlotBot/grilly-hello.gif"
+
 
 @app.post("/payment/telegram-webhook")
 async def telegram_webhook(request: Request):
@@ -1873,11 +1876,23 @@ async def telegram_webhook(request: Request):
         chat_id = (msg.get("chat") or {}).get("id")
         welcome_sent = False
         try:
-            await tg_api("sendMessage", {
-                "chat_id": chat_id,
-                "text": WELCOME_TEXT,
-                "reply_markup": WELCOME_KEYBOARD,
-            })
+            # Grilly GIF + welcome caption (same mascot as the app).
+            # Falls back to plain text if the animation send fails, so
+            # the welcome never breaks.
+            try:
+                await tg_api("sendAnimation", {
+                    "chat_id": chat_id,
+                    "animation": WELCOME_GIF_URL,
+                    "caption": WELCOME_TEXT,
+                    "reply_markup": WELCOME_KEYBOARD,
+                })
+            except Exception:
+                log.warning("sendAnimation failed for chat %s, falling back to text", chat_id)
+                await tg_api("sendMessage", {
+                    "chat_id": chat_id,
+                    "text": WELCOME_TEXT,
+                    "reply_markup": WELCOME_KEYBOARD,
+                })
             welcome_sent = True
             log.info("sent /start welcome to chat %s", chat_id)
         except Exception:
