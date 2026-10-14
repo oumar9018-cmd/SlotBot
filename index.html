@@ -41,13 +41,24 @@
     .boot-glow-pink { top: -70px; left: -70px; background: #F9A8D4; }
     .boot-glow-sky { right: -80px; bottom: -60px; background: #7DD3FC; }
     .boot-inner { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; padding: 0 32px; }
-    .boot-grilly { filter: drop-shadow(0 14px 24px rgba(180, 120, 80, 0.22)); background: #fff; border-radius: 9999px; padding: 14px; box-shadow: 0 0 0 6px rgba(255,255,255,0.85), 0 0 0 10px rgba(244,114,182,0.28); }
-    .boot-word { margin-top: 22px; font-family: "Quicksand", system-ui, sans-serif; font-weight: 800; font-size: 42px; line-height: 1.1; letter-spacing: -0.02em; color: #3A3350; }
+    .boot-grilly { filter: drop-shadow(0 14px 24px rgba(180, 120, 80, 0.22)); background: #fff; border-radius: 9999px; padding: 14px; box-shadow: 0 0 0 6px rgba(255,255,255,0.85), 0 0 0 10px rgba(244,114,182,0.28); animation: bootPop 700ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+    @keyframes bootPop {
+      0% { opacity: 0; transform: translate3d(0, 40px, 0) scale(0.4) rotate(-8deg); }
+      55% { opacity: 1; transform: translate3d(0, -14px, 0) scale(1.12) rotate(3deg); }
+      75% { opacity: 1; transform: translate3d(0, 5px, 0) scale(0.96) rotate(-1deg); }
+      100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1) rotate(0deg); }
+    }
+    .boot-word { margin-top: 22px; font-family: "Quicksand", system-ui, sans-serif; font-weight: 800; font-size: 42px; line-height: 1.1; letter-spacing: -0.02em; color: #3A3350; animation: bootFadeUp 380ms cubic-bezier(0.22, 1, 0.36, 1) 150ms both; }
+    @keyframes bootFadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
     .boot-word span { color: #EC4899; }
-    .boot-tag { margin: 10px 0 0; font-family: system-ui, sans-serif; font-weight: 700; font-size: 17px; line-height: 1.45; color: #5B5470; }
-    .boot-sub { margin: 8px 0 0; font-family: system-ui, sans-serif; font-weight: 800; font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; color: #9A93A8; }
-    .boot-dots { display: flex; gap: 10px; margin-top: 24px; }
-    .boot-dots i { width: 10px; height: 10px; border-radius: 9999px; background: #EC4899; display: block; opacity: 0.7; }
+    .boot-tag { margin: 10px 0 0; font-family: system-ui, sans-serif; font-weight: 700; font-size: 17px; line-height: 1.45; color: #5B5470; animation: bootFadeUp 380ms cubic-bezier(0.22, 1, 0.36, 1) 350ms both; }
+    .boot-sub { margin: 8px 0 0; font-family: system-ui, sans-serif; font-weight: 800; font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; color: #9A93A8; animation: bootFadeUp 380ms cubic-bezier(0.22, 1, 0.36, 1) 450ms both; }
+    .boot-dots { display: flex; gap: 10px; margin-top: 24px; align-items: flex-end; height: 22px; animation: bootFadeUp 380ms cubic-bezier(0.22, 1, 0.36, 1) 550ms both; }
+    .boot-dots i { width: 12px; height: 12px; border-radius: 9999px; display: block; animation: bootDotBounce 0.9s ease-in-out infinite; }
+    .boot-dots i:nth-child(1) { background: #EC4899; }
+    .boot-dots i:nth-child(2) { background: #8B5CF6; animation-delay: 150ms; }
+    .boot-dots i:nth-child(3) { background: #38BDF8; animation-delay: 300ms; }
+    @keyframes bootDotBounce { 0%, 100% { transform: translateY(0) scale(1); opacity: 0.75; } 40% { transform: translateY(-10px) scale(1.12); opacity: 1; } }
     /* Boot-load failure state (worker 4): swapped in by the inline script
        below when the JS bundle fails/hangs — never a white page. */
     .boot-error-title { margin-top: 18px; font-family: "Quicksand", system-ui, sans-serif; font-weight: 800; font-size: 24px; line-height: 1.25; color: #3A3350; }
@@ -104,6 +115,12 @@
         var wa = window.Telegram && window.Telegram.WebApp
         if (wa && !window.__MG_TG_READY_SENT) {
           window.__MG_TG_READY_SENT = true
+          // SPLASH V3 (2026-10-14): paint the Telegram chrome in our
+          // cream theme ASAP — the native mini-app loader + header use
+          // this color, so the handoff from Telegram's dark loader to
+          // our cream splash is seamless instead of a dark flash.
+          try { wa.setBackgroundColor('#FFFBF2') } catch (e) {}
+          try { wa.setHeaderColor('#FFFBF2') } catch (e) {}
           wa.ready()
         }
       } catch (e) { /* never throw from the boot path */ }
@@ -137,15 +154,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet" />
-  <script type="module" crossorigin src="./assets/index-BdvD70X0.js"></script>
+  <script type="module" crossorigin src="./assets/index-fPIdCC_y.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/react-core-Baehr4Gm.js">
   <link rel="modulepreload" crossorigin href="./assets/react-dom-a-CLRV2aXt.js">
   <link rel="modulepreload" crossorigin href="./assets/react-dom-b-CyLymGSX.js">
   <link rel="modulepreload" crossorigin href="./assets/motion-vendor-CxTnz5QR.js">
   <link rel="modulepreload" crossorigin href="./assets/state-vendor-D-UHNNKl.js">
   <link rel="modulepreload" crossorigin href="./assets/tg-vendor-BcrdubQO.js">
-  <link rel="modulepreload" crossorigin href="./assets/components-CYjpU_dg.js">
-  <link rel="stylesheet" crossorigin href="./assets/index-CiRrMmCr.css">
+  <link rel="modulepreload" crossorigin href="./assets/components-C8NhXUZY.js">
+  <link rel="stylesheet" crossorigin href="./assets/index-CWY5Z0SV.css">
 </head>
 <body>
   <!-- SPLASH (worker 1/10): static pre-paint boot splash — see <style> above.
