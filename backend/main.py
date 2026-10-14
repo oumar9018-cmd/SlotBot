@@ -892,6 +892,13 @@ class TelegramAuthResp(BaseModel):
     trial_credits: int = 1
     trial_started_at: int = 0  # ms-epoch int, NOT a Timestamp
     credited_charges: list[str] = []
+    # Daily trial (1 free interview/day x 3 days). Frontend reads these.
+    trial_days_claimed: int = 0
+    trial_days_left: int = 3
+    trial_available_today: bool = False
+    trial_granted_today: bool = False
+    trial_expired: bool = False
+    trial_active: bool = True
 
 
 # ---------- Routes ----------
@@ -1036,6 +1043,11 @@ async def telegram_auth(req: TelegramAuthReq, request: Request):
         # trial_started_at anchored to created_at).
         user = db.ensure_credit_fields(telegram_id) or user
 
+    # Daily trial: grant today's free interview if due (idempotent per day).
+    _trial = db.grant_daily_trial(telegram_id)
+    # Refresh the user dict so the response carries the granted state.
+    user = db.get_user(telegram_id) or user
+
     return TelegramAuthResp(
         telegram_id=telegram_id,
         first_name=tg_user.get("first_name", ""),
@@ -1048,6 +1060,12 @@ async def telegram_auth(req: TelegramAuthReq, request: Request):
         trial_credits=int(user.get("trial_credits", 0) or 0),
         trial_started_at=int(user.get("trial_started_at", 0) or 0),
         credited_charges=list(user.get("credited_charges") or []),
+        trial_days_claimed=int(_trial.get("trial_days_claimed", 0) or 0),
+        trial_days_left=int(_trial.get("trial_days_left", 0) or 0),
+        trial_available_today=bool(_trial.get("trial_available_today")),
+        trial_granted_today=bool(_trial.get("trial_granted_today")),
+        trial_expired=bool(_trial.get("trial_expired")),
+        trial_active=bool(_trial.get("trial_active")),
     )
 
 
@@ -1274,32 +1292,24 @@ async def session_start(req: SessionStartReq, request: Request):
     consumed_credit = False
     claimed_mini = False
     if req.plan == "free_trial":
+        # Daily trial: 1 free interview/day x 3 days. Grant today's interview
+        # if due (idempotent — safe to call here even if auth already did).
         # FIX 25 guard (verified: already existed) — 402 with a
         # machine-readable code prefix; human text kept after the colon.
-        if user.get("free_trial_used"):
-            raise HTTPException(
-                402,
-                "TRIAL_ALREADY_USED: Free trial already used — upgrade to continue")
-        # FINAL BUG-SWEEP Patch B: enforce the 3-day trial window +
-        # trial_credits on the SERVER (the frontend peek enforced them
-        # locally, so a direct API call could start unlimited trials).
-        # trial_credits None = legacy user without the field: backfill
-        # semantics (0 if used else 1). trial_started_at <= 0 = unknown
-        # start: do NOT 402 on expiry (cannot prove expiry).
-        _trial_credits = user.get("trial_credits")
-        if _trial_credits is None:
-            _trial_credits = 0 if user.get("free_trial_used") else 1
-        if int(_trial_credits or 0) <= 0:
-            raise HTTPException(
-                402,
-                "TRIAL_ALREADY_USED: Free trial already used — upgrade to continue")
-        _trial_started = int(user.get("trial_started_at") or 0)
-        if _trial_started > 0:
-            _trial_age_ms = int(time.time() * 1000) - _trial_started
-            if _trial_age_ms > 3 * 24 * 60 * 60 * 1000:
+        _trial = db.grant_daily_trial(req.user_id)
+        # Refresh user so the credit check below sees the granted state.
+        user = db.get_user(req.user_id) or user
+        _trial_credits = int(user.get("trial_credits", 0) or 0)
+        if _trial_credits <= 0:
+            if _trial.get("trial_expired"):
                 raise HTTPException(
                     402,
-                    "TRIAL_EXPIRED: Free trial expired (3-day window) — upgrade to continue")
+                    "TRIAL_EXPIRED: Free trial over (3 daily interviews used) — "
+                    "upgrade to continue")
+            raise HTTPException(
+                402,
+                "TRIAL_USED_TODAY: Today's free interview already used — "
+                "come back tomorrow or upgrade to continue")
         max_dur = FREE_TRIAL_MAX_SEC
     elif req.plan == "free_mini":
         # Atomic claim BEFORE session creation. If the session create
@@ -1564,20 +1574,20 @@ async def session_end(req: SessionEndReq, request: Request):
         nervousness_level=result.get("nervousness_level"),
         contradictions=result.get("contradictions", []),
     )
-    # Trial accounting: ONLY plan=free_trial marks the trial used.
+    # Trial accounting: ONLY plan=free_trial consumes the daily trial grant.
     # free_mini is claimed atomically at /session/start (claim_free_mini),
-    # so ending a free_mini session must NEVER mark the trial used — the
+    # so ending a free_mini session must NEVER touch trial state — the
     # old conflation 402-looped every user whose first session was a mini.
     # Paid sessions touch no trial state.
-    # Trial accounting: ONLY plan=free_trial marks the trial used — and
-    # NEVER for a NO_ANSWERS non-event. A session where no answers were
-    # recorded tested nothing, so burning the user's one free trial for
-    # it would 402-block every retry after a silent/muted interview.
-    # (Paid NO_ANSWERS self-heals via the refund-on-abandon auto-clear;
-    # free_mini self-heals via the mini-claim release there. The trial
-    # flag is one-way, so it must not be set here for NO_ANSWERS.)
+    # Daily trial: consume TODAY's grant (trial_credits -> 0). Tomorrow's
+    # grant is issued by grant_daily_trial. NEVER for a NO_ANSWERS
+    # non-event: a session where no answers were recorded tested nothing,
+    # so burning today's free interview for it would block the user until
+    # tomorrow after a silent/muted interview. (Paid NO_ANSWERS self-heals
+    # via the refund-on-abandon auto-clear; free_mini self-heals via the
+    # mini-claim release.)
     if sess.get("plan") == "free_trial" and result.get("verdict") != "NO_ANSWERS":
-        db.mark_trial_used(sess["user_id"])
+        db.consume_trial_credit(sess["user_id"])
     log.info("session %s scored: %s (%s) nervousness=%d", req.session_id,
              result["total"], result["verdict"], nervousness)
     return {"session_id": req.session_id, **result, **_session_timer_fields(sess)}
@@ -2311,14 +2321,33 @@ async def notify_daily_grilly(req: DailyGrillyReq, request: Request):
                 skipped += 1
                 continue
             name = (t.get("first_name") or "candidate").split()[0]
-            text = (
-                f"🔥 Grilly is watching, {name}.\n\n"
-                f"Today's brutal question:\n\"{q}\"\n\n"
-                # FINAL BUG-SWEEP Patch C: the old copy promised a voice-note
-                # roast, but the webhook has NO voice handler — a false
-                # promise. Fixed copy only (no voice handler built).
-                "Tap below and practice properly — before it happens in your real interview."
-            )
+            if t.get("trial_nudge"):
+                # Daily trial: user has a FREE interview waiting today.
+                days_left = ""
+                try:
+                    _u = db.get_user(str(chat_id)) or {}
+                    _dl = int((_u.get("trial_days_claimed") is not None and
+                                (3 - int(_u.get("trial_days_claimed") or 0))) or 0)
+                    if _dl > 1:
+                        days_left = f" ({_dl - 1} more free day{'s' if _dl - 1 != 1 else ''} after this)"
+                    elif _dl == 1:
+                        days_left = " (last free day!)"
+                except Exception:
+                    pass
+                text = (
+                    f"🎁 {name}, your FREE interview today is waiting!{days_left}\n\n"
+                    f"Grilly has a brutal question ready:\n\"{q}\"\n\n"
+                    "Tap below — 2 minutes, zero mercy, before your real interview."
+                )
+            else:
+                text = (
+                    f"🔥 Grilly is watching, {name}.\n\n"
+                    f"Today's brutal question:\n\"{q}\"\n\n"
+                    # FINAL BUG-SWEEP Patch C: the old copy promised a voice-note
+                    # roast, but the webhook has NO voice handler — a false
+                    # promise. Fixed copy only (no voice handler built).
+                    "Tap below and practice properly — before it happens in your real interview."
+                )
             try:
                 await tg_api("sendMessage", {
                     "chat_id": chat_id,

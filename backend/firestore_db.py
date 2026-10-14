@@ -120,6 +120,11 @@ def create_user(user_id: str, affiliate_code: str | None = None,
         "interview_credits": 0,
         "trial_credits": 1,
         "trial_started_at": int(time.time() * 1000),
+        # Daily trial (1 free interview/day x 3 days): trial_grant_date is
+        # the UTC YYYY-MM-DD of the last daily grant; trial_days_claimed
+        # counts grants given (max 3). Day-1 grant happens at signup.
+        "trial_grant_date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+        "trial_days_claimed": 1,
         "credited_charges": [],
         "affiliate_code": affiliate_code,
         "created_at": _now(),
@@ -169,6 +174,10 @@ def ensure_credit_fields(user_id: str) -> dict | None:
             missing["trial_credits"] = 0 if u.get("free_trial_used") else 1
         if "trial_started_at" not in u:
             missing["trial_started_at"] = _trial_started_ms_from_created(u.get("created_at"))
+        if "trial_grant_date" not in u:
+            # Legacy: trial already used -> exhausted (3 claimed); else fresh.
+            missing["trial_grant_date"] = ""
+            missing["trial_days_claimed"] = 3 if u.get("free_trial_used") else 0
         if "credited_charges" not in u:
             missing["credited_charges"] = []
         u.update(missing)
@@ -186,6 +195,9 @@ def ensure_credit_fields(user_id: str) -> dict | None:
         missing["trial_credits"] = 0 if d.get("free_trial_used") else 1
     if "trial_started_at" not in d:
         missing["trial_started_at"] = _trial_started_ms_from_created(d.get("created_at"))
+    if "trial_grant_date" not in d:
+        missing["trial_grant_date"] = ""
+        missing["trial_days_claimed"] = 3 if d.get("free_trial_used") else 0
     if "credited_charges" not in d:
         missing["credited_charges"] = []
     if missing:
@@ -216,6 +228,140 @@ def mark_trial_used(user_id: str):
         return
     get_db().collection("users").document(str(user_id)).update(
         {"free_trial_used": True})
+
+
+# ---------- daily trial: 1 free interview / day x 3 days ----------
+
+TRIAL_MAX_DAYS = 3
+# Generous outer window: a user who skips days still gets their 3 grants
+# within 7 days of signup; after that the trial is over.
+TRIAL_WINDOW_DAYS = 7
+
+
+def _utc_today_str() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+
+def trial_status(user: dict) -> dict:
+    """Read-only daily-trial status for API responses.
+
+    Returns trial_days_claimed (0-3), trial_days_left, trial_available_today
+    (unspent grant in hand), trial_granted_today, trial_expired, trial_active.
+    """
+    u = user or {}
+    claimed = int(u.get("trial_days_claimed", 0) or 0)
+    grant_date = str(u.get("trial_grant_date") or "")
+    today = _utc_today_str()
+    started = int(u.get("trial_started_at") or 0)
+    age_days = ((time.time() * 1000 - started) / 86400000) if started > 0 else 0
+    expired = claimed >= TRIAL_MAX_DAYS or age_days > TRIAL_WINDOW_DAYS
+    available = int(u.get("trial_credits", 0) or 0) > 0 and not expired
+    return {
+        "trial_days_claimed": claimed,
+        "trial_days_left": max(0, TRIAL_MAX_DAYS - claimed),
+        "trial_available_today": available,
+        "trial_granted_today": grant_date == today,
+        "trial_expired": expired,
+        "trial_active": not expired and not bool(u.get("paid")),
+    }
+
+
+def grant_daily_trial(user_id: str) -> dict:
+    """Grant today's free trial interview if due. Idempotent per UTC day.
+
+    Rules: max 3 grants; one grant per UTC day (no stacking — a missed day
+    is lost); grants only within TRIAL_WINDOW_DAYS of trial_started_at;
+    paid users never get trial grants. Returns trial_status() merged with
+    granted:bool.
+    """
+    uid = str(user_id)
+    today = _utc_today_str()
+    if not is_db_available():
+        u = _mem_users.get(uid)
+        if u is None:
+            return {"granted": False, **trial_status({})}
+        if u.get("paid"):
+            return {"granted": False, **trial_status(u)}
+        claimed = int(u.get("trial_days_claimed", 0) or 0)
+        if u.get("trial_grant_date") == today or claimed >= TRIAL_MAX_DAYS:
+            return {"granted": False, **trial_status(u)}
+        started = int(u.get("trial_started_at") or 0)
+        if started > 0 and (time.time() * 1000 - started) > TRIAL_WINDOW_DAYS * 86400000:
+            return {"granted": False, **trial_status(u)}
+        u["trial_credits"] = 1
+        u["trial_grant_date"] = today
+        u["trial_days_claimed"] = claimed + 1
+        st = trial_status(u)
+        st["granted"] = True
+        return st
+    db = get_db()
+    uref = db.collection("users").document(uid)
+
+    from google.cloud import firestore as _fs
+
+    @_fs.transactional
+    def _txn(transaction):
+        snap = uref.get(transaction=transaction)
+        if not snap.exists:
+            return {"granted": False, **trial_status({})}
+        u = snap.to_dict() or {}
+        if u.get("paid"):
+            return {"granted": False, **trial_status(u)}
+        claimed = int(u.get("trial_days_claimed", 0) or 0)
+        if u.get("trial_grant_date") == today or claimed >= TRIAL_MAX_DAYS:
+            return {"granted": False, **trial_status(u)}
+        started = int(u.get("trial_started_at") or 0)
+        if started > 0 and (time.time() * 1000 - started) > TRIAL_WINDOW_DAYS * 86400000:
+            return {"granted": False, **trial_status(u)}
+        transaction.update(uref, {
+            "trial_credits": 1,
+            "trial_grant_date": today,
+            "trial_days_claimed": claimed + 1,
+        })
+        u["trial_credits"] = 1
+        u["trial_grant_date"] = today
+        u["trial_days_claimed"] = claimed + 1
+        st = trial_status(u)
+        st["granted"] = True
+        return st
+
+    try:
+        return _txn(db.transaction())
+    except Exception:
+        log.exception("grant_daily_trial failed for %s", uid)
+        return {"granted": False, **trial_status(get_user(uid) or {})}
+
+
+def consume_trial_credit(user_id: str) -> bool:
+    """Spend today's trial grant (sets trial_credits=0). Returns True if a
+    credit was actually consumed."""
+    uid = str(user_id)
+    if not is_db_available():
+        u = _mem_users.get(uid)
+        if u and int(u.get("trial_credits", 0) or 0) > 0:
+            u["trial_credits"] = 0
+            return True
+        return False
+    db = get_db()
+    uref = db.collection("users").document(uid)
+
+    from google.cloud import firestore as _fs
+
+    @_fs.transactional
+    def _txn(transaction):
+        snap = uref.get(transaction=transaction)
+        if not snap.exists:
+            return False
+        if int((snap.to_dict() or {}).get("trial_credits", 0) or 0) <= 0:
+            return False
+        transaction.update(uref, {"trial_credits": 0})
+        return True
+
+    try:
+        return bool(_txn(db.transaction()))
+    except Exception:
+        log.exception("consume_trial_credit failed for %s", uid)
+        return False
 
 
 # ---------- free_mini claim (atomic) ----------
@@ -724,26 +870,39 @@ def mark_session_denied(session_id: str, reason: str):
 
 
 def get_daily_push_targets(limit: int = 100) -> list[dict]:
-    """Users for the daily Grilly push: trial used but never paid (no Stars purchase).
-    Returns [{telegram_id, first_name}]. Best-effort, capped at limit."""
+    """Users for the daily Grilly push, trial-aware (daily trial model):
+    - Users with an ACTIVE trial who haven't claimed today's free interview
+      -> nudged with "your FREE interview today is waiting".
+    - Users whose trial expired and never paid -> the brutal-question nudge.
+    Returns [{telegram_id, first_name, trial_nudge:bool}]. Best-effort,
+    capped at limit."""
     targets = []
     try:
         if not is_db_available():
             for uid, u in _mem_users.items():
-                if u.get("free_trial_used") and not u.get("paid"):
+                if u.get("paid"):
+                    continue
+                st = trial_status(u)
+                if st["trial_available_today"] or st["trial_expired"]:
                     targets.append({"telegram_id": str(uid),
-                                    "first_name": u.get("first_name", "")})
+                                    "first_name": u.get("first_name", ""),
+                                    "trial_nudge": st["trial_available_today"]})
                     if len(targets) >= limit:
                         break
             return targets
+        # Active-trial users first (they have a free interview waiting).
         q = (get_db().collection("users")
-             .where("free_trial_used", "==", True)
              .where("paid", "==", False)
-             .limit(limit).stream())
+             .limit(limit * 2).stream())
         for doc in q:
             d = doc.to_dict() or {}
-            targets.append({"telegram_id": doc.id,
-                            "first_name": d.get("first_name", "")})
+            st = trial_status(d)
+            if st["trial_available_today"] or st["trial_expired"]:
+                targets.append({"telegram_id": doc.id,
+                                "first_name": d.get("first_name", ""),
+                                "trial_nudge": st["trial_available_today"]})
+                if len(targets) >= limit:
+                    break
     except Exception as e:
         log.warning("get_daily_push_targets failed: %s", str(e)[:100])
     return targets
