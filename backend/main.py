@@ -1786,7 +1786,7 @@ WELCOME_KEYBOARD = {
 }
 
 # Grilly mascot GIF shown with the /start welcome (same mascot as the app).
-WELCOME_GIF_URL = "https://oumar9018-cmd.github.io/SlotBot/grilly-hello.gif"
+WELCOME_GIF_URL = "https://oumar9018-cmd.github.io/SlotBot/grilly-hello-v2.gif"
 
 
 @app.post("/payment/telegram-webhook")
