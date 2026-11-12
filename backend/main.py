@@ -117,7 +117,7 @@ PAID_MAX_SEC = 120          # 2 min — every grilling is 2 minutes, paid or fre
 CORS_ALLOWED_ORIGINS = [
     o.strip() for o in os.environ.get(
         "CORS_ALLOWED_ORIGINS",
-        "https://oumar9018-cmd.github.io,https://web.telegram.org,https://telegram.org"
+        "https://mockgrill.qd.je,https://oumar9018-cmd.github.io,https://web.telegram.org,https://telegram.org"
     ).split(",") if o.strip()
 ]
 
@@ -1796,12 +1796,12 @@ WELCOME_TEXT = (
 WELCOME_KEYBOARD = {
     "inline_keyboard": [[{
         "text": "🎤 Start Free Test",
-        "web_app": {"url": "https://oumar9018-cmd.github.io/SlotBot/"},
+        "web_app": {"url": "https://mockgrill.qd.je/"},
     }]]
 }
 
 # Grilly mascot GIF shown with the /start welcome (same mascot as the app).
-WELCOME_GIF_URL = "https://oumar9018-cmd.github.io/SlotBot/grilly-hello-v2.gif"
+WELCOME_GIF_URL = "https://mockgrill.qd.je/grilly-hello-v2.gif"
 
 
 @app.post("/payment/telegram-webhook")
@@ -2273,7 +2273,7 @@ DAILY_GRILLY_QUESTIONS = [
 DAILY_GRILLY_KEYBOARD = {
     "inline_keyboard": [[{
         "text": "🎤 Practice Properly — Open MockGrill",
-        "web_app": {"url": "https://oumar9018-cmd.github.io/SlotBot/"},
+        "web_app": {"url": "https://mockgrill.qd.je/"},
     }]]
 }
 
